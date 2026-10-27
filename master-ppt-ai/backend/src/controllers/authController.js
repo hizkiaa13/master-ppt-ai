@@ -34,7 +34,7 @@ async function register(req, res) {
   try {
     // Check if email already exists
     const { data: existingUser } = await supabase
-      .from('users')
+      .from('ppt_users')
       .select('id')
       .eq('email', email)
       .single();
@@ -54,7 +54,7 @@ async function register(req, res) {
     
     // Insert user
     const { error: insertError } = await supabase
-      .from('users')
+      .from('ppt_users')
       .insert({
         id: userId,
         email,
@@ -99,7 +99,7 @@ async function login(req, res) {
   
   try {
     const { data: user, error } = await supabase
-      .from('users')
+      .from('ppt_users')
       .select('*')
       .eq('email', email)
       .single();
@@ -155,7 +155,7 @@ async function logout(req, res) {
 async function getMe(req, res) {
   try {
     const { data: user, error } = await supabase
-      .from('users')
+      .from('ppt_users')
       .select('id, email, name, created_at, updated_at')
       .eq('id', req.userId)
       .single();

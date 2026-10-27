@@ -21,7 +21,7 @@ const changePasswordValidation = [
 async function getProfile(req, res) {
   try {
     const { data: user, error } = await supabase
-      .from('users')
+      .from('ppt_users')
       .select('id, email, name, created_at, updated_at')
       .eq('id', req.userId)
       .single();
@@ -73,14 +73,14 @@ async function updateProfile(req, res) {
   
   try {
     const { error: updateError } = await supabase
-      .from('users')
+      .from('ppt_users')
       .update({ name, updated_at: new Date().toISOString() })
       .eq('id', req.userId);
 
     if (updateError) throw updateError;
     
     const { data: updatedUser } = await supabase
-      .from('users')
+      .from('ppt_users')
       .select('id, email, name, updated_at')
       .eq('id', req.userId)
       .single();
@@ -101,7 +101,7 @@ async function changePassword(req, res) {
   
   try {
     const { data: user, error } = await supabase
-      .from('users')
+      .from('ppt_users')
       .select('*')
       .eq('id', req.userId)
       .single();
@@ -118,7 +118,7 @@ async function changePassword(req, res) {
     const newPasswordHash = await bcrypt.hash(newPassword, 12);
 
     const { error: updateError } = await supabase
-      .from('users')
+      .from('ppt_users')
       .update({ password_hash: newPasswordHash, updated_at: new Date().toISOString() })
       .eq('id', req.userId);
 

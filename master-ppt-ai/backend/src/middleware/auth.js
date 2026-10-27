@@ -17,7 +17,7 @@ async function authMiddleware(req, res, next) {
     
     // Check if user still exists in database
     const { data: user, error } = await supabase
-      .from('users')
+      .from('ppt_users')
       .select('id, email, name')
       .eq('id', decoded.userId)
       .single();

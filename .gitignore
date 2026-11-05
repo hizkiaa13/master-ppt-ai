@@ -49,3 +49,6 @@ yarn-error.log*
 
 # Large binary files
 *.pdf
+
+.vercel
+.env*

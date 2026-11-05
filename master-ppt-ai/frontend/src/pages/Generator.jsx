@@ -312,7 +312,14 @@ export default function Generator() {
           layouts: response.data.designRecommendation?.layouts,
         });
 
-        toast.success(`Berhasil membuat ${mappedSlides.length} slide dengan AI!`);
+        if (response.isFallback) {
+          toast('⚠️ Server AI Gemini sedang sibuk. Menggunakan template layout cadangan. Anda dapat klik "Generate Ulang" kapan saja untuk hasil AI penuh.', {
+            icon: '⚠️',
+            duration: 6000,
+          });
+        } else {
+          toast.success(`Berhasil membuat ${mappedSlides.length} slide dengan AI!`);
+        }
 
         // Auto-save draft at Step 5
         if (formData.customTitle.trim()) {

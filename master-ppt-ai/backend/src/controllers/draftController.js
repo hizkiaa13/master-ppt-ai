@@ -135,7 +135,7 @@ async function createDraft(req, res) {
 async function getDrafts(req, res) {
   const userId = req.userId;
   try {
-    const { data: rows, error } = await supabase
+    let { data: rows, error } = await supabase
       .from('drafts')
       .select(`
         *,
@@ -144,6 +144,17 @@ async function getDrafts(req, res) {
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
       .limit(20);
+
+    if (error && error.code === 'PGRST200') {
+      const fallback = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(20);
+      rows = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) throw error;
 
@@ -172,7 +183,7 @@ async function getDraftById(req, res) {
   const userId = req.userId;
   const { id } = req.params;
   try {
-    const { data: row, error } = await supabase
+    let { data: row, error } = await supabase
       .from('drafts')
       .select(`
         *,
@@ -181,6 +192,17 @@ async function getDraftById(req, res) {
       .eq('id', id)
       .eq('user_id', userId)
       .single();
+
+    if (error && error.code === 'PGRST200') {
+      const fallback = await supabase
+        .from('drafts')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+      row = fallback.data;
+      error = fallback.error;
+    }
 
     if (error || !row) {
       return res.status(404).json({ success: false, message: 'Draft tidak ditemukan.' });

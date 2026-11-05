@@ -1,3 +1,7 @@
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config();
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const aiEngine = require("../utils/aiEngine");
 const { buildMasterPrompt } = require("../prompts/masterPrompt");
@@ -228,79 +232,105 @@ async function generateCopywriting(input) {
     customColors,
   });
 
-  const modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+  const candidateModels = [
+    process.env.GEMINI_MODEL,
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-lite-latest",
+    "gemini-3.8-flash",
+  ].filter((m) => m && typeof m === "string" && m.trim().length > 0);
+
+  // Filter unique model names
+  const modelsToTry = [...new Set(candidateModels)];
 
   let lastError = null;
 
-  // Attempt up to 2 times (initial + 1 retry for malformed JSON)
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          temperature: 0.7,
-          responseMimeType: "application/json",
-        },
-      });
+  for (const modelName of modelsToTry) {
+    // Attempt up to 2 times per model
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            temperature: 0.7,
+            responseMimeType: "application/json",
+          },
+        });
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
 
-      const parsed = cleanAndParseJSON(text);
+        const parsed = cleanAndParseJSON(text);
 
-      // Validate and slice slides if more than requested
-      if (parsed.slides && Array.isArray(parsed.slides)) {
-        if (parsed.slides.length > count) {
-          parsed.slides = parsed.slides.slice(0, count);
+        // Validate and slice slides if more than requested
+        if (parsed.slides && Array.isArray(parsed.slides)) {
+          if (parsed.slides.length > count) {
+            parsed.slides = parsed.slides.slice(0, count);
+          }
+        } else {
+          throw new Error("Format respons AI tidak memiliki array 'slides' yang valid");
         }
-      } else {
-        throw new Error("Format respons AI tidak memiliki array 'slides' yang valid");
-      }
 
-      // Normalisasi setiap slide dengan Auto Layout Design System
-      parsed.slides = normalizeSlideDeckLayouts(parsed.slides, count);
+        // Normalisasi setiap slide dengan Auto Layout Design System
+        parsed.slides = normalizeSlideDeckLayouts(parsed.slides, count);
 
-      // Sinkronkan designRecommendation.layouts
-      parsed.designRecommendation = parsed.designRecommendation || {};
-      parsed.designRecommendation.layouts = parsed.slides.map((s) => ({
-        slideNumber: s.slideNumber,
-        slideType: s.slideType,
-        layout: s.layoutId,
-        layoutId: s.layoutId,
-        pointCount: s.pointCount,
-      }));
+        // Sinkronkan designRecommendation.layouts
+        parsed.designRecommendation = parsed.designRecommendation || {};
+        parsed.designRecommendation.layouts = parsed.slides.map((s) => ({
+          slideNumber: s.slideNumber,
+          slideType: s.slideType,
+          layout: s.layoutId,
+          layoutId: s.layoutId,
+          pointCount: s.pointCount,
+        }));
 
-      // Ensure custom colors are applied if selected
-      if (customColors?.primary && parsed.designRecommendation?.colors) {
-        parsed.designRecommendation.colors.primary = customColors.primary;
-        if (customColors.secondary) parsed.designRecommendation.colors.secondary = customColors.secondary;
-        if (customColors.accent) parsed.designRecommendation.colors.accent = customColors.accent;
-      }
+        // Ensure custom colors are applied if selected
+        if (customColors?.primary && parsed.designRecommendation?.colors) {
+          parsed.designRecommendation.colors.primary = customColors.primary;
+          if (customColors.secondary) parsed.designRecommendation.colors.secondary = customColors.secondary;
+          if (customColors.accent) parsed.designRecommendation.colors.accent = customColors.accent;
+        }
 
-      return {
-        success: true,
-        data: parsed,
-      };
-    } catch (error) {
-      lastError = error;
-      console.warn(`Gemini AI percobaan ke-${attempt} gagal:`, error.message);
-      if (attempt < 2) {
-        // Wait 500ms before retry
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        console.log(`✅ Berhasil menghasilkan konten slide menggunakan Gemini (${modelName})`);
+
+        return {
+          success: true,
+          data: parsed,
+          modelUsed: modelName,
+          isFallback: false,
+        };
+      } catch (error) {
+        lastError = error;
+        console.warn(`Gemini AI (${modelName}) percobaan ke-${attempt} gagal:`, error.message);
+
+        // Model not found or deprecated - don't retry same model
+        if (error.message?.includes('404') || error.message?.includes('not found') || error.message?.includes('no longer available')) {
+          break;
+        }
+
+        if (attempt < 2) {
+          // Wait 600ms before retry
+          await new Promise((resolve) => setTimeout(resolve, 600));
+        }
       }
     }
   }
 
-  console.error("Semua percobaan Gemini AI gagal, beralih ke rule-based fallback:", lastError?.message);
-  return getRuleBasedFallback({
+  console.error("Semua percobaan model Gemini AI gagal, beralih ke rule-based fallback:", lastError?.message);
+  const fallbackResult = getRuleBasedFallback({
     title,
     theme,
     description,
     slideCount: count,
     customColors,
   });
+
+  return {
+    ...fallbackResult,
+    fallbackReason: lastError?.message || "Layanan AI Gemini sedang tidak dapat dijangkau",
+  };
 }
 
 module.exports = {

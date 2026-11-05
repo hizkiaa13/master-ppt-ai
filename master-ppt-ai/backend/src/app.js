@@ -1,3 +1,5 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 require('dotenv').config();
 
 const express = require('express');
@@ -14,6 +16,9 @@ const draftRoutes = require('./routes/draft');
 const aiRoutes = require('./routes/ai');
 
 const app = express();
+
+// Trust reverse proxy (Vercel / AWS / Nginx) so express-rate-limit uses client IP
+app.set('trust proxy', 1);
 
 // ─── Security Middleware ───────────────────────────────────
 app.use(helmet({

@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "cd master-ppt-ai/frontend && npm install && npm run build",
   "outputDirectory": "master-ppt-ai/frontend/dist",
-  "installCommand": "npm install && cd master-ppt-ai/backend && npm install && cd ../../master-ppt-ai/frontend && npm install",
+  "installCommand": "npm install --legacy-peer-deps && cd master-ppt-ai/backend && npm install --legacy-peer-deps && cd ../../master-ppt-ai/frontend && npm install --legacy-peer-deps",
   "framework": null,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },

@@ -234,13 +234,13 @@ async function generateCopywriting(input) {
 
   const configuredModel = process.env.GEMINI_MODEL;
   const candidateModels = [
-    // Prioritaskan model stable non-lite terlebih dahulu untuk menghindari lonjakan 503
+    "gemini-3.6-flash",
     configuredModel && !configuredModel.includes("-lite") ? configuredModel : null,
     "gemini-3.5-flash",
     "gemini-flash-lite-latest",
+    "gemini-3.8-flash",
     configuredModel && configuredModel.includes("-lite") ? configuredModel : null,
     "gemini-3.5-flash-lite",
-    "gemini-3.8-flash",
   ].filter((m) => m && typeof m === "string" && m.trim().length > 0);
 
   // Filter unique model names

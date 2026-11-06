@@ -16,6 +16,12 @@ const {
   getRandomPairing,
   isValidFont,
 } = require("../utils/textToolkit");
+const {
+  indonesia,
+  english,
+  getAllBusinessNames,
+  getAllPersonNames,
+} = require("../utils/placeholderToolkit");
 
 /**
  * Clean and parse JSON response from Gemini
@@ -34,6 +40,135 @@ function cleanAndParseJSON(text) {
     cleaned = cleaned.slice(firstBrace, lastBrace + 1);
   }
   return JSON.parse(cleaned);
+}
+
+/**
+ * Validasi dan Sanitisasi Placeholder Canva Ipsum Toolkit
+ * Memastikan tidak ada nama, alamat, nomor telepon, nomor rekening, email, atau website fiktif yang dikarang
+ */
+function validatePlaceholders(aiResult, outputLanguage = 'id') {
+  const isEn = outputLanguage === 'en';
+  const toolkit = isEn ? english : indonesia;
+  const officialPhone = isEn ? toolkit.kontak.phoneNumber : toolkit.kontak.nomorTelepon;
+  const officialMobile = isEn ? toolkit.kontak.mobileNumber : toolkit.kontak.nomorPonsel;
+  const officialWebsite = isEn ? toolkit.kontak.website : toolkit.kontak.website;
+  const officialEmail = isEn ? toolkit.kontak.email : toolkit.kontak.email;
+  const officialSocial = isEn ? toolkit.kontak.socialMedia : toolkit.kontak.mediaSosial;
+  const officialAddress = isEn ? toolkit.alamatPendek : toolkit.alamatFisik;
+  const officialAccount = isEn ? toolkit.nomorAman.nomorAkun12Digit : toolkit.nomorAman.nomorRekening;
+
+  let violationsCount = 0;
+
+  if (!aiResult || !Array.isArray(aiResult.slides)) {
+    return { isValid: true, violationsCount: 0, result: aiResult };
+  }
+
+  aiResult.slides.forEach((slide) => {
+    // 1. Sanitize title & subtitle
+    ['title', 'subtitle'].forEach((field) => {
+      if (typeof slide[field] === 'string' && slide[field]) {
+        const addressPattern = /(jl\.|jalan\s+|street\s+|st\.,\s*|avenue|blvd)[^,\n\.\;]*/gi;
+        if (addressPattern.test(slide[field]) && !slide[field].includes('Mangga Muda 17A') && !slide[field].includes('123 Anywhere St')) {
+          slide[field] = slide[field].replace(addressPattern, officialAddress);
+          violationsCount++;
+        }
+      }
+    });
+
+    // 2. Sanitize content array
+    if (Array.isArray(slide.content)) {
+      slide.content = slide.content.map((item) => {
+        if (typeof item !== 'string') return item;
+        let text = item;
+
+        // A. Cek & Ganti Alamat Fisik
+        const addressPattern = /(jl\.|jalan\s+|street\s+|st\.,\s*|avenue|blvd)[^,\n\.\;]*/gi;
+        if (addressPattern.test(text) && !text.includes('Mangga Muda 17A') && !text.includes('123 Anywhere St')) {
+          text = text.replace(addressPattern, officialAddress);
+          violationsCount++;
+        }
+
+        // B. Cek & Ganti Email
+        const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+        if (emailPattern.test(text)) {
+          text = text.replace(emailPattern, (matched) => {
+            if (matched.toLowerCase() === officialEmail.toLowerCase()) return matched;
+            violationsCount++;
+            return officialEmail;
+          });
+        }
+
+        // C. Cek & Ganti Website / Domain
+        const urlPattern = /(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.(com|co\.id|org|net|id|io)\b(?!\/reallygreatsite|\/situssupercanggih)/gi;
+        if (urlPattern.test(text)) {
+          text = text.replace(urlPattern, (matched) => {
+            if (matched.includes('situssupercanggih') || matched.includes('reallygreatsite')) return matched;
+            violationsCount++;
+            return officialWebsite;
+          });
+        }
+
+        // D. Cek & Ganti Nomor Telepon/Ponsel
+        const phonePattern = /(?:\+?62|08|021|\+?1-?)[0-9\s-]{8,16}/g;
+        if (phonePattern.test(text)) {
+          text = text.replace(phonePattern, (matched) => {
+            if (matched.trim() === officialPhone || matched.trim() === officialMobile) return matched;
+            violationsCount++;
+            return officialPhone;
+          });
+        }
+
+        // E. Cek & Ganti Nomor Rekening / Akun
+        const accPattern = /(rekening|no\. rek|account\s*(?:no|number)?)\s*[:\-]?\s*(\d+)/gi;
+        if (accPattern.test(text)) {
+          text = text.replace(accPattern, (m, p1, p2) => {
+            if (p2 === officialAccount) return m;
+            violationsCount++;
+            return `${p1}: ${officialAccount}`;
+          });
+        }
+
+        // F. Cek & Ganti Handle Medsos
+        const socialPattern = /@([a-zA-Z0-9_]{4,})/g;
+        if (socialPattern.test(text)) {
+          text = text.replace(socialPattern, (matched) => {
+            if (matched === officialSocial) return matched;
+            violationsCount++;
+            return officialSocial;
+          });
+        }
+
+        return text;
+      });
+    }
+
+    // 3. Khusus slide closing / penutup: pastikan data kontak konsisten dari toolkit
+    if (slide.slideType === 'closing' || slide.layoutId === 'cover-back' || slide.layoutId === 'cover-back-statement') {
+      if (Array.isArray(slide.content) && slide.content.length > 0) {
+        slide.content = slide.content.map(line => {
+          if (line.toLowerCase().includes('email') || line.includes('@')) {
+            return `Email: ${officialEmail}`;
+          }
+          if (line.toLowerCase().includes('web') || line.includes('www.')) {
+            return `Website: ${officialWebsite}`;
+          }
+          if (line.toLowerCase().includes('telepon') || line.toLowerCase().includes('phone') || line.toLowerCase().includes('telp')) {
+            return isEn ? `Phone: ${officialPhone}` : `Telepon: ${officialPhone}`;
+          }
+          if (line.toLowerCase().includes('alamat') || line.toLowerCase().includes('address') || line.toLowerCase().includes('jl.')) {
+            return isEn ? `Address: ${officialAddress}` : `Alamat: ${officialAddress}`;
+          }
+          return line;
+        });
+      }
+    }
+  });
+
+  return {
+    isValid: violationsCount === 0,
+    violationsCount,
+    sanitizedResult: aiResult,
+  };
 }
 
 /**
@@ -212,11 +347,17 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id", slide
       layoutReason: `Slide penutup dan call to action untuk "${safeTitle}"`,
       title: isEn ? "Execute Your Strategy" : "Mulai Implementasi Anda",
       subtitle: isEn ? `Consult and collaborate on ${safeTitle}` : `Konsultasi & sesi diskusi lanjutan mengenai ${safeTitle}`,
-      content: [
-        "Email: contact@masterpptai.id",
-        "Website: www.masterpptai.id",
-        isEn ? "Open for Strategic Alignment Sessions" : "Konsultasi & Sesi Diskusi Terbuka",
-      ],
+      content: isEn
+        ? [
+            "Email: hello@reallygreatsite.com",
+            "Website: www.reallygreatsite.com",
+            "Address: 123 Anywhere St., Any City",
+          ]
+        : [
+            "Email: halo@situssupercanggih.co.id",
+            "Website: www.situssupercanggih.co.id",
+            "Alamat: Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310",
+          ],
     },
   ];
 
@@ -395,6 +536,13 @@ async function generateCopywriting(input) {
 
       const slideCountResult = Math.min(parsed.slides.length, effectiveSlideCount);
       parsed.slides = normalizeSlideDeckLayouts(parsed.slides, slideCountResult);
+
+      // Validasi dan Sanitisasi Placeholder Text Toolkit (Canva Ipsum)
+      const placeholderCheck = validatePlaceholders(parsed, outputLanguage);
+      if (!placeholderCheck.isValid) {
+        console.log(`[Placeholder Sanitizer] Berhasil membersihkan dan mengganti ${placeholderCheck.violationsCount} placeholder acak dengan data resmi Canva Ipsum.`);
+      }
+      parsed = placeholderCheck.sanitizedResult;
 
       parsed.designRecommendation = parsed.designRecommendation || {};
 

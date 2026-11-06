@@ -622,7 +622,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       id: `contact-${slide.slideNumber}`,
       type: 'text',
       name: 'Kontak & Tautan',
-      content: '📞 +62 812-3456-7890\n✉️ hello@masterpptai.id\n🌐 www.masterpptai.id\n📍 Jakarta, Indonesia',
+      content: '📞 62-819-9977-3020\n✉️ halo@situssupercanggih.co.id\n🌐 www.situssupercanggih.co.id\n📍 Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310',
       font: fontBody,
       fontSize: 14,
       color: '#4B5563',

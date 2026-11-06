@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import AlignmentGuidelines from './AlignmentGuidelines';
 import TextFormattingToolbar from './TextFormattingToolbar';
+import PlaceholderModal from './PlaceholderModal';
+import toast from 'react-hot-toast';
 import { autoResizeTextarea } from '../../utils/autoResizeTextarea';
 import {
   LAYOUT_OPTIONS,
@@ -71,6 +73,33 @@ export default function SlidePreview({
   const [isEditingText, setIsEditingText] = useState(false);
   const [showFormattingToolbar, setShowFormattingToolbar] = useState(false);
   const [useSnapToGrid, setUseSnapToGrid] = useState(true);
+  const [showPlaceholderModal, setShowPlaceholderModal] = useState(false);
+
+  const handleInsertPlaceholder = (placeholderText) => {
+    const currentSlide = editedSlides[currentSlideIndex];
+    if (!currentSlide || !currentSlide.placeholders || currentSlide.placeholders.length === 0) return;
+
+    let targetId = selectedElementId;
+    if (!targetId) {
+      const firstTextP = currentSlide.placeholders.find((p) => p.type === 'text');
+      targetId = firstTextP?.id;
+    }
+
+    if (!targetId) {
+      toast.error('Tidak ada elemen teks pada slide ini.');
+      return;
+    }
+
+    const target = currentSlide.placeholders.find((p) => p.id === targetId);
+    if (!target) return;
+
+    const newContent = target.content && target.content.trim() !== ''
+      ? `${target.content} ${placeholderText}`
+      : placeholderText;
+
+    handlePlaceholderEdit(targetId, newContent);
+    toast.success(`Placeholder disisipkan: "${placeholderText.length > 25 ? placeholderText.slice(0, 25) + '...' : placeholderText}"`);
+  };
 
   const canvasRef = useRef(null);
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 960, height: 540 });
@@ -469,6 +498,16 @@ export default function SlidePreview({
             <span>Reset Layout</span>
           </button>
 
+          {/* Sisipkan Placeholder Button */}
+          <button
+            type="button"
+            onClick={() => setShowPlaceholderModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/15 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all shadow-xs"
+            title="Buka Toolkit Teks Placeholder (Canva Ipsum)"
+          >
+            <span>📋 Sisipkan Placeholder</span>
+          </button>
+
           {/* Edit Mode Toggle Switch */}
           <label className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl border border-brand-500/40 bg-brand-500/10 cursor-pointer select-none hover:bg-brand-500/20 transition-all">
             <input
@@ -545,6 +584,7 @@ export default function SlidePreview({
             selectedElement={selectedPlaceholder}
             onUpdate={handleUpdateElement}
             onClose={handleCloseToolbar}
+            onOpenPlaceholderModal={() => setShowPlaceholderModal(true)}
           />
         </div>
       )}
@@ -1084,6 +1124,13 @@ export default function SlidePreview({
           </button>
         </div>
       </div>
+
+      {/* Modal Toolkit Teks Placeholder (Canva Ipsum) */}
+      <PlaceholderModal
+        isOpen={showPlaceholderModal}
+        onClose={() => setShowPlaceholderModal(false)}
+        onInsert={handleInsertPlaceholder}
+      />
     </div>
   );
 }

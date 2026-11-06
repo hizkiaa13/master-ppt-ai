@@ -4,7 +4,7 @@ import {
   TEXT_FORMATTING_RULES,
 } from '../../utils/textToolkit';
 
-function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
+function TextFormattingToolbar({ selectedElement, onUpdate, onClose, onOpenPlaceholderModal }) {
   if (!selectedElement) return null;
 
   const fontFamilies = SUPPORTED_FONTS;
@@ -289,6 +289,21 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
             ))}
           </select>
         </div>
+
+        {/* Divider */}
+        <div className="h-7 w-px bg-gray-200" />
+
+        {/* Sisipkan Placeholder Button */}
+        {onOpenPlaceholderModal && (
+          <button
+            type="button"
+            onClick={onOpenPlaceholderModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors shadow-xs"
+            title="Buka Toolkit Teks Placeholder (Canva Ipsum)"
+          >
+            <span>📋 Sisipkan Placeholder</span>
+          </button>
+        )}
       </div>
     </div>
   );

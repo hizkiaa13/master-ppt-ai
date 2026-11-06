@@ -4,12 +4,14 @@
  */
 
 const { getPromptFontList } = require('../utils/textToolkit');
+const { getPromptToolkitText } = require('../utils/placeholderToolkit');
 
 /**
  * Ganti total prompt AI untuk menjamin 100% relevansi materi slide dengan judul
  */
 function buildMasterPrompt({ title, description, outputLanguage = 'id', slideCount = 5, retryContext = false }) {
   const fontList = getPromptFontList();
+  const toolkitText = getPromptToolkitText(outputLanguage);
   const effectiveSlideCount = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
 
   const retryInstruction = retryContext
@@ -108,6 +110,21 @@ Jangan gunakan layout yang sama lebih dari 2 kali berturut-turut.
 
 FONT PAIRING TERSEDIA:
 ${fontList}
+
+ATURAN PLACEHOLDER DATA (WAJIB):
+
+Ketika konten slide memerlukan nama orang, nama tempat, alamat, nomor telepon, nomor rekening, email, website, media sosial, nama perusahaan, nama sekolah, atau entitas lainnya, WAJIB menggunakan data placeholder dari Text Toolkit berikut:
+
+${toolkitText}
+
+ATURAN KERAS PLACEHOLDER:
+- DILARANG mengarang nama orang, alamat, nomor telepon, nomor rekening, email, website, atau entitas lain di luar toolkit ini.
+- DILARANG menggunakan nama orang nyata, alamat nyata, atau nomor nyata.
+- Jika konten membutuhkan alamat Indonesia, WAJIB gunakan persis: Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310
+- Jika konten membutuhkan alamat internasional, WAJIB gunakan persis: 123 Anywhere St., Any City
+- Pilih nama perusahaan/sekolah sesuai kategori bisnis yang relevan dengan konten slide.
+- Pilih nama orang sesuai bahasa output (Indonesia/English).
+- Jika melanggar aturan ini, output dianggap GAGAL dan akan di-retry.
 
 PERINGATAN KERAS:
 - JANGAN menyimpang dari judul yang diberikan.

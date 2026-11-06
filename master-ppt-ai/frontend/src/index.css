@@ -299,10 +299,8 @@ textarea.slide-text-editor::-webkit-scrollbar {
 }
 
 /* ─── Global Contrast & Form Text Safety Net ─────────────── */
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="password"],
+/* Pastikan semua teks input terlihat jelas */
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
 textarea,
 select {
   color: #111827 !important;
@@ -315,19 +313,22 @@ textarea::placeholder {
   opacity: 1 !important;
 }
 
-/* Form labels on light background */
-.form-label,
-label.form-label-contrast {
+label {
   color: #374151 !important;
 }
 
-/* Slide preview contrast */
+/* Pastikan teks di slide preview terlihat */
 .slide-preview-text {
   color: #111827;
 }
 
 .slide-preview-text.on-dark {
   color: #FFFFFF;
+}
+
+/* Biarkan textarea editor di dalam canvas slide preview tetap transparan */
+textarea.slide-text-editor {
+  background-color: transparent !important;
 }
 
 

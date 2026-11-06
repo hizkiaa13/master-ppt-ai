@@ -6,118 +6,123 @@
 const { getPromptFontList } = require('../utils/textToolkit');
 
 /**
- * Buat master prompt dengan instruksi relevansi ketat, few-shot examples, dan anti-drift
+ * Ganti total prompt AI untuk menjamin 100% relevansi materi slide dengan judul
  */
-function buildMasterPrompt({ title, description, outputLanguage = 'id', slideCount = 5, retryContext = null }) {
+function buildMasterPrompt({ title, description, outputLanguage = 'id', slideCount = 5, retryContext = false }) {
   const fontList = getPromptFontList();
   const effectiveSlideCount = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
-  const isEn = outputLanguage === 'en';
 
-  const langInstruction = isEn
-    ? 'Use professional, natural, and highly polished English for all slide copywriting.'
-    : 'Gunakan Bahasa Indonesia profesional, lugas, dan natural untuk seluruh copywriting slide.';
-
-  const retryWarning = retryContext
-    ? `\n⚠️ PERINGATAN RE-GENERATE:
-HASIL SEBELUMNYA DINILAI TIDAK CUKUP RELEVAN DENGAN JUDUL "${title}".
-Pastikan kali ini SEMUA slide dan poin 100% berfokus langsung pada "${title}". JANGAN menyimpang ke topik lain!\n`
+  const retryInstruction = retryContext
+    ? `\n⚠️ PERINGATAN KERAS REGENERATE:
+HASIL SEBELUMNYA TIDAK RELEVAN DENGAN JUDUL "${title}".
+Judul user adalah "${title}". Buat ulang konten yang 100% membahas "${title}". Jangan menyimpang dari judul sama sekali!\n`
     : '';
 
   return `Kamu adalah ahli copywriting presentasi profesional yang sangat teliti terhadap relevansi konten.
-${retryWarning}
+${retryInstruction}
 TUGAS UTAMA:
-Buatkan konten slide PowerPoint yang 100% RELEVAN, SPESIFIK, dan SIAP PAKAI berdasarkan judul berikut:
+Buatkan konten slide PowerPoint yang 100% RELEVAN dan SPESIFIK dengan judul yang diberikan user.
 
-JUDUL PRESENTASI: "${title}"
-TOPIK/DESKRIPSI: "${description || "Fokuskan pada judul presentasi di atas"}"
-BAHASA OUTPUT: ${outputLanguage} (${isEn ? 'English' : 'Bahasa Indonesia'})
-JUMLAH SLIDE: WAJIB TEPAT ${effectiveSlideCount} slide (tidak boleh lebih atau kurang).
+JUDUL PRESENTASI: ${title}
+TOPIK/DESKRIPSI: ${description || 'Fokuskan pada judul presentasi di atas'}
+BAHASA OUTPUT: ${outputLanguage}
+JUMLAH SLIDE: ${effectiveSlideCount}
 
-============================================================
-ATURAN PALING PENTING - RELEVANSI KONTEN (WAJIB DIPATUHI):
-============================================================
-1. SEMUA konten slide HARUS berkaitan langsung dengan judul "${title}".
+ATURAN PALING PENTING - RELEVANSI KONTEN:
+
+1. SEMUA konten slide HARUS berkaitan langsung dengan judul presentasi "${title}".
 2. JANGAN menghasilkan konten yang tidak ada hubungannya dengan judul.
-3. Jika judul tentang "${title}", maka seluruh slide dan poin harus membahas aspek nyata dari "${title}", BUKAN topik lain seperti keberlanjutan, lingkungan, CSR, atau topik acak lain jika tidak diminta.
-4. Setiap poin di setiap slide harus menjawab pertanyaan: "Apakah poin ini mendukung langsung judul '${title}'?"
+3. Jika judul tentang "${title}", maka semua slide harus membahas "${title}", BUKAN topik lain seperti keberlanjutan, lingkungan, CSR, atau topik tidak relevan lainnya.
+4. Setiap poin di setiap slide harus menjawab pertanyaan: "Apakah poin ini mendukung judul presentasi?"
 5. Jika sebuah poin tidak relevan dengan judul, JANGAN masukkan.
 
 CONTOH RELEVANSI:
-Kasus Judul: "Strategi Pemasaran Digital 2026"
-✅ BENAR - Slide tentang:
-- "Tren Pemasaran Digital 2026"
-- "Target Audiens & Perilaku Konsumen Digital"
-- "Kanal Pemasaran Digital Berperforma Tinggi"
-- "Strategi Konten & Social Commerce"
-- "Pengukuran ROI & Optimasi Konversi Campaign"
 
-❌ SALAH BESAR - Slide tentang:
-- "Implementasi Keberlanjutan & Ramah Lingkungan"
-- "Daur Ulang Sampah Plastik Kantor"
-- "Pengurangan Emisi Karbon"
-- Topik generik lain yang tidak ada hubungannya dengan pemasaran digital.
+Judul: "Strategi Pemasaran Digital 2026"
 
-============================================================
-ATURAN COPYWRITING SIAP PAKAI:
-============================================================
-1. Buat konten yang SIAP PAKAI — audiens langsung mengerti dan presenter tidak perlu mengedit atau memikirkan ulang isinya.
+BENAR - Slide tentang:
+- Tren Pemasaran Digital 2026
+- Target Audiens Digital
+- Kanal Pemasaran Digital Efektif
+- Strategi Konten Media Sosial
+- Pengukuran ROI Pemasaran Digital
+
+SALAH - Slide tentang:
+- Implementasi Keberlanjutan
+- Dampak Lingkungan
+- Teknologi Hijau
+- Topik lain yang tidak ada hubungannya dengan pemasaran digital
+
+ATURAN COPYWRITING:
+
+1. Buat konten yang SIAP PAKAI - user tidak perlu mengedit atau memikirkan ulang.
 2. Setiap poin harus:
-   - Spesifik, lugas, dan informatif.
-   - Tidak generik atau kosong.
-   - Mengandung informasi nyata, taktik, data, atau langkah praktis yang berguna.
-   - Mudah dipahami audiens.
-3. HINDARI kalimat klise / terlalu umum seperti:
-   - ❌ "Penting untuk selalu memperhatikan faktor pendukung."
-   - ❌ "Berbagai faktor memengaruhi keberhasilan."
-   - ❌ "Ada banyak aspek yang perlu dipertimbangkan secara matang."
-4. Gunakan kalimat yang langsung ke intinya dan bermakna:
-   - ✅ "Tiga kanal digital dengan ROI tertinggi di 2026: TikTok Ads, Google Performance Max, dan Email Automation."
-   - ✅ "Alokasikan 40% anggaran pada akuisisi berbayar dan 30% pada strategi retensi pelanggan berbasis data."
+   - Spesifik dan informatif
+   - Tidak generik atau kosong
+   - Mengandung informasi nyata yang berguna
+   - Mudah dipahami audiens
+3. Hindari kalimat terlalu umum seperti:
+   - "Penting untuk diperhatikan"
+   - "Berbagai faktor memengaruhi"
+   - "Ada banyak aspek yang perlu dipertimbangkan"
+4. Gunakan kalimat yang langsung ke intinya dan mengandung informasi.
 
-============================================================
-ATURAN STRUKTUR & LAYOUT SLIDE:
-============================================================
-1. Slide 1 (slideNumber: 1): Cover depan (layoutId: "cover-front") — judul + subjudul yang tajam.
-2. Slide 2: Jika total slide >= 4, gunakan daftar isi/agenda (layoutId: "table-of-contents").
-3. Slide tengah: Konten utama yang runtut dan logis.
-4. Slide terakhir (slideNumber: ${effectiveSlideCount}): Kesimpulan atau call to action (layoutId: "cover-back").
-5. Variasikan layout! JANGAN gunakan layout yang sama lebih dari 2 kali berturut-turut.
-6. Layout yang tersedia:
-   - cover-front: Slide pembuka
-   - table-of-contents: Daftar isi / agenda
-   - one-point: 1 poin utama / statement / kutipan
-   - two-points: 2 poin berdampingan
-   - three-points: 3 poin kolom
-   - four-points: 4 poin grid 2x2
-   - five-points: 5 poin terstruktur
-   - six-points: 6 poin grid 3x2
-   - comparison: Perbandingan 2 hal (sebelum vs sesudah, pro vs kontra)
-   - steps: 4 tahapan / langkah proses berurutan
-   - chart: Visual data / grafik / statistik kinerja
-   - testimonial: Testimoni / kutipan pernyataan
-   - image-text: Narasi di satu sisi, visual di sisi lain
-   - cover-back: Slide penutup
+CONTOH COPYWRITING:
 
-============================================================
-ATURAN TIPOGRAFI & WARNA:
-============================================================
-- Desain master menggunakan Base Master (Hitam & Putih):
-  - Background putih (#FFFFFF)
-  - Teks hitam (#000000) dan abu gelap (#1F2937 / #4B5563)
-  - Tanpa warna warni
-- Pilih pairing font dari daftar berikut:
+BURUK (terlalu umum):
+"Ada beberapa faktor yang perlu diperhatikan dalam pemasaran digital."
+
+BAIK (spesifik dan siap pakai):
+"Tiga kanal digital dengan ROI tertinggi di 2026: TikTok Ads, Google Performance Max, dan Email Automation."
+
+ATURAN STRUKTUR SLIDE:
+
+1. Slide 1: Cover depan - judul + subjudul yang menarik (layoutId: "cover-front").
+2. Slide 2: Daftar isi/agenda jika total slide >= 4 (layoutId: "table-of-contents").
+3. Slide tengah: konten utama yang runtut dan logis.
+4. Slide terakhir: kesimpulan atau call to action (layoutId: "cover-back").
+5. Setiap content slide berisi 3-5 poin yang spesifik.
+
+ATURAN BAHASA:
+- Jika outputLanguage = "id", gunakan Bahasa Indonesia profesional dan natural.
+- Jika outputLanguage = "en", gunakan English profesional dan natural.
+
+ATURAN LAYOUT:
+Pilih layout berdasarkan konten dan jumlah poin:
+- 1 poin: one-point
+- 2 poin: two-points
+- 3 poin: three-points
+- 4 poin: four-points
+- 5 poin: five-points
+- 6 poin: six-points
+- Perbandingan: comparison
+- Langkah/tahapan: steps
+- Data/statistik: chart
+- Testimoni: testimonial
+- Slide pertama: cover-front
+- Slide terakhir: cover-back
+
+Jangan gunakan layout yang sama lebih dari 2 kali berturut-turut.
+
+FONT PAIRING TERSEDIA:
 ${fontList}
 
-============================================================
-CONTOH FEW-SHOT INPUT & OUTPUT YANG DIHARAPKAN:
-============================================================
-INPUT:
+PERINGATAN KERAS:
+- JANGAN menyimpang dari judul yang diberikan.
+- JANGAN menambahkan topik yang tidak diminta user.
+- JANGAN menghasilkan konten generik yang bisa berlaku untuk topik apa pun.
+- Setiap kata dalam konten harus mendukung judul presentasi.
+- Jika ragu apakah sebuah poin relevan, JANGAN masukkan.
+- Jika Anda menghasilkan konten yang tidak relevan dengan judul, itu dianggap GAGAL.
+- Prioritas utama Anda adalah RELEVANSI, bukan kreativitas berlebihan.
+
+CONTOH INPUT:
 Judul: "Strategi Pemasaran Digital 2026"
-Topik: "Membangun pertumbuhan startup teknologi"
+Topik: "Untuk klien startup teknologi"
 Jumlah Slide: 5
 Bahasa: id
 
-OUTPUT JSON VALID:
+CONTOH OUTPUT YANG DIHARAPKAN:
 {
   "slides": [
     {
@@ -125,24 +130,22 @@ OUTPUT JSON VALID:
       "slideType": "cover",
       "layoutId": "cover-front",
       "pointCount": 0,
-      "layoutReason": "Slide pembuka dengan judul terarah dan subjudul strategis",
+      "layoutReason": "Slide pembuka presentasi",
       "title": "Strategi Pemasaran Digital 2026",
-      "subtitle": "Akselerasi Pertumbuhan Startup Melalui Kanal Digital Berperforma Tinggi",
+      "subtitle": "Membangun Pertumbuhan Startup Melalui Kanal Digital",
       "content": []
     },
     {
       "slideNumber": 2,
-      "slideType": "agenda",
-      "layoutId": "table-of-contents",
-      "pointCount": 4,
-      "layoutReason": "Agenda pembahasan menyeluruh tentang pemasaran digital",
-      "title": "Agenda Strategis",
-      "subtitle": "4 Pilar Pemasaran Digital 2026",
+      "slideType": "content",
+      "layoutId": "three-points",
+      "pointCount": 3,
+      "layoutReason": "Menjelaskan tren utama pemasaran digital 2026",
+      "title": "Tren Pemasaran Digital 2026",
       "content": [
-        "01. Dinamika Tren Pemasaran Digital 2026",
-        "02. Pemilihan Kanal Digital Prioritas",
-        "03. Alokasi Anggaran & Framework Eksekusi",
-        "04. Metrik Keberhasilan & Target ROI"
+        "Video pendek mendominasi engagement dengan tingkat retensi 2x lipat dibanding konten statis",
+        "AI-powered personalization meningkatkan konversi hingga 30% pada campaign tertarget",
+        "Social commerce tumbuh 25% sebagai kanal pembelian langsung dari media sosial"
       ]
     },
     {
@@ -150,67 +153,55 @@ OUTPUT JSON VALID:
       "slideType": "content",
       "layoutId": "three-points",
       "pointCount": 3,
-      "layoutReason": "Menampilkan 3 kanal pemasaran digital dengan potensi konversi terbesar",
-      "title": "Kanal Pemasaran Digital Prioritas",
-      "subtitle": "Fokus pada kanal dengan efisiensi akuisisi tertinggi",
+      "layoutReason": "Menjelaskan 3 kanal digital prioritas",
+      "title": "Kanal Pemasaran Prioritas",
       "content": [
-        "Short-Form Video Ads: TikTok dan Reels menghasilkan engagement 2.4x lebih tinggi dibanding display banner konvensional.",
-        "Google Performance Max: Kampanye multi-kanal otomatis berbasis AI yang mengoptimasi bid konversi secara real-time.",
-        "Automated Email Funnel: Rangkaian email onboarding terpersonalisasi yang meningkatkan retensi pengguna hingga 35%."
+        "TikTok Ads untuk brand awareness dan reach generasi muda",
+        "Google Performance Max untuk conversion-driven campaign",
+        "Email Automation untuk nurturing leads dan retensi pelanggan"
       ]
     },
     {
       "slideNumber": 4,
       "slideType": "content",
-      "layoutId": "comparison",
+      "layoutId": "two-points",
       "pointCount": 2,
-      "layoutReason": "Membandingkan efisiensi pendekatan pemasaran lama vs strategi baru 2026",
-      "title": "Metode Tradisional vs Strategi Digital 2026",
-      "subtitle": "Pergeseran fokus menuju efisiensi biaya dan presisi data",
+      "layoutReason": "Menjelaskan metrik keberhasilan utama",
+      "title": "Metrik Keberhasilan",
       "content": [
-        "Pendekatan Lama: Menargetkan jangkauan luas tanpa segmentasi mendalam, menghasilkan Customer Acquisition Cost (CAC) tinggi.",
-        "Strategi 2026: Personalisasi berbasis machine learning yang menekan CAC hingga 30% dengan target audiens spesifik."
+        "ROAS (Return on Ad Spend) minimal 3x untuk campaign yang sehat",
+        "Customer Acquisition Cost (CAC) turun 20% dalam 6 bulan pertama"
       ]
     },
     {
       "slideNumber": 5,
-      "slideType": "closing",
+      "slideType": "conclusion",
       "layoutId": "cover-back",
-      "pointCount": 3,
-      "layoutReason": "Slide penutup dengan ajakan kolaborasi dan kontak",
-      "title": "Mulai Eksekusi Pemasaran Digital Anda",
-      "subtitle": "Diskusikan rencana implementasi pemasaran digital bersama tim ahli kami",
-      "content": [
-        "Email: growth@pemasarandigital.id",
-        "Website: www.pemasarandigital2026.com",
-        "Sesi Konsultasi & Audit Strategi Gratis"
-      ]
+      "pointCount": 0,
+      "layoutReason": "Slide penutup dan call to action",
+      "title": "Mulai Transformasi Digital Anda",
+      "subtitle": "Konsultasikan strategi pemasaran digital untuk startup Anda",
+      "content": []
     }
   ],
   "designRecommendation": {
     "fonts": {
       "heading": "Montserrat",
       "body": "Open Sans",
-      "rationale": "Montserrat memberikan ketegasan profesional pada judul, Open Sans sangat mudah dibaca untuk materi strategi."
+      "rationale": "Montserrat profesional untuk heading, Open Sans mudah dibaca untuk body"
     },
     "layouts": [
-      { "slideNumber": 1, "layoutId": "cover-front", "layoutReason": "Slide pembuka" },
-      { "slideNumber": 2, "layoutId": "table-of-contents", "layoutReason": "Agenda terstruktur" },
-      { "slideNumber": 3, "layoutId": "three-points", "layoutReason": "3 pilar strategi" },
-      { "slideNumber": 4, "layoutId": "comparison", "layoutReason": "Perbandingan metode" },
-      { "slideNumber": 5, "layoutId": "cover-back", "layoutReason": "Penutup & kontak" }
+      {"slideNumber": 1, "layoutId": "cover-front"},
+      {"slideNumber": 2, "layoutId": "three-points"},
+      {"slideNumber": 3, "layoutId": "three-points"},
+      {"slideNumber": 4, "layoutId": "two-points"},
+      {"slideNumber": 5, "layoutId": "cover-back"}
     ]
   }
 }
 
-============================================================
-PERINGATAN KERAS ANTI-DRIFT:
-============================================================
-- JANGAN menyimpang dari judul "${title}".
-- JANGAN menambahkan topik lingkungan/keberlanjutan jika judul tidak memintanya.
-- JANGAN menghasilkan teks generik kosong ("faktor penting", "perlu diperhatikan").
-- Setiap kalimat dalam konten HARUS spesifik dan informatif untuk audiens "${title}".
-- Balas HANYA dengan JSON valid tanpa bungkus markdown (\`\`\`json) atau teks pembuka/penutup.
+PERHATIKAN: Semua konten 100% relevan dengan judul "${title}" dan siap pakai tanpa perlu revisi.
+Balas HANYA dalam format JSON valid tanpa tanda markdown (\`\`\`json).
 `;
 }
 

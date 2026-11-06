@@ -49,7 +49,7 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
       <div className="space-y-6">
         {/* Judul Presentasi */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 form-label-contrast">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Judul Presentasi <span className="text-red-500">*</span>
           </label>
           <input
@@ -57,10 +57,10 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
             value={formData.customTitle || ''}
             onChange={(e) => setFormData({ ...formData, customTitle: e.target.value })}
             placeholder="Contoh: Strategi Pemasaran Digital 2026"
-            className={`w-full px-4 py-3 border rounded-xl bg-white text-gray-900 placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+            className={`w-full px-4 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none ${
               errors.title
                 ? 'border-red-400 bg-red-50 text-red-900'
-                : 'border-gray-300 hover:border-gray-400'
+                : 'border-gray-300'
             }`}
           />
           {errors.title && (
@@ -73,7 +73,7 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
 
         {/* Deskripsi / Topik */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 form-label-contrast">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Deskripsi / Topik
           </label>
           <textarea
@@ -81,10 +81,10 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
             onChange={(e) => setFormData({ ...formData, customDescription: e.target.value })}
             placeholder="Jelaskan topik presentasi Anda secara singkat. AI akan menggunakan deskripsi ini untuk membuat konten yang relevan..."
             rows={4}
-            className={`w-full px-4 py-3 border rounded-xl bg-white text-gray-900 placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
+            className={`w-full px-4 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none resize-none ${
               errors.description
                 ? 'border-red-400 bg-red-50 text-red-900'
-                : 'border-gray-300 hover:border-gray-400'
+                : 'border-gray-300'
             }`}
           />
           {errors.description && (
@@ -97,7 +97,7 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
 
         {/* Bahasa Output */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 form-label-contrast">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             <Globe className="w-4 h-4 inline mr-1" />
             Bahasa Output PPT
           </label>
@@ -132,7 +132,7 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
 
         {/* Jumlah Slide */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2 form-label-contrast">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             <Hash className="w-4 h-4 inline mr-1" />
             Jumlah Slide
           </label>

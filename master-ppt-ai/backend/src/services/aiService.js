@@ -275,7 +275,10 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id", slide
 
 /**
  * Main AI generation function for Base Master (Hitam & Putih)
- * Dilengkapi Validasi Relevansi Konten & Mekanisme Retry Anti-Drift
+ * Menerapkan alur 3 tahap:
+ * 1. Gemini API dengan prompt standar
+ * 2. Jika skor < 60%: Gemini API retry dengan prompt anti-drift tegas
+ * 3. Jika tetap < 60% atau error: Fallback rule-based dinamis ketat mengikuti judul
  */
 async function generateCopywriting(input) {
   const {
@@ -314,18 +317,21 @@ async function generateCopywriting(input) {
         {
           model: modelName,
           generationConfig: {
-            temperature: 0.65, // Lebih deterministik agar tetap fokus ke judul
+            temperature: 0.65, // Lebih fokus dan konsisten
             responseMimeType: "application/json",
           },
         },
         { timeout: 30000 }
       );
 
+      // ─── PERCOBAAN 1: Prompt Standar ─────────────────────────
+      console.log(`[AI Generation] Percobaan 1: Mengirim prompt standar ke ${modelName}...`);
       const prompt = buildMasterPrompt({
         title,
         description,
         outputLanguage,
         slideCount: effectiveSlideCount,
+        retryContext: false,
       });
 
       const result = await model.generateContent(prompt);
@@ -336,13 +342,14 @@ async function generateCopywriting(input) {
         throw new Error("Format respons AI tidak memiliki array 'slides' yang valid");
       }
 
-      // Validasi Relevansi Konten terhadap Judul User
-      const relevance = validateContentRelevance(parsed, title, description);
-      console.log(`🔍 Skor Relevansi AI (${modelName}): ${relevance.relevanceScore}% (${relevance.relevantSlides}/${relevance.totalSlides} slide relevan)`);
+      // Validasi Relevansi Konten
+      let relevance = validateContentRelevance(parsed, title);
+      console.log(`[AI Validation] Percobaan 1 Relevansi: ${relevance.relevanceScore}% (${relevance.relevantSlides}/${relevance.totalSlides} slide cocok)`);
 
-      // Jika kurang dari 60% relevan, lakukan retry dengan peringatan keras
+      // ─── PERCOBAAN 2: Jika skor < 60%, Lakukan Retry Tegas ─────
       if (!relevance.isRelevant) {
-        console.warn(`⚠️ Konten dinilai kurang relevan (${relevance.relevanceScore}% < 60%). Mencoba generate ulang dengan prompt penegasan...`);
+        console.warn(`[AI Validation] Relevansi rendah (${relevance.relevanceScore}% < 60%). Percobaan 2: Menjalankan retry dengan instruksi anti-drift tegas...`);
+        
         const retryPrompt = buildMasterPrompt({
           title,
           description,
@@ -351,20 +358,34 @@ async function generateCopywriting(input) {
           retryContext: true,
         });
 
-        const retryResult = await model.generateContent(retryPrompt);
-        const retryResponse = await retryResult.response;
         try {
+          const retryResult = await model.generateContent(retryPrompt);
+          const retryResponse = await retryResult.response;
           const retryParsed = cleanAndParseJSON(retryResponse.text());
+
           if (retryParsed.slides && Array.isArray(retryParsed.slides) && retryParsed.slides.length > 0) {
-            const secondCheck = validateContentRelevance(retryParsed, title, description);
-            console.log(`🔍 Skor Relevansi Setelah Retry: ${secondCheck.relevanceScore}%`);
-            if (secondCheck.relevanceScore >= relevance.relevanceScore) {
+            const retryRelevance = validateContentRelevance(retryParsed, title);
+            console.log(`[AI Validation] Percobaan 2 Relevansi: ${retryRelevance.relevanceScore}% (${retryRelevance.relevantSlides}/${retryRelevance.totalSlides} slide cocok)`);
+
+            if (retryRelevance.relevanceScore >= relevance.relevanceScore) {
               parsed = retryParsed;
+              relevance = retryRelevance;
             }
           }
-        } catch (retryParseErr) {
-          console.warn("Retry parsing gagal, menggunakan hasil generasi pertama:", retryParseErr.message);
+        } catch (retryErr) {
+          console.warn("[AI Validation] Percobaan 2 gagal di-parse:", retryErr.message);
         }
+      }
+
+      // ─── PERCOBAAN 3: Jika setelah retry tetap < 60%, aktifkan Fallback Dinamis ─
+      if (!relevance.isRelevant) {
+        console.warn(`[AI Validation] Hasil AI tetap tidak relevan (${relevance.relevanceScore}% < 60%). Percobaan 3: Beralih ke Fallback Rule-Based 100% Mengikuti Judul.`);
+        return getRuleBasedFallback({
+          title,
+          description,
+          outputLanguage,
+          slideCount: effectiveSlideCount,
+        });
       }
 
       // Potong ke tepat effectiveSlideCount
@@ -405,7 +426,7 @@ async function generateCopywriting(input) {
         layoutReason: s.layoutReason,
       }));
 
-      console.log(`✅ Berhasil menghasilkan ${parsed.slides.length} slide relevan menggunakan Gemini (${modelName})`);
+      console.log(`✅ Berhasil menghasilkan ${parsed.slides.length} slide 100% relevan menggunakan Gemini (${modelName})`);
 
       return {
         success: true,

@@ -11,19 +11,20 @@ function parseJSON(str, fallback = null) {
 
 /**
  * Format a draft row from DB into a clean API response object
+ * Sesuai konsep Base Master (Hitam & Putih)
  */
 function formatDraft(row, includeSlides = false) {
   if (!row) return null;
   const base = {
     id: row.id,
     userId: row.user_id,
-    themeId: row.theme_id,
-    themeName: row.theme_name || null,
-    themeColorPrimary: row.theme_color_primary || null,
+    themeId: null,
+    themeName: 'Base Master',
     customTitle: row.custom_title || 'Tanpa Judul',
     customDescription: row.custom_description || '',
+    outputLanguage: row.output_language || 'id',
     slideCount: row.slide_count || 5,
-    customColors: parseJSON(row.custom_colors),
+    customColors: null,
     currentStep: row.current_step || 1,
     status: row.status || 'in_progress',
     createdAt: row.created_at,
@@ -44,11 +45,10 @@ function formatDraft(row, includeSlides = false) {
 async function createDraft(req, res) {
   const userId = req.userId;
   const {
-    themeId,
     customTitle,
     customDescription,
+    outputLanguage = 'id',
     slideCount,
-    customColors,
     currentStep,
     formData,
     generatedSlides,
@@ -65,7 +65,6 @@ async function createDraft(req, res) {
       .eq('user_id', userId);
 
     if (count >= 10) {
-      // Delete the oldest in_progress draft to make room
       const { data: oldest } = await supabase
         .from('drafts')
         .select('id')
@@ -80,50 +79,51 @@ async function createDraft(req, res) {
       }
     }
 
-    // Get theme name for display
-    let themeName = null;
-    let themeColorPrimary = null;
-    if (themeId) {
-      const { data: theme } = await supabase
-        .from('themes')
-        .select('name, color_primary')
-        .eq('id', themeId)
-        .single();
-      if (theme) {
-        themeName = theme.name;
-        themeColorPrimary = theme.color_primary;
-      }
-    }
-
     const id = uuidv4();
     const now = new Date().toISOString();
 
-    const { error: insertError } = await supabase
-      .from('drafts')
-      .insert({
-        id,
-        user_id: userId,
-        theme_id: themeId || null,
-        custom_title: (customTitle || '').trim().slice(0, 255),
-        custom_description: (customDescription || '').trim().slice(0, 2000),
-        slide_count: parseInt(slideCount, 10) || 5,
-        custom_colors: customColors ? JSON.stringify(customColors) : null,
-        current_step: parseInt(currentStep, 10) || 1,
-        form_data: formData ? JSON.stringify(formData) : null,
-        generated_slides: generatedSlides ? JSON.stringify(generatedSlides) : null,
-        edited_slides: editedSlides ? JSON.stringify(editedSlides) : null,
-        recommendations: recommendations ? JSON.stringify(recommendations) : null,
-        status: status || 'in_progress',
-        created_at: now,
-        updated_at: now,
-      });
+    const calculatedSlideCount =
+      parseInt(slideCount, 10) ||
+      (generatedSlides && Array.isArray(generatedSlides) ? generatedSlides.length : 5);
+
+    const draftData = {
+      id,
+      user_id: userId,
+      theme_id: null,
+      custom_title: (customTitle || '').trim().slice(0, 255),
+      custom_description: (customDescription || '').trim().slice(0, 2000),
+      slide_count: calculatedSlideCount,
+      custom_colors: null,
+      current_step: parseInt(currentStep, 10) || 1,
+      form_data: formData ? JSON.stringify(formData) : null,
+      generated_slides: generatedSlides ? JSON.stringify(generatedSlides) : null,
+      edited_slides: editedSlides ? JSON.stringify(editedSlides) : null,
+      recommendations: recommendations ? JSON.stringify(recommendations) : null,
+      status: status || 'in_progress',
+      created_at: now,
+      updated_at: now,
+    };
+
+    // Tambahkan output_language jika didukung skema
+    if (outputLanguage) {
+      draftData.output_language = outputLanguage;
+    }
+
+    let { error: insertError } = await supabase.from('drafts').insert(draftData);
+
+    // Jika kolom output_language belum ada di tabel Supabase remote, coba insert tanpa kolom tersebut
+    if (insertError && (insertError.message?.includes('output_language') || insertError.code === 'PGRST204')) {
+      delete draftData.output_language;
+      const retry = await supabase.from('drafts').insert(draftData);
+      insertError = retry.error;
+    }
 
     if (insertError) throw insertError;
 
     return res.status(201).json({
       success: true,
       message: 'Draft berhasil disimpan.',
-      data: { id, updatedAt: now, themeName, themeColorPrimary },
+      data: { id, updatedAt: now, outputLanguage },
     });
   } catch (err) {
     console.error('createDraft error:', err);
@@ -135,38 +135,16 @@ async function createDraft(req, res) {
 async function getDrafts(req, res) {
   const userId = req.userId;
   try {
-    let { data: rows, error } = await supabase
+    const { data: rows, error } = await supabase
       .from('drafts')
-      .select(`
-        *,
-        themes:theme_id (name, color_primary)
-      `)
+      .select('*')
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
       .limit(20);
 
-    if (error && error.code === 'PGRST200') {
-      const fallback = await supabase
-        .from('drafts')
-        .select('*')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
-        .limit(20);
-      rows = fallback.data;
-      error = fallback.error;
-    }
-
     if (error) throw error;
 
-    const formatted = (rows || []).map(r => {
-      const row = {
-        ...r,
-        theme_name: r.themes?.name || null,
-        theme_color_primary: r.themes?.color_primary || null,
-        themes: undefined,
-      };
-      return formatDraft(row, false);
-    });
+    const formatted = (rows || []).map((r) => formatDraft(r, false));
 
     return res.json({
       success: true,
@@ -183,39 +161,18 @@ async function getDraftById(req, res) {
   const userId = req.userId;
   const { id } = req.params;
   try {
-    let { data: row, error } = await supabase
+    const { data: row, error } = await supabase
       .from('drafts')
-      .select(`
-        *,
-        themes:theme_id (name, color_primary)
-      `)
+      .select('*')
       .eq('id', id)
       .eq('user_id', userId)
       .single();
-
-    if (error && error.code === 'PGRST200') {
-      const fallback = await supabase
-        .from('drafts')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', userId)
-        .single();
-      row = fallback.data;
-      error = fallback.error;
-    }
 
     if (error || !row) {
       return res.status(404).json({ success: false, message: 'Draft tidak ditemukan.' });
     }
 
-    const formatted = {
-      ...row,
-      theme_name: row.themes?.name || null,
-      theme_color_primary: row.themes?.color_primary || null,
-      themes: undefined,
-    };
-
-    return res.json({ success: true, data: formatDraft(formatted, true) });
+    return res.json({ success: true, data: formatDraft(row, true) });
   } catch (err) {
     console.error('getDraftById error:', err);
     return res.status(500).json({ success: false, message: 'Gagal memuat detail draft.' });
@@ -227,11 +184,10 @@ async function updateDraft(req, res) {
   const userId = req.userId;
   const { id } = req.params;
   const {
-    themeId,
     customTitle,
     customDescription,
+    outputLanguage,
     slideCount,
-    customColors,
     currentStep,
     formData,
     generatedSlides,
@@ -241,7 +197,6 @@ async function updateDraft(req, res) {
   } = req.body;
 
   try {
-    // Check exists
     const { data: existing } = await supabase
       .from('drafts')
       .select('id')
@@ -254,13 +209,12 @@ async function updateDraft(req, res) {
     }
 
     const now = new Date().toISOString();
-    const updates = { updated_at: now };
+    const updates = { updated_at: now, theme_id: null, custom_colors: null };
 
-    if (themeId !== undefined) updates.theme_id = themeId;
     if (customTitle !== undefined) updates.custom_title = (customTitle || '').trim().slice(0, 255);
     if (customDescription !== undefined) updates.custom_description = (customDescription || '').trim().slice(0, 2000);
+    if (outputLanguage !== undefined) updates.output_language = outputLanguage;
     if (slideCount !== undefined) updates.slide_count = parseInt(slideCount, 10) || 5;
-    if (customColors !== undefined) updates.custom_colors = customColors ? JSON.stringify(customColors) : null;
     if (currentStep !== undefined) updates.current_step = parseInt(currentStep, 10) || 1;
     if (formData !== undefined) updates.form_data = formData ? JSON.stringify(formData) : null;
     if (generatedSlides !== undefined) updates.generated_slides = generatedSlides ? JSON.stringify(generatedSlides) : null;
@@ -268,11 +222,17 @@ async function updateDraft(req, res) {
     if (recommendations !== undefined) updates.recommendations = recommendations ? JSON.stringify(recommendations) : null;
     if (status !== undefined) updates.status = status;
 
-    const { error: updateError } = await supabase
+    let { error: updateError } = await supabase
       .from('drafts')
       .update(updates)
       .eq('id', id)
       .eq('user_id', userId);
+
+    if (updateError && (updateError.message?.includes('output_language') || updateError.code === 'PGRST204')) {
+      delete updates.output_language;
+      const retry = await supabase.from('drafts').update(updates).eq('id', id).eq('user_id', userId);
+      updateError = retry.error;
+    }
 
     if (updateError) throw updateError;
 
@@ -323,18 +283,16 @@ async function resumeDraft(req, res) {
 // Helper to sync slide layouts into slide_layouts table
 async function syncSlideLayouts(draftId, slides) {
   try {
-    // Delete existing layouts for this draft
     await supabase.from('slide_layouts').delete().eq('draft_id', draftId);
 
-    // Insert new layouts
     const layouts = slides.map((s, idx) => ({
       id: uuidv4(),
       draft_id: draftId,
       slide_number: s.slideNumber || idx + 1,
       slide_type: s.slideType || 'content',
-      layout_name: s.layout || 'left-aligned',
+      layout_name: s.layout || 'three-points',
       placeholders: s.placeholders ? JSON.stringify(s.placeholders) : null,
-      background: s.background ? JSON.stringify(s.background) : null,
+      background: JSON.stringify({ color: '#FFFFFF', type: 'solid' }),
     }));
 
     if (layouts.length > 0) {

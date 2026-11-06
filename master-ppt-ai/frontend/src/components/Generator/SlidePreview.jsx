@@ -373,7 +373,7 @@ export default function SlidePreview({
 
     const remappedSlide = applyLayoutToSlide(targetSlide, newLayoutId, {
       fonts: recommendations?.fonts,
-      colors: recommendations?.colors,
+      colors: { primary: '#000000', secondary: '#1F2937', accent: '#000000' },
     });
 
     updated[currentSlideIndex] = remappedSlide;
@@ -570,7 +570,7 @@ export default function SlidePreview({
           {currentSlide.slideType !== 'title' && currentSlide.slideType !== 'closing' && (
             <div
               className="absolute left-[10%] top-[22%] w-[12%] h-[3px] rounded-full z-0 opacity-80 pointer-events-none"
-              style={{ backgroundColor: recommendations?.colors?.accent || '#3B82F6' }}
+              style={{ backgroundColor: '#000000' }}
             />
           )}
 
@@ -1001,21 +1001,11 @@ export default function SlidePreview({
           </select>
         </div>
 
-        {/* Background Color Picker per slide */}
-        <div className="flex items-center gap-3">
-          <Palette className="w-4 h-4 text-amber-400" />
-          <label className="text-xs text-dark-300 font-medium">Warna Background Slide:</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={currentSlide.background?.color || '#FFFFFF'}
-              onChange={(e) => handleBackgroundChange(e.target.value)}
-              className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border border-white/20 p-0.5"
-            />
-            <span className="text-xs font-mono text-dark-300 uppercase">
-              {currentSlide.background?.color || '#FFFFFF'}
-            </span>
-          </div>
+        {/* Base Master Hitam-Putih Badge */}
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-dark-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+            ⚪ Base Master (Hitam & Putih)
+          </span>
         </div>
 
         {/* Reset this slide */}

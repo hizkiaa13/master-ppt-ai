@@ -2,39 +2,38 @@ const { generateCopywriting } = require("../services/aiService");
 
 /**
  * Controller for generating AI copywriting and presentation design recommendations
+ * Base Master (Hitam & Putih)
  */
 async function generateAIContent(req, res) {
   try {
     const {
       title,
-      theme,
       description,
-      slideCount,
-      customColors,
+      outputLanguage = "id",
     } = req.body;
 
-    // Validasi input
-    if (!title || title.trim() === "") {
+    // Validasi input judul
+    if (!title || typeof title !== "string" || title.trim() === "") {
       return res.status(400).json({
         success: false,
         error: "Judul presentasi wajib diisi",
       });
     }
 
-    const count = parseInt(slideCount, 10);
-    if (isNaN(count) || count < 1 || count > 15) {
+    if (title.trim().length > 150) {
       return res.status(400).json({
         success: false,
-        error: "Jumlah slide harus antara 1 sampai 15",
+        error: "Judul presentasi maksimal 150 karakter",
       });
     }
 
+    // Normalisasi outputLanguage: hanya 'id' atau 'en'
+    const normalizedLang = (outputLanguage || "id").toLowerCase() === "en" ? "en" : "id";
+
     const result = await generateCopywriting({
       title: title.trim(),
-      theme: theme || "Bisnis",
-      description: description ? description.trim() : "",
-      slideCount: count,
-      customColors: customColors || null,
+      description: description ? String(description).trim() : "",
+      outputLanguage: normalizedLang,
     });
 
     return res.status(200).json(result);

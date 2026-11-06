@@ -1,54 +1,41 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { themeService, pptxService } from '../services/pptx';
+import { pptxService } from '../services/pptx';
 import { generateAIContent } from '../services/ai';
 import { mapAIResultToSlides } from '../utils/aiMapper';
 import { generateFinalPPTX } from '../utils/pptxGenerator';
 import ThemeSelector from '../components/Generator/ThemeSelector';
-import SlideCountSelector from '../components/Generator/SlideCountSelector';
-import ColorPicker from '../components/Generator/ColorPicker';
 import SlidePreview from '../components/Generator/SlidePreview';
 import ExitConfirmation from '../components/Generator/ExitConfirmation';
 import { useDraft } from '../hooks/useDraft';
 import toast from 'react-hot-toast';
 import {
-  Sparkles, ChevronRight, ChevronLeft, Download, Palette,
-  Type, Layout, CheckCircle, Loader2, FileText, Eye, Sliders,
-  Layers, ArrowRight, ArrowLeft, Check, RefreshCw, Share2,
-  Save, Cloud, CloudOff, X, AlertTriangle,
+  Sparkles, Download, Type, Layout, CheckCircle,
+  Loader2, Eye, ArrowRight, ArrowLeft, Check,
+  RefreshCw, Save, X, Globe, Layers,
 } from 'lucide-react';
 
 const STEPS = [
   { id: 1, label: 'Tema & Topik',   icon: Layout    },
-  { id: 2, label: 'Jumlah Slide',   icon: Sliders   },
-  { id: 3, label: 'Pilih Warna',    icon: Palette   },
-  { id: 4, label: 'Generate AI',    icon: Sparkles  },
-  { id: 5, label: 'Preview & Edit', icon: Eye       },
-  { id: 6, label: 'Download PPTX',  icon: Download  },
+  { id: 2, label: 'Generate AI',    icon: Sparkles  },
+  { id: 3, label: 'Preview & Edit', icon: Eye       },
+  { id: 4, label: 'Download PPTX',  icon: Download  },
 ];
 
-const THEME_EMOJI = {
-  Bisnis: '💼', Edukasi: '📚', Kreatif: '🎨',
-  Minimalis: '✨', Teknologi: '🚀', 'Tema Bebas': '🌟',
-};
-
 /** Build the draft payload from current generator state */
-function buildDraftPayload({ formData, step, slides, originalSlides, recommendations, generatedData }) {
+function buildDraftPayload({ formData, step, slides, recommendations, generatedData }) {
   return {
-    themeId: formData.themeId || null,
     customTitle: formData.customTitle,
     customDescription: formData.customDescription,
-    slideCount: formData.slideCount,
-    customColors: formData.customColors,
+    outputLanguage: formData.outputLanguage || 'id',
+    slideCount: formData.slideCount || (slides.length > 0 ? slides.length : 5),
     currentStep: step,
     status: 'in_progress',
     formData: {
-      themeId: formData.themeId,
-      themeName: formData.themeName,
       customTitle: formData.customTitle,
       customDescription: formData.customDescription,
+      outputLanguage: formData.outputLanguage || 'id',
       slideCount: formData.slideCount,
-      customColors: formData.customColors,
     },
     generatedSlides: slides.length > 0 ? slides : null,
     editedSlides: slides.length > 0 ? slides : null,
@@ -64,11 +51,13 @@ function SaveIndicator({ isSaving, lastSavedAt, draftId }) {
     : null;
 
   return (
-    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-      isSaving
-        ? 'bg-brand-500/10 border-brand-500/20 text-brand-400'
-        : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-sm'
-    }`}>
+    <div
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+        isSaving
+          ? 'bg-brand-500/10 border-brand-500/20 text-brand-400'
+          : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-sm'
+      }`}
+    >
       {isSaving ? (
         <>
           <span className="w-3 h-3 rounded-full border border-brand-400/40 border-t-brand-400 animate-spin" />
@@ -85,43 +74,39 @@ function SaveIndicator({ isSaving, lastSavedAt, draftId }) {
 }
 
 export default function Generator() {
-  const location    = useLocation();
-  const navigate    = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const resumeDraftId  = searchParams.get('draft');
+  const resumeDraftId = searchParams.get('draft');
 
-  const [step,            setStep           ] = useState(1);
-  const [themes,          setThemes         ] = useState([]);
-  const [loadingThemes,   setLoadingThemes  ] = useState(true);
+  const [step, setStep] = useState(1);
 
-  // Form State
+  // Form State (Hanya judul, deskripsi, bahasa, dan slideCount otomatis)
   const [formData, setFormData] = useState({
-    themeId:           location.state?.themeId || '',
-    themeName:         '',
-    customTitle:       '',
+    customTitle: '',
     customDescription: '',
-    slideCount:        5,
-    customColors:      null,
+    outputLanguage: 'id',
+    slideCount: 5,
   });
 
   // Generation & AI state
-  const [loading,               setLoading              ] = useState(false);
-  const [error,                 setError                ] = useState(null);
-  const [isGenerating,          setIsGenerating         ] = useState(false);
-  const [generatedData,         setGeneratedData        ] = useState(null);
-  const [masterId,              setMasterId             ] = useState(null);
-  const [slides,                setSlides               ] = useState([]);
-  const [originalSlides,        setOriginalSlides       ] = useState([]);
-  const [recommendations,       setRecommendations      ] = useState(null);
-  const [designRecommendation,  setDesignRecommendation ] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedData, setGeneratedData] = useState(null);
+  const [masterId, setMasterId] = useState(null);
+  const [slides, setSlides] = useState([]);
+  const [originalSlides, setOriginalSlides] = useState([]);
+  const [recommendations, setRecommendations] = useState(null);
+  const [designRecommendation, setDesignRecommendation] = useState(null);
 
   // Download state
-  const [isFinalizing,    setIsFinalizing  ] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   // Exit confirmation state
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [exitTarget,      setExitTarget    ] = useState(null);
+  const [exitTarget, setExitTarget] = useState(null);
 
   // Draft hook
   const draft = useDraft();
@@ -135,18 +120,19 @@ export default function Generator() {
     if (!resumeDraftId) return;
     (async () => {
       const data = await draft.loadDraft(resumeDraftId);
-      if (!data) { toast.error('Draft tidak ditemukan.'); return; }
+      if (!data) {
+        toast.error('Draft tidak ditemukan.');
+        return;
+      }
 
       // Restore form state
       if (data.formData) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          themeId:           data.formData.themeId           || prev.themeId,
-          themeName:         data.formData.themeName          || prev.themeName,
-          customTitle:       data.formData.customTitle        || prev.customTitle,
-          customDescription: data.formData.customDescription  || prev.customDescription,
-          slideCount:        data.formData.slideCount         || prev.slideCount,
-          customColors:      data.formData.customColors       || prev.customColors,
+          customTitle: data.formData.customTitle || data.customTitle || prev.customTitle,
+          customDescription: data.formData.customDescription || data.customDescription || prev.customDescription,
+          outputLanguage: data.formData.outputLanguage || data.outputLanguage || prev.outputLanguage,
+          slideCount: data.formData.slideCount || data.slideCount || prev.slideCount,
         }));
       }
 
@@ -167,48 +153,18 @@ export default function Generator() {
         setGeneratedData({ slides: data.generatedSlides, designRecommendation: data.recommendations });
       }
 
-      // Resume to correct step (1 to 6)
-      const targetStep = Math.max(1, Math.min(data.currentStep || 1, 6));
+      // Map step lama (1..6) ke step baru (1..4)
+      let targetStep = data.currentStep || 1;
+      if (targetStep > 4) {
+        if (targetStep === 5) targetStep = 3; // Preview & Edit
+        else if (targetStep === 6) targetStep = 4; // Download
+        else targetStep = 2;
+      }
+      targetStep = Math.max(1, Math.min(targetStep, 4));
       setStep(targetStep);
       toast.success(`Draft dilanjutkan dari Step ${targetStep}: ${STEPS[targetStep - 1]?.label}`);
     })();
   }, [resumeDraftId]); // eslint-disable-line
-
-  // ─── Fetch available themes on mount ───────────────────────
-  useEffect(() => {
-    async function loadThemes() {
-      try {
-        setLoadingThemes(true);
-        const res = await themeService.getAll();
-        if (res.success && res.data) {
-          setThemes(res.data);
-          if (!resumeDraftId) {
-            // Pre-select: from navigation state or first theme
-            const preselected = res.data.find(t => t.id === location.state?.themeId);
-            const defaultTheme = preselected || res.data[0];
-            if (defaultTheme) {
-              setFormData(prev => ({
-                ...prev,
-                themeId: prev.themeId || defaultTheme.id,
-                themeName: prev.themeName || defaultTheme.name,
-                customColors: prev.customColors || {
-                  primary:   defaultTheme.color_primary,
-                  secondary: defaultTheme.color_secondary,
-                  accent:    defaultTheme.color_accent,
-                },
-              }));
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Load themes error:', err);
-        toast.error('Gagal memuat daftar tema.');
-      } finally {
-        setLoadingThemes(false);
-      }
-    }
-    loadThemes();
-  }, [location.state, resumeDraftId]); // eslint-disable-line
 
   // ─── Auto-schedule draft save on form changes ───────────────
   useEffect(() => {
@@ -235,7 +191,7 @@ export default function Generator() {
   // ─── beforeunload guard ─────────────────────────────────────
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (step < 6 && (slides.length > 0 || formData.customTitle.trim())) {
+      if (step < 4 && (slides.length > 0 || formData.customTitle.trim())) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -265,7 +221,7 @@ export default function Generator() {
   };
 
   const triggerExit = (path = '/dashboard') => {
-    if (step < 6 && (slides.length > 0 || formData.customTitle.trim())) {
+    if (step < 4 && (slides.length > 0 || formData.customTitle.trim())) {
       setExitTarget(path);
       setShowExitConfirm(true);
     } else {
@@ -275,9 +231,14 @@ export default function Generator() {
 
   // ─── Step navigation ────────────────────────────────────────
   const handleProceedToStep2 = () => {
-    if (!formData.themeId)                    { toast.error('Pilih tema presentasi.'); return; }
-    if (!formData.customTitle.trim())          { toast.error('Judul presentasi wajib diisi.'); return; }
-    if (formData.customTitle.trim().length > 100) { toast.error('Judul maksimal 100 karakter.'); return; }
+    if (!formData.customTitle.trim()) {
+      toast.error('Judul presentasi wajib diisi.');
+      return;
+    }
+    if (formData.customTitle.trim().length > 100) {
+      toast.error('Judul maksimal 100 karakter.');
+      return;
+    }
     setStep(2);
   };
 
@@ -290,17 +251,12 @@ export default function Generator() {
     try {
       const response = await generateAIContent({
         title: formData.customTitle.trim(),
-        theme: formData.themeName || formData.theme || 'Bisnis',
         description: formData.customDescription ? formData.customDescription.trim() : '',
-        slideCount: parseInt(formData.slideCount, 10) || 5,
-        customColors: formData.customColors,
+        outputLanguage: formData.outputLanguage || 'id',
       });
 
       if (response && response.success && response.data) {
-        const mappedSlides = mapAIResultToSlides(
-          response.data,
-          formData.customColors
-        );
+        const mappedSlides = mapAIResultToSlides(response.data);
 
         setGeneratedData(response.data);
         setSlides(mappedSlides);
@@ -308,34 +264,44 @@ export default function Generator() {
         setDesignRecommendation(response.data.designRecommendation);
         setRecommendations({
           fonts: response.data.designRecommendation?.fonts,
-          colors: response.data.designRecommendation?.colors,
           layouts: response.data.designRecommendation?.layouts,
         });
 
+        // Simpan jumlah slide yang ditentukan AI ke form data
+        setFormData((prev) => ({
+          ...prev,
+          slideCount: mappedSlides.length,
+        }));
+
         if (response.isFallback) {
-          toast('⚠️ Server AI Gemini sedang sibuk. Menggunakan template layout cadangan. Anda dapat klik "Generate Ulang" kapan saja untuk hasil AI penuh.', {
-            icon: '⚠️',
-            duration: 6000,
-          });
+          toast(
+            '⚠️ Menggunakan template master cadangan. Anda dapat klik "Regenerate Ulang" kapan saja untuk memuat ulang.',
+            { icon: '⚠️', duration: 6000 }
+          );
         } else {
-          toast.success(`Berhasil membuat ${mappedSlides.length} slide dengan AI!`);
+          toast.success(
+            `Berhasil menghasilkan ${mappedSlides.length} slide dengan AI (${
+              formData.outputLanguage === 'en' ? 'English' : 'Bahasa Indonesia'
+            })!`
+          );
         }
 
-        // Auto-save draft at Step 5
+        // Auto-save draft
         if (formData.customTitle.trim()) {
-          draft.scheduleSave(buildDraftPayload({
-            formData,
-            step: 5,
-            slides: mappedSlides,
-            originalSlides: [],
-            recommendations: response.data.designRecommendation,
-            generatedData: response.data,
-          }));
+          draft.scheduleSave(
+            buildDraftPayload({
+              formData: { ...formData, slideCount: mappedSlides.length },
+              step: 3,
+              slides: mappedSlides,
+              recommendations: response.data.designRecommendation,
+              generatedData: response.data,
+            })
+          );
         }
 
-        setStep(5); // lanjut ke preview
+        setStep(3); // Langsung lanjut ke Preview & Edit
       } else {
-        const errText = response?.error || 'Gagal generate konten AI';
+        const errText = response?.error || 'Gagal menghasilkan konten AI';
         setError(errText);
         toast.error(errText);
       }
@@ -344,7 +310,7 @@ export default function Generator() {
       const errText =
         err.response?.data?.error ||
         err.response?.data?.message ||
-        'Terjadi kesalahan saat menghubungi AI. Silakan coba lagi.';
+        'Terjadi kesalahan saat menghubungi layanan AI. Silakan coba lagi.';
       setError(errText);
       toast.error(errText);
     } finally {
@@ -354,15 +320,20 @@ export default function Generator() {
   };
 
   // ─── Slide edits ────────────────────────────────────────────
-  const handleSlideEdit = useCallback(async (updatedSlides) => {
-    setSlides(updatedSlides);
-    if (masterId) {
-      try { await pptxService.updateSlide(masterId, { slides: updatedSlides }); }
-      catch (err) { console.error('Auto-save slide edit error:', err); }
-    }
-    // Schedule draft save after slide edit
-    draft.scheduleSave(buildDraftPayload({ ...stateRef.current, slides: updatedSlides }));
-  }, [masterId, draft]); // eslint-disable-line
+  const handleSlideEdit = useCallback(
+    async (updatedSlides) => {
+      setSlides(updatedSlides);
+      if (masterId) {
+        try {
+          await pptxService.updateSlide(masterId, { slides: updatedSlides });
+        } catch (err) {
+          console.error('Auto-save slide edit error:', err);
+        }
+      }
+      draft.scheduleSave(buildDraftPayload({ ...stateRef.current, slides: updatedSlides }));
+    },
+    [masterId, draft]
+  );
 
   // ─── Final download ─────────────────────────────────────────
   const handleFinalizeAndDownload = async () => {
@@ -376,14 +347,14 @@ export default function Generator() {
         await generateFinalPPTX(slides, recommendations, formData.customTitle);
       }
       setDownloadSuccess(true);
-      toast.success('File PPTX berhasil diunduh!');
+      toast.success('File PPTX Base Master berhasil diunduh!');
       await draft.markCompleted();
     } catch (err) {
       console.error('Download error:', err);
       try {
         await generateFinalPPTX(slides, recommendations, formData.customTitle);
         setDownloadSuccess(true);
-        toast.success('File PPTX berhasil diekspor!');
+        toast.success('File PPTX Base Master berhasil diekspor!');
         await draft.markCompleted();
       } catch (clientErr) {
         toast.error('Gagal mengunduh: ' + clientErr.message);
@@ -397,16 +368,20 @@ export default function Generator() {
   const handleReset = () => {
     setStep(1);
     setFormData({
-      themeId: themes[0]?.id || '', themeName: themes[0]?.name || '',
-      customTitle: '', customDescription: '', slideCount: 5, customColors: null,
+      customTitle: '',
+      customDescription: '',
+      outputLanguage: 'id',
+      slideCount: 5,
     });
-    setGeneratedData(null); setSlides([]); setOriginalSlides([]); setRecommendations(null);
+    setGeneratedData(null);
+    setSlides([]);
+    setOriginalSlides([]);
+    setRecommendations(null);
     setDesignRecommendation(null);
     setError(null);
     setDownloadSuccess(false);
   };
 
-  // ─── Render ──────────────────────────────────────────────────
   return (
     <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8">
       {/* Exit Confirmation Modal */}
@@ -421,12 +396,12 @@ export default function Generator() {
 
       {/* Loading State Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md text-center shadow-2xl">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Sedang Bekerja</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 max-w-md text-center shadow-2xl border border-gray-100">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-gray-900 mb-2">AI Sedang Menyusun Master Deck</h3>
             <p className="text-gray-600 text-sm">
-              Membuat copywriting, rekomendasi font, warna, dan layout untuk {formData.slideCount} slide...
+              Menganalisis topik &ldquo;{formData.customTitle}&rdquo;, menentukan jumlah slide terbaik, dan menghasilkan copywriting profesional dalam {formData.outputLanguage === 'en' ? 'Bahasa Inggris' : 'Bahasa Indonesia'}...
             </p>
           </div>
         </div>
@@ -436,10 +411,10 @@ export default function Generator() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="text-center sm:text-left space-y-1 flex-1">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Master PowerPoint <span className="gradient-text">Cerdas Berbasis AI</span>
+            Base Master <span className="gradient-text">PowerPoint Cerdas</span>
           </h1>
           <p className="text-dark-400 text-sm sm:text-base">
-            Bangun master template presentasi berkelas studio dengan copywriting dan rekomendasi Gemini AI.
+            Hasilkan master PowerPoint hitam-putih berkelas studio dengan copywriting AI dan jumlah slide otomatis.
           </p>
         </div>
 
@@ -471,32 +446,43 @@ export default function Generator() {
         </div>
       </div>
 
-      {/* Stepper Progress Bar (6 STEPS) */}
+      {/* Stepper Progress Bar (4 STEPS) */}
       <div className="glass-card p-4 rounded-2xl border border-white/10 bg-dark-900/60 shadow-xl">
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {STEPS.map((s) => {
             const Icon = s.icon;
             const isCompleted = step > s.id;
-            const isCurrent   = step === s.id;
+            const isCurrent = step === s.id;
             return (
               <div
                 key={s.id}
-                className={`flex flex-col sm:flex-row items-center gap-2 p-2 sm:p-2.5 rounded-xl transition-all ${
-                  isCurrent   ? 'bg-brand-500/15 border border-brand-500/40 text-brand-300'
-                  : isCompleted ? 'text-green-400 bg-green-500/10 border border-green-500/20'
-                  : 'text-dark-500 opacity-60'
+                className={`flex items-center gap-2.5 p-2.5 rounded-xl transition-all ${
+                  isCurrent
+                    ? 'bg-brand-500/15 border border-brand-500/40 text-brand-300'
+                    : isCompleted
+                    ? 'text-green-400 bg-green-500/10 border border-green-500/20'
+                    : 'text-dark-500 opacity-60'
                 }`}
               >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                  isCurrent   ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30'
-                  : isCompleted ? 'bg-green-500 text-white'
-                  : 'bg-dark-800 text-dark-400'
-                }`}>
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                    isCurrent
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30'
+                      : isCompleted
+                      ? 'bg-green-500 text-white'
+                      : 'bg-dark-800 text-dark-400'
+                  }`}
+                >
                   {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : s.id}
                 </div>
-                <span className="text-xs font-semibold text-center sm:text-left truncate hidden sm:inline">
-                  {s.label}
-                </span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] uppercase font-mono tracking-wider opacity-60">
+                    Step {s.id}
+                  </span>
+                  <span className="text-xs font-semibold truncate text-white">
+                    {s.label}
+                  </span>
+                </div>
               </div>
             );
           })}
@@ -508,45 +494,20 @@ export default function Generator() {
         <ThemeSelector
           formData={formData}
           setFormData={setFormData}
-          themes={themes}
-          loadingThemes={loadingThemes}
           onNext={handleProceedToStep2}
           onSaveDraft={handleManualSave}
         />
       )}
 
-      {/* ─── STEP 2: Jumlah Slide (1-15) ─── */}
+      {/* ─── STEP 2: AI Generate ─── */}
       {step === 2 && (
-        <SlideCountSelector
-          formData={formData}
-          setFormData={setFormData}
-          onPrev={() => setStep(1)}
-          onNext={() => setStep(3)}
-          onSaveDraft={handleManualSave}
-        />
-      )}
-
-      {/* ─── STEP 3: Pilih Warna ─── */}
-      {step === 3 && (
-        <ColorPicker
-          formData={formData}
-          setFormData={setFormData}
-          onPrev={() => setStep(2)}
-          onNext={() => setStep(4)}
-          onSaveDraft={handleManualSave}
-        />
-      )}
-
-      {/* ─── STEP 4: AI Generate ─── */}
-      {step === 4 && (
-        <div className="space-y-8 animate-fade-in">
-          {/* Error State */}
+        <div className="space-y-8 animate-fade-in max-w-2xl mx-auto">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm flex items-center justify-between">
+              <span>{error}</span>
               <button
                 onClick={handleGenerateAI}
-                className="mt-2 bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600 font-medium"
+                className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-700 ml-3"
               >
                 Coba Lagi
               </button>
@@ -554,7 +515,7 @@ export default function Generator() {
           )}
 
           {isGenerating ? (
-            <div className="glass-card p-12 rounded-3xl border border-white/10 text-center max-w-xl mx-auto space-y-6 bg-dark-900/80 shadow-2xl">
+            <div className="glass-card p-12 rounded-3xl border border-white/10 text-center space-y-6 bg-dark-900/80 shadow-2xl">
               <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
                 <div className="absolute inset-0 rounded-full border-4 border-brand-500/20 animate-ping" />
                 <div className="w-16 h-16 rounded-full bg-brand-gradient flex items-center justify-center shadow-lg shadow-brand-500/30">
@@ -564,7 +525,7 @@ export default function Generator() {
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-white">AI Sedang Menyusun Slide Master...</h3>
                 <p className="text-sm text-dark-400">
-                  Menganalisis topik &ldquo;{formData.customTitle}&rdquo;, menghasilkan copywriting lengkap, harmoni warna, dan layout untuk {formData.slideCount} slide.
+                  Menganalisis topik &ldquo;{formData.customTitle}&rdquo;, menentukan jumlah slide optimal (maksimal 15), dan membuat copywriting dalam {formData.outputLanguage === 'en' ? 'Bahasa Inggris' : 'Bahasa Indonesia'}.
                 </p>
               </div>
               <div className="w-full bg-dark-800 rounded-full h-2.5 overflow-hidden">
@@ -573,135 +534,122 @@ export default function Generator() {
             </div>
           ) : generatedData && slides.length > 0 ? (
             <div className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                <div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 mb-2">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Generasi Berhasil
-                  </span>
-                  <h2 className="text-2xl font-bold text-white tracking-tight">Rekomendasi AI Siap</h2>
-                  <p className="text-sm text-dark-400 mt-1">
-                    Berikut susunan slide dan copywriting yang telah dipersiapkan oleh AI.
-                  </p>
-                </div>
-                <button type="button" onClick={handleGenerateAI} className="btn-secondary text-xs flex items-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Regenerate Ulang
-                </button>
-              </div>
-
-              {/* Recommendations Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Fonts */}
-                <div className="glass-card p-5 rounded-2xl border border-white/10 bg-dark-900/50 space-y-3">
-                  <div className="flex items-center gap-2 text-brand-400 font-semibold text-sm">
-                    <Type className="w-4 h-4" /><span>Font Pairing AI</span>
-                  </div>
+              <div className="glass-card p-6 rounded-2xl border border-white/10 bg-dark-900/70 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
                   <div>
-                    <p className="text-lg font-bold text-white">{recommendations?.fonts?.heading || 'Montserrat'}</p>
-                    <p className="text-xs text-dark-400">Heading Text</p>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 mb-1">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Hasil AI Siap ({slides.length} Slide)
+                    </span>
+                    <h2 className="text-xl font-bold text-white">Rekomendasi Master Telah Dibuat</h2>
                   </div>
-                  <div>
-                    <p className="text-base font-semibold text-dark-200">{recommendations?.fonts?.body || 'Open Sans'}</p>
-                    <p className="text-xs text-dark-400">Body Text</p>
-                  </div>
-                  <p className="text-xs text-dark-400 italic pt-2 border-t border-white/5">
-                    &ldquo;{recommendations?.fonts?.rationale}&rdquo;
-                  </p>
-                </div>
-                {/* Colors */}
-                <div className="glass-card p-5 rounded-2xl border border-white/10 bg-dark-900/50 space-y-3">
-                  <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm">
-                    <Palette className="w-4 h-4" /><span>Palet Warna</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 p-2 rounded-lg text-center" style={{ backgroundColor: recommendations?.colors?.primary }}>
-                      <span className="text-[10px] font-bold text-white drop-shadow">Primary</span>
-                    </div>
-                    <div className="flex-1 p-2 rounded-lg text-center" style={{ backgroundColor: recommendations?.colors?.secondary }}>
-                      <span className="text-[10px] font-bold text-white drop-shadow">Secondary</span>
-                    </div>
-                    <div className="flex-1 p-2 rounded-lg text-center" style={{ backgroundColor: recommendations?.colors?.accent }}>
-                      <span className="text-[10px] font-bold text-dark-950">Accent</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-dark-400 italic pt-2 border-t border-white/5">
-                    &ldquo;{recommendations?.colors?.rationale}&rdquo;
-                  </p>
-                </div>
-                {/* Slides Overview */}
-                <div className="glass-card p-5 rounded-2xl border border-white/10 bg-dark-900/50 space-y-3">
-                  <div className="flex items-center gap-2 text-cyan-400 font-semibold text-sm">
-                    <Layers className="w-4 h-4" /><span>Struktur Slide ({slides.length})</span>
-                  </div>
-                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                    {slides.map((s, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-dark-800/60 border border-white/5">
-                        <span className="font-semibold text-white truncate max-w-[180px]">#{idx + 1} {s.name || s.slideType}</span>
-                        <span className="text-[10px] uppercase text-dark-400 font-mono">{s.layout}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                <button type="button" onClick={() => setStep(3)} className="btn-secondary flex items-center gap-2">
-                  <ArrowLeft className="w-4 h-4" /><span>Ubah Warna</span>
-                </button>
-                <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={handleManualSave}
-                    disabled={draft.isSaving}
-                    className="btn-secondary text-xs py-2.5 px-4 flex items-center gap-1.5"
-                    title="Simpan progress Anda saat ini (Ctrl+S)"
+                    onClick={handleGenerateAI}
+                    className="btn-secondary text-xs flex items-center gap-1.5"
                   >
-                    <Save className="w-4 h-4" />
-                    <span>Simpan Draft</span>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Regenerate Ulang
                   </button>
-                  <button type="button" onClick={() => setStep(5)} className="btn-primary flex items-center gap-2 py-3 px-8 text-base shadow-lg shadow-brand-500/25">
-                    <span>Lihat & Edit Preview Slide</span><ArrowRight className="w-5 h-5" />
+                </div>
+
+                {/* Info Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Font Pairing */}
+                  <div className="p-4 rounded-xl bg-dark-800/80 border border-white/5 space-y-2">
+                    <div className="flex items-center gap-2 text-brand-400 font-semibold text-xs">
+                      <Type className="w-4 h-4" />
+                      <span>Font Pairing AI (Text Toolkit)</span>
+                    </div>
+                    <div>
+                      <p className="text-base font-bold text-white">{recommendations?.fonts?.heading || 'Montserrat'}</p>
+                      <p className="text-xs text-dark-400">Heading Font</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-dark-200">{recommendations?.fonts?.body || 'Open Sans'}</p>
+                      <p className="text-xs text-dark-400">Body Font</p>
+                    </div>
+                    <p className="text-[11px] text-dark-400 italic pt-1 border-t border-white/5">
+                      &ldquo;{recommendations?.fonts?.rationale}&rdquo;
+                    </p>
+                  </div>
+
+                  {/* Slide Structure */}
+                  <div className="p-4 rounded-xl bg-dark-800/80 border border-white/5 space-y-2">
+                    <div className="flex items-center gap-2 text-cyan-400 font-semibold text-xs">
+                      <Layers className="w-4 h-4" />
+                      <span>Struktur Slide ({slides.length} Slide)</span>
+                    </div>
+                    <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                      {slides.map((s, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-xs py-1 px-2 rounded bg-dark-900/60 border border-white/5"
+                        >
+                          <span className="font-medium text-white truncate max-w-[170px]">
+                            #{idx + 1} {s.title || s.name || `Slide ${idx + 1}`}
+                          </span>
+                          <span className="text-[10px] uppercase font-mono text-dark-400">{s.layoutId || s.layout}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="btn-secondary text-xs flex items-center gap-1.5"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Ubah Topik</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    className="btn-primary flex items-center gap-2 py-3 px-6 text-sm font-semibold shadow-lg shadow-brand-500/25"
+                  >
+                    <span>Lanjut ke Preview & Edit Slide</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="glass-card p-8 rounded-3xl border border-white/10 max-w-xl mx-auto text-center space-y-6 bg-dark-900/60 shadow-xl">
+            <div className="glass-card p-8 rounded-3xl border border-white/10 text-center space-y-6 bg-dark-900/60 shadow-xl">
               <div className="w-16 h-16 rounded-2xl bg-brand-gradient mx-auto flex items-center justify-center shadow-lg shadow-brand-500/30">
                 <Sparkles className="w-8 h-8 text-white" />
               </div>
+
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-white">Generate Copywriting & Desain AI</h3>
+                <h3 className="text-2xl font-bold text-white">Siap Generate Master AI</h3>
                 <p className="text-sm text-dark-400">
-                  AI akan menyusun {formData.slideCount} slide secara otomatis untuk topik &ldquo;{formData.customTitle}&rdquo; dengan copywriting profesional, pairing font, dan tata letak optimal.
+                  AI akan menentukan jumlah slide secara otomatis berdasarkan judul dan deskripsi Anda, menyusun copywriting profesional, dan menerapkan pairing tipografi Base Master.
                 </p>
               </div>
 
-              {/* Summary of inputs */}
-              <div className="p-4 rounded-xl bg-dark-800/60 border border-white/5 text-left text-xs space-y-2">
+              {/* Summary box */}
+              <div className="p-4 rounded-xl bg-dark-800/80 border border-white/10 text-left text-xs space-y-2.5">
                 <div className="flex justify-between">
-                  <span className="text-dark-400">Judul:</span>
-                  <span className="text-white font-semibold">{formData.customTitle}</span>
+                  <span className="text-dark-400">Judul Presentasi:</span>
+                  <span className="text-white font-semibold truncate max-w-[280px]">{formData.customTitle}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-dark-400">Tema:</span>
-                  <span className="text-brand-300 font-semibold">{formData.themeName || 'Bisnis'}</span>
+                  <span className="text-dark-400">Desain:</span>
+                  <span className="text-white font-medium">Base Master (Hitam & Putih)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400">Bahasa Output:</span>
+                  <span className="text-brand-300 font-semibold">
+                    {formData.outputLanguage === 'en' ? '🇬🇧 Bahasa Inggris (English)' : '🇮🇩 Bahasa Indonesia'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-dark-400">Jumlah Slide:</span>
-                  <span className="text-white font-semibold">{formData.slideCount} Slide</span>
+                  <span className="text-white font-medium">Otomatis oleh AI (Maksimal 15)</span>
                 </div>
-                {formData.customColors && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-dark-400">Warna Dipilih:</span>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: formData.customColors.primary }} />
-                      <div className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: formData.customColors.secondary }} />
-                      <div className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: formData.customColors.accent }} />
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="pt-2">
@@ -715,14 +663,14 @@ export default function Generator() {
                 </button>
               </div>
 
-              <div className="flex justify-center">
+              <div>
                 <button
                   type="button"
-                  onClick={() => setStep(3)}
-                  className="text-xs text-dark-400 hover:text-white flex items-center gap-1"
+                  onClick={() => setStep(1)}
+                  className="text-xs text-dark-400 hover:text-white inline-flex items-center gap-1"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Kembali ke Pilih Warna</span>
+                  <span>Kembali ke Detail Topik</span>
                 </button>
               </div>
             </div>
@@ -730,8 +678,8 @@ export default function Generator() {
         </div>
       )}
 
-      {/* ─── STEP 5: Preview & Edit ─── */}
-      {step === 5 && (
+      {/* ─── STEP 3: Preview & Edit ─── */}
+      {step === 3 && (
         <SlidePreview
           slides={slides}
           originalSlides={originalSlides}
@@ -741,33 +689,41 @@ export default function Generator() {
             setSlides(JSON.parse(JSON.stringify(originalSlides)));
             toast.success('Slide dikembalikan ke rekomendasi awal.');
           }}
-          onPrev={() => setStep(4)}
-          onNext={() => setStep(6)}
+          onPrev={() => setStep(2)}
+          onNext={() => setStep(4)}
           onSaveDraft={handleManualSave}
         />
       )}
 
-      {/* ─── STEP 6: Download ─── */}
-      {step === 6 && (
+      {/* ─── STEP 4: Download PPTX ─── */}
+      {step === 4 && (
         <div className="space-y-8 animate-fade-in max-w-2xl mx-auto">
           <div className="glass-card p-8 rounded-3xl border border-white/15 bg-dark-900/60 shadow-2xl text-center space-y-6">
             <div className="w-16 h-16 rounded-2xl bg-brand-gradient mx-auto flex items-center justify-center shadow-xl shadow-brand-500/30">
               <Download className="w-8 h-8 text-white" />
             </div>
+
             <div className="space-y-2">
               <h2 className="text-2xl font-bold text-white">Presentasi Siap Diunduh!</h2>
               <p className="text-sm text-dark-300">
-                Master slide <span className="text-white font-semibold">&ldquo;{formData.customTitle}&rdquo;</span> telah selesai dipersiapkan dengan {slides.length} slide.
+                Master slide <span className="text-white font-semibold">&ldquo;{formData.customTitle}&rdquo;</span> telah siap dalam format Base Master (Hitam & Putih).
               </p>
             </div>
+
             <div className="p-4 rounded-xl bg-dark-950/60 border border-white/10 text-left space-y-2.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-dark-400">Judul:</span>
-                <span className="text-white font-semibold">{formData.customTitle}</span>
+                <span className="text-white font-semibold truncate max-w-[280px]">{formData.customTitle}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-dark-400">Tema Dasar:</span>
-                <span className="text-brand-300 font-medium">{formData.themeName}</span>
+                <span className="text-dark-400">Desain:</span>
+                <span className="text-brand-300 font-medium">Base Master (Hitam & Putih)</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-dark-400">Bahasa Output:</span>
+                <span className="text-white font-medium">
+                  {formData.outputLanguage === 'en' ? 'Bahasa Inggris (English)' : 'Bahasa Indonesia'}
+                </span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-dark-400">Total Slide:</span>
@@ -775,7 +731,9 @@ export default function Generator() {
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-dark-400">Tipografi:</span>
-                <span className="text-dark-300">{recommendations?.fonts?.heading} & {recommendations?.fonts?.body}</span>
+                <span className="text-dark-300">
+                  {recommendations?.fonts?.heading || 'Montserrat'} & {recommendations?.fonts?.body || 'Open Sans'}
+                </span>
               </div>
             </div>
 
@@ -787,14 +745,20 @@ export default function Generator() {
                 className="w-full btn-primary py-3.5 text-base flex items-center justify-center gap-2 shadow-xl shadow-brand-500/30 disabled:opacity-50"
               >
                 {isFinalizing ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /><span>Mengekspor Dokumen PPTX...</span></>
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Mengekspor Dokumen PPTX...</span>
+                  </>
                 ) : (
-                  <><Download className="w-5 h-5" /><span>Download Master PPTX (.pptx)</span></>
+                  <>
+                    <Download className="w-5 h-5" />
+                    <span>Download Master PPTX (.pptx)</span>
+                  </>
                 )}
               </button>
               <button
                 type="button"
-                onClick={() => setStep(5)}
+                onClick={() => setStep(3)}
                 className="btn-secondary w-full py-2.5 text-xs text-dark-300 hover:text-white"
               >
                 ← Kembali ke Editor Slide
@@ -810,11 +774,19 @@ export default function Generator() {
           </div>
 
           <div className="flex justify-center gap-4 pt-2">
-            <button type="button" onClick={handleReset} className="text-xs text-brand-400 hover:text-brand-300 underline">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-xs text-brand-400 hover:text-brand-300 underline"
+            >
               + Buat Master Presentasi Baru
             </button>
             <span className="text-dark-600">•</span>
-            <button type="button" onClick={() => triggerExit('/dashboard')} className="text-xs text-dark-400 hover:text-white underline">
+            <button
+              type="button"
+              onClick={() => triggerExit('/dashboard')}
+              className="text-xs text-dark-400 hover:text-white underline"
+            >
               Kembali ke Dashboard
             </button>
           </div>

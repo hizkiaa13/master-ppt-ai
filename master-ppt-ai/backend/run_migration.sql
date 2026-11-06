@@ -92,3 +92,8 @@ CREATE POLICY themes_all ON themes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY master_histories_all ON master_histories FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY drafts_all ON drafts FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY slide_layouts_all ON slide_layouts FOR ALL USING (true) WITH CHECK (true);
+
+-- Migration: Tambahkan kolom output_language dan izinkan theme_id NULL untuk Base Master
+ALTER TABLE drafts ADD COLUMN IF NOT EXISTS output_language VARCHAR(10) DEFAULT 'id';
+ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS output_language VARCHAR(10) DEFAULT 'id';
+ALTER TABLE master_histories ALTER COLUMN theme_id DROP NOT NULL;

@@ -1,82 +1,50 @@
 /**
  * Master Prompt Generator for AI PowerPoint Deck Generation
- * Mengintegrasikan Variasi Auto Layout Design System dari Base Layout Presentasi.pdf
+ * Versi Base Master (Hitam & Putih) dengan integrasi Text Toolkit.
  */
 
-function buildMasterPrompt({ title, theme, description, slideCount, customColors }) {
-  const colorsText = customColors?.primary
-    ? `Jika user sudah memilih warna custom berikut:
-Primary: ${customColors.primary}
-Secondary: ${customColors.secondary || customColors.primary}
-Accent: ${customColors.accent || '#F59E0B'}
+const { getPromptFontList, FONT_PAIRINGS } = require('../utils/textToolkit');
 
-Maka gunakan warna tersebut sebagai palet warna utama dan sesuaikan rekomendasi font serta layout dengan warna tersebut.`
-    : '';
+function buildMasterPrompt({ title, description, outputLanguage = 'id' }) {
+  const fontList = getPromptFontList();
+  const langInstruction =
+    outputLanguage === 'en'
+      ? 'Use professional English for all slide copywriting.'
+      : 'Gunakan Bahasa Indonesia yang profesional untuk seluruh copywriting slide.';
 
-  return `
-Kamu adalah ahli copywriting dan arsitek desain presentasi profesional kelas dunia dengan Auto Layout Design System berbasis katalog "Base Layout Presentasi".
+  return `Kamu adalah ahli copywriting dan desain presentasi profesional.
 
-Buatkan konten presentasi PowerPoint komprehensif berdasarkan informasi berikut:
-
+Buatkan konten master PowerPoint berdasarkan informasi berikut:
 Judul Presentasi: ${title}
-Tema: ${theme}
-Deskripsi Tambahan: ${description || "Tidak ada"}
-Jumlah Slide: ${slideCount}
+Topik/Deskripsi: ${description || "Tidak ada deskripsi tambahan"}
+Bahasa Output: ${outputLanguage} (${outputLanguage === 'en' ? 'English' : 'Bahasa Indonesia'})
+Jumlah Slide: ditentukan oleh kamu, maksimal 15 slide.
 
-=== ATURAN PEMILIHAN LAYOUT VARIATIF DARI BASE LAYOUT ===
-Setiap slide harus memiliki tata letak yang bervariasi dan dinamis. Jangan memaksakan semua slide memakai pola yang sama. Pilih layoutId yang tepat untuk setiap slide dari katalog berikut:
+Aturan:
+1. Tentukan jumlah slide yang paling sesuai berdasarkan judul dan topik, maksimal 15 slide.
+2. Slide pertama harus cover depan (layoutId: "cover-front").
+3. Jika total slide >= 4, slide kedua adalah daftar isi (layoutId: "table-of-contents").
+4. Slide terakhir harus cover belakang berisi ucapan terima kasih atau call to action (layoutId: "cover-back").
+5. Untuk setiap slide, tentukan jumlah poin, lalu pilih layout berdasarkan jumlah poin:
+   - 1 poin: one-point
+   - 2 poin: two-points
+   - 3 poin: three-points
+   - 4 poin: four-points
+   - 5 poin: five-points
+   - 6 poin atau lebih: six-points
+   - Slide berisi data/grafik/statistik: chart
+   - Slide berisi kutipan/testimoni: testimonial
+6. Desain master menggunakan skema hitam dan putih:
+   - Background putih (#FFFFFF)
+   - Teks hitam (#000000) atau abu gelap (#1F2937 / #4B5563)
+   - Tidak menggunakan warna warni
+7. Pilih pairing font HANYA dari daftar berikut:
+   ${fontList}
+8. Jangan memberikan saran tema. Fokus pada copywriting, struktur slide, font, dan layout.
+9. ${langInstruction}
+10. Balas HANYA dalam format JSON valid tanpa markdown atau teks pengantar.
 
-1. Slide Cover Pembuka (Slide 1):
-   - "cover-front" (Cover klasik terpusat) ATAU "cover-front-editorial" (Cover modern editorial kiri)
-
-2. Slide Daftar Isi / Agenda (Slide 2 jika total slide >= 4):
-   - "table-of-contents" (Daftar isi 01-06 bergaris elegan)
-
-3. Slide Konten 1 Poin:
-   - "one-point" (Impact statement inspiratif terpusat)
-   - "one-point-split" (Judul & deskripsi di kiri, uraian fokus di kanan)
-
-4. Slide Konten 2 Poin:
-   - "two-points" (Dua kolom sejajar simetris A & B)
-   - "two-points-horizontal" (Dua baris bertingkat dengan garis pemisah 01 / 02)
-
-5. Slide Konten 3 Poin:
-   - "three-points" (Tiga kolom kartu vertikal 01, 02, 03)
-   - "three-points-horizontal" (Tiga baris horizontal dengan penanda panah [→] dan garis pemisah)
-   - "three-points-timeline" (Tiga tahapan alur berurutan pada garis timeline)
-
-6. Slide Konten 4 Poin:
-   - "four-points" (Grid kartu simetris 2x2 dengan badge panah)
-   - "four-points-steps" (Empat kuadran alur bertahap: Step 1, Step 2, Step 3, Step 4)
-
-7. Slide Konten 5 Poin:
-   - "five-points" (Lima kartu berjenjang: 3 di atas + 2 di bawah terpusat)
-   - "five-points-timeline" (Rangkaian 5 tahapan proses horizontal 01 s/d 05)
-
-8. Slide Konten 6 Poin:
-   - "six-points" (Grid 3x2 kartu terstruktur padat)
-   - "six-points-columns" (Dua kolom masing-masing berisi 3 baris bergaris panah [→])
-
-9. Slide Data, Grafik, & Metrik Kinerja:
-   - "chart" (Visual grafik di kanan dengan narasi sumber data di kiri)
-   - "chart-stat" (Tiga kartu cincin persentase capaian kuantitatif seperti 67%, 85%, dsb.)
-
-10. Slide Testimoni & Validasi:
-    - "testimonial-cards" (Tiga kartu ulasan pelanggan lengkap dengan rating bintang ★★★★ 4.8/5)
-    - "testimonial" (Satu kutipan visi kepemimpinan masif terpusat)
-
-11. Slide Penutup (Slide Terakhir):
-    - "cover-back" (Let's Connect & rincian kontak: Phone, Email, Website, Alamat)
-    - "cover-back-statement" (Tipografi "Thank You" masif terpusat dengan tautan media)
-
-=== INSTRUKSI STRUKTUR & VARIASI DECK ===
-- Variasikan jumlah poin di slide konten (misal ada slide 2 poin, slide 3 poin horizontal, slide chart data, slide 4 poin grid).
-- Hindari repetisi layout yang sama di slide yang berurutan.
-- Bahasa: Bahasa Indonesia yang berbobot, persuasif, tajam, dan mudah dipahami.
-
-${colorsText}
-
-Balas HANYA dalam format JSON valid tanpa markdown atau teks pengantar dengan format:
+Format JSON yang wajib diikuti:
 {
   "slides": [
     {
@@ -90,15 +58,16 @@ Balas HANYA dalam format JSON valid tanpa markdown atau teks pengantar dengan fo
     },
     {
       "slideNumber": 2,
-      "slideType": "${slideCount >= 4 ? 'agenda' : 'content'}",
-      "layoutId": "${slideCount >= 4 ? 'table-of-contents' : 'three-points'}",
-      "pointCount": ${slideCount >= 4 ? Math.min(slideCount, 5) : 3},
-      "title": "${slideCount >= 4 ? 'Daftar Agenda & Pembahasan' : 'Topik Utama'}",
+      "slideType": "agenda",
+      "layoutId": "table-of-contents",
+      "pointCount": 4,
+      "title": "${outputLanguage === 'en' ? 'Table of Contents' : 'Daftar Isi & Agenda'}",
       "subtitle": "Ikhtisar topik...",
       "content": [
         "Poin 1...",
         "Poin 2...",
-        "Poin 3..."
+        "Poin 3...",
+        "Poin 4..."
       ]
     }
   ],
@@ -106,13 +75,7 @@ Balas HANYA dalam format JSON valid tanpa markdown atau teks pengantar dengan fo
     "fonts": {
       "heading": "Montserrat",
       "body": "Open Sans",
-      "rationale": "Kombinasi font modern dan mudah dibaca."
-    },
-    "colors": {
-      "primary": "#2563EB",
-      "secondary": "#1E40AF",
-      "accent": "#F59E0B",
-      "rationale": "Harmoni palet warna yang seimbang."
+      "rationale": "Kombinasi font profesional dan bersih untuk master hitam-putih."
     },
     "layouts": [
       {

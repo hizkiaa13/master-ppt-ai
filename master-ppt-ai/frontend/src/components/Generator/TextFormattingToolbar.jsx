@@ -1,31 +1,16 @@
 import React from 'react';
+import {
+  SUPPORTED_FONTS,
+  TEXT_FORMATTING_RULES,
+} from '../../utils/textToolkit';
 
 function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
   if (!selectedElement) return null;
 
-  const fontFamilies = [
-    'Montserrat',
-    'Open Sans',
-    'Poppins',
-    'Lato',
-    'Playfair Display',
-    'Source Sans Pro',
-    'Roboto',
-    'Oswald',
-    'Raleway',
-    'Merriweather',
-  ];
-
-  const fontSizes = [
-    12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 44, 48, 54, 60, 72,
-  ];
-
-  const alignments = [
-    { value: 'left', tooltip: 'Rata Kiri (Ctrl+L)' },
-    { value: 'center', tooltip: 'Rata Tengah (Ctrl+E)' },
-    { value: 'right', tooltip: 'Rata Kanan (Ctrl+R)' },
-    { value: 'justify', tooltip: 'Justify (Ctrl+J)' },
-  ];
+  const fontFamilies = SUPPORTED_FONTS;
+  const fontSizes = TEXT_FORMATTING_RULES.fontSizes;
+  const alignments = TEXT_FORMATTING_RULES.alignments;
+  const allowedColors = TEXT_FORMATTING_RULES.allowedColors;
 
   const handleFontChange = (e) => {
     onUpdate({
@@ -69,10 +54,10 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
     });
   };
 
-  const handleColorChange = (e) => {
+  const handleColorSelect = (hex) => {
     onUpdate({
       ...selectedElement,
-      color: e.target.value,
+      color: hex,
     });
   };
 
@@ -83,8 +68,10 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
     });
   };
 
+  const currentColor = (selectedElement.color || '#000000').toUpperCase();
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-lg text-gray-900 transition-all animate-slide-down">
+    <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-xl text-gray-900 transition-all animate-slide-down">
       <div className="flex items-center gap-3 md:gap-4 flex-wrap">
         {/* Close Button */}
         <button
@@ -101,13 +88,13 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
         {/* Divider */}
         <div className="h-7 w-px bg-gray-200" />
 
-        {/* Font Family */}
+        {/* Font Family Dropdown */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 font-semibold">Font</label>
           <select
             value={selectedElement.font || 'Montserrat'}
             onChange={handleFontChange}
-            className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm cursor-pointer"
+            className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-800 focus:ring-2 focus:ring-black focus:border-black shadow-sm cursor-pointer"
             style={{ fontFamily: selectedElement.font || 'Montserrat' }}
           >
             {fontFamilies.map((font) => (
@@ -121,13 +108,13 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
         {/* Divider */}
         <div className="h-7 w-px bg-gray-200" />
 
-        {/* Font Size */}
+        {/* Font Size Dropdown */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600 font-semibold">Ukuran</label>
           <select
             value={selectedElement.fontSize || 24}
             onChange={handleSizeChange}
-            className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-20 shadow-sm cursor-pointer"
+            className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-800 focus:ring-2 focus:ring-black focus:border-black w-20 shadow-sm cursor-pointer"
           >
             {fontSizes.map((size) => (
               <option key={size} value={size}>
@@ -140,14 +127,14 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
         {/* Divider */}
         <div className="h-7 w-px bg-gray-200" />
 
-        {/* Text Style Buttons */}
+        {/* Text Style Buttons: Bold, Italic, Underline */}
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={handleBoldToggle}
             className={`p-1.5 md:p-2 rounded-lg transition-all ${
               selectedElement.isBold
-                ? 'bg-blue-100 text-blue-600 font-bold shadow-sm'
+                ? 'bg-gray-900 text-white font-bold shadow-sm'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
             title="Bold (Ctrl+B)"
@@ -162,7 +149,7 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
             onClick={handleItalicToggle}
             className={`p-1.5 md:p-2 rounded-lg transition-all ${
               selectedElement.isItalic
-                ? 'bg-blue-100 text-blue-600 shadow-sm'
+                ? 'bg-gray-900 text-white shadow-sm'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
             title="Italic (Ctrl+I)"
@@ -181,7 +168,7 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
             onClick={handleUnderlineToggle}
             className={`p-1.5 md:p-2 rounded-lg transition-all ${
               selectedElement.isUnderline
-                ? 'bg-blue-100 text-blue-600 shadow-sm'
+                ? 'bg-gray-900 text-white shadow-sm'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
             title="Underline (Ctrl+U)"
@@ -209,7 +196,7 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
               onClick={() => handleAlignChange(align.value)}
               className={`p-1.5 md:p-2 rounded-lg transition-all ${
                 (selectedElement.align || 'left') === align.value
-                  ? 'bg-blue-100 text-blue-600 shadow-sm'
+                  ? 'bg-gray-900 text-white shadow-sm'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
               title={align.tooltip}
@@ -257,25 +244,31 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
         {/* Divider */}
         <div className="h-7 w-px bg-gray-200" />
 
-        {/* Text Color */}
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-600 font-semibold">Warna</label>
-          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-lg p-1 shadow-sm">
-            <input
-              type="color"
-              value={selectedElement.color || '#000000'}
-              onChange={handleColorChange}
-              className="w-7 h-7 rounded border border-gray-300 cursor-pointer bg-transparent p-0"
-              title="Pilih Warna Text"
-            />
-            <input
-              type="text"
-              value={selectedElement.color || '#000000'}
-              onChange={handleColorChange}
-              className="w-20 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-xs font-mono text-gray-800"
-              placeholder="#000000"
-            />
-          </div>
+        {/* Warna Teks Terbatas (Hitam & Putih Toolkit) */}
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-gray-600 font-semibold mr-1">Warna</label>
+          {allowedColors.map((col) => {
+            const isSelected = currentColor === col.hex.toUpperCase();
+            return (
+              <button
+                key={col.hex}
+                type="button"
+                onClick={() => handleColorSelect(col.hex)}
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium border transition-all ${
+                  isSelected
+                    ? 'border-black ring-2 ring-black/20 bg-gray-100 font-bold'
+                    : 'border-gray-200 hover:border-gray-400 bg-white'
+                }`}
+                title={col.label}
+              >
+                <span
+                  className="w-3.5 h-3.5 rounded-full border border-gray-300"
+                  style={{ backgroundColor: col.hex }}
+                />
+                <span className="text-[11px] text-gray-700">{col.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Divider */}
@@ -287,13 +280,13 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose }) {
           <select
             value={selectedElement.lineHeight || 1.5}
             onChange={handleLineHeightChange}
-            className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-20 shadow-sm cursor-pointer"
+            className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs md:text-sm font-medium bg-white text-gray-800 focus:ring-2 focus:ring-black focus:border-black w-20 shadow-sm cursor-pointer"
           >
-            <option value="1">1.0</option>
-            <option value="1.2">1.2</option>
-            <option value="1.5">1.5</option>
-            <option value="1.8">1.8</option>
-            <option value="2">2.0</option>
+            {TEXT_FORMATTING_RULES.lineHeights.map((lh) => (
+              <option key={lh} value={lh}>
+                {lh.toFixed(1)}
+              </option>
+            ))}
           </select>
         </div>
       </div>

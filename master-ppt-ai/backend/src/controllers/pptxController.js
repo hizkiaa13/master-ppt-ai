@@ -1,102 +1,107 @@
 const { randomUUID: uuidv4 } = require('crypto');
 const PptxGenJS = require('pptxgenjs');
 const { supabase } = require('../config/supabase');
-const { getRecommendations, generateSlideDeck } = require('../utils/aiEngine');
+const { FONT_PAIRINGS } = require('../utils/textToolkit');
 
 /**
  * Convert hex color to 6-char string (no #) for PptxGenJS
  */
 function hexToRgb(hex) {
-  if (!hex) return 'FFFFFF';
-  return hex.replace('#', '').toUpperCase();
+  if (!hex) return '000000';
+  return hex.replace('#', '').trim().toUpperCase();
 }
 
 /**
- * Generate a complete PPTX file from slide blueprints and return as Buffer
+ * Generate a complete PPTX file from slide blueprints (Base Master Hitam & Putih)
  */
 async function generatePPTXBuffer(slides, title) {
   const pres = new PptxGenJS();
   pres.layout = 'LAYOUT_16x9';
   pres.author = 'Master PPT AI';
   pres.company = 'Master PPT AI';
-  pres.title = title || 'Presentasi Master AI';
+  pres.title = title || 'Base Master PowerPoint (Hitam & Putih)';
+
+  const defaultFont = FONT_PAIRINGS[0].heading;
 
   slides.forEach((slideData) => {
     const slide = pres.addSlide();
 
-    // Background color
-    if (slideData.background && slideData.background.color) {
-      slide.background = { color: hexToRgb(slideData.background.color) };
-    }
+    // 1. Background selalu putih murni (#FFFFFF)
+    slide.background = { color: 'FFFFFF' };
 
-    // Render decorative header/accent line if slide is not title or closing
-    if (slideData.slideType !== 'title' && slideData.slideType !== 'closing') {
+    // 2. Garis aksen minimalis hitam/abu terang jika bukan slide cover/closing
+    const isCover = slideData.slideType === 'cover' || (slideData.layoutId && slideData.layoutId.startsWith('cover-front'));
+    const isClosing = slideData.slideType === 'closing' || (slideData.layoutId && slideData.layoutId.startsWith('cover-back'));
+
+    if (!isCover && !isClosing) {
       slide.addShape(pres.ShapeType.rect, {
-        x: 1,
-        y: 1.25,
-        w: 1.5,
-        h: 0.04,
-        fill: { color: '38BDF8' },
-        line: { color: '38BDF8' },
+        x: 0.8,
+        y: 1.1,
+        w: 1.2,
+        h: 0.03,
+        fill: { color: '000000' },
+        line: { color: '000000' },
       });
     }
 
-    // Placeholders
+    // 3. Render Placeholders
     (slideData.placeholders || []).forEach((placeholder) => {
-      const x = Math.max(0, parseFloat(placeholder.position?.x) || 1);
-      const y = Math.max(0, parseFloat(placeholder.position?.y) || 1);
-      const w = Math.min(10, Math.max(0.5, parseFloat(placeholder.position?.w) || 8));
-      const h = Math.min(5.6, Math.max(0.3, parseFloat(placeholder.position?.h) || 1));
+      const rawX = parseFloat(placeholder.position?.x) || 1;
+      const rawY = parseFloat(placeholder.position?.y) || 1;
+      const rawW = parseFloat(placeholder.position?.w) || 8;
+      const rawH = parseFloat(placeholder.position?.h) || 1;
+
+      // Konversi jika persentase
+      const isPercent = rawW > 10 || rawH > 10 || rawX > 10 || rawY > 10;
+      const x = isPercent ? (rawX / 100) * 10 : Math.max(0, rawX);
+      const y = isPercent ? (rawY / 100) * 5.625 : Math.max(0, rawY);
+      const w = isPercent ? (rawW / 100) * 10 : Math.min(10, Math.max(0.5, rawW));
+      const h = isPercent ? (rawH / 100) * 5.625 : Math.min(5.625, Math.max(0.3, rawH));
 
       if (placeholder.type === 'text') {
-        const align = placeholder.align || 'left';
+        const isTitle = placeholder.id?.startsWith('title') || placeholder.name?.toLowerCase().includes('judul');
+        const defaultColor = isTitle ? '000000' : '1F2937';
+        const textColor = placeholder.color ? hexToRgb(placeholder.color) : defaultColor;
+
+        const align = placeholder.align || (isCover && !slideData.layoutId?.includes('editorial') ? 'center' : 'left');
+
         const textOptions = {
           x,
           y,
           w,
           h,
-          fontSize: placeholder.fontSize || 16,
-          fontFace: placeholder.font || 'Inter',
-          color: hexToRgb(placeholder.color || '#FFFFFF'),
-          align: align,
+          fontSize: placeholder.fontSize || (isTitle ? 32 : 16),
+          fontFace: placeholder.font || defaultFont,
+          color: textColor,
+          align,
           valign: 'middle',
           isTextBox: true,
           wrap: true,
-          bold: !!placeholder.isBold,
+          bold: placeholder.isBold !== undefined ? !!placeholder.isBold : isTitle,
           italic: !!placeholder.isItalic,
           underline: !!placeholder.isUnderline,
-          lineSpacing: Math.round((placeholder.lineHeight || 1.5) * (placeholder.fontSize || 16)),
+          lineSpacing: Math.round((placeholder.lineHeight || 1.4) * (placeholder.fontSize || 16)),
         };
-
-        if (placeholder.shadow) {
-          textOptions.shadow = {
-            type: 'outer',
-            color: '000000',
-            blur: 3,
-            offset: 2,
-            angle: 45,
-            opacity: 0.4,
-          };
-        }
 
         slide.addText(placeholder.content || '', textOptions);
       } else if (placeholder.type === 'image') {
-        // Render stylized image placeholder
+        // Stylized minimal image placeholder
         slide.addShape(pres.ShapeType.rect, {
           x,
           y,
           w,
           h,
-          fill: { color: 'F1F5F9', transparency: 20 },
-          line: { color: '94A3B8', width: 1.5, dashType: 'dash' },
+          fill: { color: 'F9FAFB' },
+          line: { color: 'E5E7EB', width: 1, dashType: 'dash' },
         });
-        slide.addText(placeholder.placeholder || 'Area Gambar / Infografis', {
+        slide.addText(placeholder.placeholder || 'Area Visual / Diagram Hitam-Putih', {
           x,
           y,
           w,
           h,
-          fontSize: 13,
-          color: '64748B',
+          fontSize: 12,
+          fontFace: defaultFont,
+          color: '6B7280',
           align: 'center',
           valign: 'middle',
         });
@@ -104,88 +109,57 @@ async function generatePPTXBuffer(slides, title) {
     });
   });
 
-  // Return as base64 buffer instead of writing to file
   const buffer = await pres.write({ outputType: 'nodebuffer' });
   return buffer;
 }
 
 // POST /api/pptx/generate
 async function generatePPTX(req, res) {
-  const { themeId, customTheme, slideCount, customColors, customizations } = req.body;
-  
-  if (!themeId) {
-    return res.status(400).json({ success: false, message: 'themeId diperlukan.' });
-  }
+  const { customTheme, customizations, outputLanguage = 'id' } = req.body;
 
-  // Validate slide count: 1 to 15, default 5
-  const count = parseInt(slideCount, 10) || 5;
-  if (count < 1 || count > 15) {
-    return res.status(400).json({ success: false, message: 'Jumlah slide harus antara 1 sampai 15.' });
-  }
-
-  // Validate title
-  const rawTitle = customTheme?.title || customizations?.title || '';
+  const rawTitle = customTheme?.title || customizations?.title || req.body.title || '';
   const title = rawTitle.trim();
   if (!title) {
     return res.status(400).json({ success: false, message: 'Judul presentasi wajib diisi.' });
   }
-  if (title.length > 100) {
-    return res.status(400).json({ success: false, message: 'Judul presentasi maksimal 100 karakter.' });
-  }
 
-  const description = (customTheme?.description || customizations?.description || '').trim();
-  if (description.length > 500) {
-    return res.status(400).json({ success: false, message: 'Deskripsi tema maksimal 500 karakter.' });
-  }
+  const description = (customTheme?.description || customizations?.description || req.body.description || '').trim();
 
   try {
-    const { data: theme, error: themeError } = await supabase
-      .from('themes')
-      .select('*')
-      .eq('id', themeId)
-      .single();
-    
-    if (themeError || !theme) {
-      return res.status(404).json({ success: false, message: 'Tema tidak ditemukan.' });
-    }
-
-    const finalColors = customColors || customizations?.colors || null;
-    const finalFonts = customizations?.fonts || null;
-
-    // Generate dynamic slide deck with 1-15 slides
-    const deck = generateSlideDeck({
-      themeName: theme.name,
-      customTitle: title,
-      customDescription: description,
-      slideCount: count,
-      customColors: finalColors,
-      customFonts: finalFonts,
-    });
-
     const historyId = uuidv4();
+    const slides = req.body.slides || [];
+    const count = slides.length || 5;
 
-    // Generate PPTX as buffer (no file system in serverless)
-    const pptxBuffer = await generatePPTXBuffer(deck.slides, title);
-    
-    // Store the PPTX as base64 in the database for serverless compatibility
+    const pptxBuffer = await generatePPTXBuffer(slides, title);
     const pptxBase64 = pptxBuffer.toString('base64');
 
-    // Save to history
-    const { error: insertError } = await supabase
-      .from('master_histories')
-      .insert({
-        id: historyId,
-        user_id: req.userId,
-        theme_id: themeId,
-        theme_name: theme.name,
-        custom_fonts: JSON.stringify(deck.recommendations.fonts),
-        custom_colors: JSON.stringify(finalColors || deck.recommendations.colors),
-        custom_layouts: JSON.stringify(deck.slides.map(s => s.layout)),
-        slide_previews: JSON.stringify(deck.slides),
-        edited_slides: JSON.stringify(deck.slides),
-        pptx_file_path: pptxBase64, // Store base64 encoded PPTX
-        final_pptx_path: null,
-      });
+    const defaultPairing = FONT_PAIRINGS[0];
+
+    const insertData = {
+      id: historyId,
+      user_id: req.userId,
+      theme_id: null,
+      theme_name: 'Base Master (Hitam & Putih)',
+      custom_fonts: JSON.stringify({ heading: defaultPairing.heading, body: defaultPairing.body }),
+      custom_colors: null,
+      custom_layouts: JSON.stringify(slides.map((s) => s.layout || s.layoutId)),
+      slide_previews: JSON.stringify(slides),
+      edited_slides: JSON.stringify(slides),
+      pptx_file_path: pptxBase64,
+      final_pptx_path: null,
+    };
+
+    if (outputLanguage) {
+      insertData.output_language = outputLanguage;
+    }
+
+    let { error: insertError } = await supabase.from('master_histories').insert(insertData);
+
+    if (insertError && (insertError.message?.includes('output_language') || insertError.code === 'PGRST204')) {
+      delete insertData.output_language;
+      const retry = await supabase.from('master_histories').insert(insertData);
+      insertError = retry.error;
+    }
 
     if (insertError) throw insertError;
 
@@ -194,8 +168,7 @@ async function generatePPTX(req, res) {
       message: 'Master PPTX berhasil di-generate!',
       data: {
         masterId: historyId,
-        slides: deck.slides,
-        recommendations: deck.recommendations,
+        slides,
         title,
         slideCount: count,
         downloadUrl: `/api/pptx/download/${historyId}`,
@@ -228,7 +201,6 @@ async function getPreview(req, res) {
 
     const recommendations = {
       fonts: history.custom_fonts ? JSON.parse(history.custom_fonts) : {},
-      colors: history.custom_colors ? JSON.parse(history.custom_colors) : {},
       layouts: history.custom_layouts ? JSON.parse(history.custom_layouts) : [],
     };
 
@@ -236,7 +208,8 @@ async function getPreview(req, res) {
       success: true,
       data: {
         masterId: history.id,
-        themeName: history.theme_name,
+        themeName: 'Base Master',
+        outputLanguage: history.output_language || 'id',
         slides,
         recommendations,
       },
@@ -278,7 +251,6 @@ async function updateSlide(req, res) {
       const index = slides.findIndex((s) => s.slideNumber === targetNum);
       if (index !== -1) {
         if (updateData.placeholders) slides[index].placeholders = updateData.placeholders;
-        if (updateData.background) slides[index].background = updateData.background;
         if (updateData.layout) slides[index].layout = updateData.layout;
       }
     }
@@ -318,8 +290,10 @@ async function finalizePPTX(req, res) {
       return res.status(404).json({ success: false, message: 'Master slide tidak ditemukan.' });
     }
 
-    const slidesToRender = incomingSlides || (history.edited_slides ? JSON.parse(history.edited_slides) : JSON.parse(history.slide_previews || '[]'));
-    const docTitle = title || history.theme_name || 'Presentasi Master';
+    const slidesToRender =
+      incomingSlides ||
+      (history.edited_slides ? JSON.parse(history.edited_slides) : JSON.parse(history.slide_previews || '[]'));
+    const docTitle = title || history.custom_title || 'Base Master';
 
     const pptxBuffer = await generatePPTXBuffer(slidesToRender, docTitle);
     const pptxBase64 = pptxBuffer.toString('base64');
@@ -361,32 +335,29 @@ async function downloadPPTX(req, res) {
       .eq('id', id)
       .eq('user_id', req.userId)
       .single();
-    
+
     if (error || !history) {
       return res.status(404).json({ success: false, message: 'File tidak ditemukan atau bukan milik Anda.' });
     }
 
-    // Get the appropriate base64 data
     const base64Data = (isFinal && history.final_pptx_path)
       ? history.final_pptx_path
       : history.pptx_file_path;
 
     if (!base64Data) {
-      // If no stored base64, regenerate from slides
       const slides = history.edited_slides
         ? JSON.parse(history.edited_slides)
         : JSON.parse(history.slide_previews || '[]');
-      
-      const pptxBuffer = await generatePPTXBuffer(slides, history.theme_name || 'Presentasi');
-      
-      const fileName = `${history.theme_name || 'presentasi'}-master.pptx`;
+
+      const pptxBuffer = await generatePPTXBuffer(slides, 'Base Master');
+      const fileName = `base-master.pptx`;
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
       return res.send(pptxBuffer);
     }
 
     const buffer = Buffer.from(base64Data, 'base64');
-    const fileName = `${history.theme_name || 'presentasi'}-master.pptx`;
+    const fileName = `base-master.pptx`;
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
     return res.send(buffer);
@@ -401,32 +372,23 @@ async function getHistory(req, res) {
   try {
     const { data: histories, error } = await supabase
       .from('master_histories')
-      .select(`
-        *,
-        themes:theme_id (name, color_primary, color_secondary, color_accent, category)
-      `)
+      .select('*')
       .eq('user_id', req.userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
+
     const historiesWithParsed = (histories || []).map((h) => ({
       ...h,
-      theme_display_name: h.themes?.name || h.theme_name,
-      color_primary: h.themes?.color_primary || null,
-      color_secondary: h.themes?.color_secondary || null,
-      color_accent: h.themes?.color_accent || null,
-      category: h.themes?.category || null,
+      theme_display_name: 'Base Master',
+      color_primary: '#000000',
       custom_fonts: h.custom_fonts ? JSON.parse(h.custom_fonts) : {},
-      custom_colors: h.custom_colors ? JSON.parse(h.custom_colors) : {},
       slide_count: h.edited_slides ? JSON.parse(h.edited_slides).length : 5,
       downloadUrl: `/api/pptx/download/${h.id}`,
-      // Don't send base64 PPTX data in list response
       pptx_file_path: undefined,
       final_pptx_path: undefined,
-      themes: undefined,
     }));
-    
+
     return res.json({
       success: true,
       data: historiesWithParsed,

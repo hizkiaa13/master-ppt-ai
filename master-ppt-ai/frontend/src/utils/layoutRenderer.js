@@ -440,15 +440,11 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
 
   const fontHeading = themeConfig.fonts?.heading || titleP?.font || 'Montserrat';
   const fontBody = themeConfig.fonts?.body || 'Open Sans';
-  const primaryColor = themeConfig.colors?.primary || '#2563EB';
-  const secondaryColor = themeConfig.colors?.secondary || '#1E40AF';
-  const accentColor = themeConfig.colors?.accent || '#F59E0B';
 
   const newPlaceholders = [];
 
-  // 1. Cover Depan
+  // 1. Cover Depan (Base Master: Background Putih, Teks Hitam & Abu)
   if (newLayoutId === 'cover-front' || newLayoutId === 'cover-front-editorial') {
-    const isEditorial = newLayoutId === 'cover-front-editorial';
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
@@ -456,7 +452,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: titleP?.content || slide.title || 'Judul Presentasi',
       font: fontHeading,
       fontSize: calculateFontSize(0, (titleP?.content || '').length, true, newLayoutId),
-      color: isEditorial ? '#0F172A' : '#FFFFFF',
+      color: '#000000',
       isBold: true,
       align: layoutDef.title.align || 'center',
       lineHeight: 1.15,
@@ -467,10 +463,10 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       id: `subtitle-${slide.slideNumber}`,
       type: 'text',
       name: 'Subjudul',
-      content: subtitleP?.content || slide.subtitle || 'Strategi Komprehensif Berbasis AI',
+      content: subtitleP?.content || slide.subtitle || 'Master Presentasi Berbasis AI',
       font: fontBody,
       fontSize: calculateFontSize(0, 50, false, newLayoutId),
-      color: isEditorial ? '#475569' : '#F8FAFC',
+      color: '#4B5563',
       align: layoutDef.subtitle.align || 'center',
       lineHeight: 1.4,
       position: { ...layoutDef.subtitle },
@@ -480,33 +476,33 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       id: `presenter-${slide.slideNumber}`,
       type: 'text',
       name: 'Presenter Info',
-      content: 'Presented by One Piece Studio & Master PPT AI',
+      content: 'Master PPT AI — Base Master (Hitam & Putih)',
       font: fontBody,
       fontSize: 14,
-      color: isEditorial ? '#64748B' : '#E2E8F0',
+      color: '#6B7280',
       align: layoutDef.presenter.align || 'center',
       lineHeight: 1.3,
       position: { ...layoutDef.presenter },
     });
 
-    updatedSlide.background = { color: isEditorial ? '#FFFFFF' : primaryColor, type: 'solid' };
+    updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'cover';
     updatedSlide.pointCount = 0;
     updatedSlide.placeholders = newPlaceholders;
     return updatedSlide;
   }
 
-  // 2. Cover Belakang
+  // 2. Cover Belakang (Base Master: Background Putih, Teks Hitam & Abu)
   if (newLayoutId === 'cover-back' || newLayoutId === 'cover-back-statement') {
     const isStatement = newLayoutId === 'cover-back-statement';
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
       name: 'Judul Penutup',
-      content: isStatement ? 'Thank You.' : 'Let\'s Connect With Us',
+      content: isStatement ? 'Terima Kasih' : 'Let\'s Connect',
       font: fontHeading,
-      fontSize: isStatement ? 54 : 42,
-      color: isStatement ? '#FFFFFF' : '#0F172A',
+      fontSize: isStatement ? 48 : 40,
+      color: '#000000',
       isBold: true,
       align: layoutDef.title.align || 'center',
       lineHeight: 1.1,
@@ -517,10 +513,10 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       id: `subtitle-${slide.slideNumber}`,
       type: 'text',
       name: 'Pesan Penutup',
-      content: 'Mari Bekerja Sama Mewujudkan Dampak Nyata',
+      content: 'Kolaborasi & Diskusi Terbuka',
       font: fontBody,
       fontSize: 18,
-      color: isStatement ? accentColor : '#475569',
+      color: '#4B5563',
       align: layoutDef.subtitle.align || 'center',
       lineHeight: 1.4,
       position: { ...layoutDef.subtitle },
@@ -533,20 +529,20 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: '📞 +62 812-3456-7890\n✉️ hello@masterpptai.id\n🌐 www.masterpptai.id\n📍 Jakarta, Indonesia',
       font: fontBody,
       fontSize: 14,
-      color: isStatement ? '#E2E8F0' : '#334155',
+      color: '#4B5563',
       align: layoutDef.contact.align || 'center',
       lineHeight: 1.5,
       position: { ...layoutDef.contact },
     });
 
-    updatedSlide.background = { color: isStatement ? primaryColor : '#FFFFFF', type: 'solid' };
+    updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'closing';
     updatedSlide.pointCount = 0;
     updatedSlide.placeholders = newPlaceholders;
     return updatedSlide;
   }
 
-  // 3. Testimoni (Cards vs Single Quote)
+  // 3. Testimoni (Base Master: Background Putih, Teks Hitam & Abu)
   if (newLayoutId === 'testimonial-cards') {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
@@ -555,7 +551,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: titleP?.content || 'Customer Testimonials',
       font: fontHeading,
       fontSize: 28,
-      color: '#0F172A',
+      color: '#000000',
       isBold: true,
       align: 'left',
       position: { ...layoutDef.title },
@@ -572,7 +568,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
         content: `★★★★ ${slot.rating || '4.9/5'}\n\n"${quote}"\n\n— ${names[idx] || `Klien ${idx + 1}`}`,
         font: fontBody,
         fontSize: 14,
-        color: '#1E293B',
+        color: '#1F2937',
         align: 'center',
         lineHeight: 1.45,
         badge: 'rating',
@@ -595,7 +591,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: `"${contentItems[0] || titleP?.content || 'Inovasi adalah kunci pertumbuhan yang berkelanjutan.'}"`,
       font: fontHeading,
       fontSize: calculateFontSize(1, (contentItems[0] || '').length, false, 'testimonial'),
-      color: '#FFFFFF',
+      color: '#000000',
       isItalic: true,
       align: 'center',
       lineHeight: 1.5,
@@ -609,13 +605,13 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: contentItems[1] || '— Klien Eksekutif / Founder',
       font: fontBody,
       fontSize: 16,
-      color: accentColor,
+      color: '#4B5563',
       align: 'center',
       lineHeight: 1.3,
       position: { ...layoutDef.author },
     });
 
-    updatedSlide.background = { color: secondaryColor, type: 'solid' };
+    updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'testimonial';
     updatedSlide.pointCount = 1;
     updatedSlide.placeholders = newPlaceholders;
@@ -631,7 +627,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: titleP?.content || 'Capaian & Metrik Utama',
       font: fontHeading,
       fontSize: 30,
-      color: '#0F172A',
+      color: '#000000',
       isBold: true,
       align: 'center',
       position: { ...layoutDef.title },
@@ -648,7 +644,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
         content: `${defaultStats[idx] || '80%'}\n\n${itemDesc}`,
         font: fontHeading,
         fontSize: 16,
-        color: '#0F172A',
+        color: '#1F2937',
         align: 'center',
         lineHeight: 1.4,
         badge: 'stat',
@@ -671,7 +667,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: titleP?.content || 'Analisis & Data Kinerja',
       font: fontHeading,
       fontSize: 30,
-      color: '#0F172A',
+      color: '#000000',
       isBold: true,
       align: 'left',
       position: { ...layoutDef.title },
@@ -688,7 +684,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: infoText,
       font: fontBody,
       fontSize: calculateFontSize(contentItems.length || 3, infoText.length, false),
-      color: '#334155',
+      color: '#4B5563',
       align: 'left',
       lineHeight: 1.5,
       position: { ...layoutDef.infoArea },
@@ -699,7 +695,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       type: 'image',
       name: 'Area Grafik / Chart',
       content: null,
-      placeholder: 'Area Visual Chart / Grafik Statistik Interaktif',
+      placeholder: 'Area Visual Chart / Grafik Statistik Hitam-Putih',
       position: { ...layoutDef.chartArea },
     });
 
@@ -718,7 +714,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     content: titleP?.content || slide.title || 'Judul Slide',
     font: fontHeading,
     fontSize: calculateFontSize(layoutDef.points?.length || 3, (titleP?.content || '').length, true, newLayoutId),
-    color: '#0F172A',
+    color: '#000000',
     isBold: true,
     align: layoutDef.title?.align || 'left',
     position: { ...layoutDef.title },
@@ -760,7 +756,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       content: formattedText,
       font: fontBody,
       fontSize: calculateFontSize(slots.length, itemText.length, false, newLayoutId),
-      color: '#334155',
+      color: '#1F2937',
       align: slot.align || 'left',
       lineHeight: 1.5,
       badge: slot.badge || (slot.number ? 'number' : slot.stepLabel ? 'step' : undefined),

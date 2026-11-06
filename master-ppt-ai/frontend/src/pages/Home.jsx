@@ -1,61 +1,53 @@
 import { Link } from 'react-router-dom';
 import {
-  Sparkles, Palette, Download, Zap, Star, ArrowRight,
-  CheckCircle, Play, Shield, Clock, Users, FileText,
+  Sparkles, Download, Zap, Star, ArrowRight,
+  CheckCircle, Play, Shield, Globe, FileText, Type,
 } from 'lucide-react';
 
 const features = [
   {
     icon: Sparkles,
-    title: 'AI Recommendation Engine',
-    description: 'Sistem AI kami menganalisis tema dan menghasilkan rekomendasi font, warna, dan layout yang optimal untuk presentasi Anda.',
-    color: 'from-violet-500 to-purple-600',
+    title: 'Base Master AI Generator',
+    description: 'AI menyusun copywriting, struktur slide, dan menentukan jumlah slide optimal (hingga 15 slide) secara otomatis.',
+    color: 'from-gray-700 to-black',
   },
   {
-    icon: Palette,
-    title: 'Color Theory Database',
-    description: 'Palet warna berbasis teori harmoni warna — monokromatik, komplementer, triadik — untuk kesan visual yang profesional.',
-    color: 'from-pink-500 to-rose-600',
+    icon: Globe,
+    title: 'Dukungan Multi-Bahasa',
+    description: 'Pilih Bahasa Indonesia atau Bahasa Inggris untuk menghasilkan materi copywriting slide yang profesional.',
+    color: 'from-blue-600 to-indigo-700',
+  },
+  {
+    icon: Type,
+    title: 'Text Toolkit & Font Pairing',
+    description: 'Dukungan 10 kombinasi font pilihan standar studio untuk tampilan master hitam-putih yang elegan dan terbaca jelas.',
+    color: 'from-zinc-700 to-neutral-900',
   },
   {
     icon: Download,
-    title: 'Export ke PPTX',
-    description: 'Unduh file .pptx yang kompatibel dengan Microsoft PowerPoint, Google Slides, dan LibreOffice Impress.',
-    color: 'from-blue-500 to-cyan-600',
+    title: 'Export PPTX Siap Pakai',
+    description: 'Unduh file .pptx standar yang kompatibel dengan Microsoft PowerPoint, Google Slides, dan Canva.',
+    color: 'from-slate-700 to-gray-900',
   },
   {
     icon: Zap,
-    title: 'Generasi Instan',
-    description: 'Dari pilihan tema hingga file PPTX siap unduh dalam hitungan detik. No waiting, pure productivity.',
-    color: 'from-amber-500 to-orange-600',
-  },
-  {
-    icon: Shield,
-    title: 'Akun Aman',
-    description: 'Autentikasi JWT, password bcrypt, dan session management memastikan data Anda selalu aman.',
-    color: 'from-emerald-500 to-teal-600',
+    title: 'Generasi Cepat & Adaptif',
+    description: 'Dari judul dan deskripsi topik hingga master PowerPoint hitam-putih lengkap dalam hitungan detik.',
+    color: 'from-neutral-800 to-stone-900',
   },
   {
     icon: FileText,
-    title: '10+ Slide Layout',
-    description: 'Title, agenda, konten, perbandingan, statistik, timeline, tim, kutipan, dan lainnya — semua dalam satu master.',
-    color: 'from-indigo-500 to-blue-600',
+    title: 'Auto Layout Design System',
+    description: 'Layout cover, daftar isi, 1-6 poin, chart statistik, dan testimoni tertata otomatis sesuai hierarki teks.',
+    color: 'from-gray-800 to-black',
   },
 ];
 
-const themes = [
-  { name: 'Bisnis', emoji: '💼', desc: 'Profesional & terpercaya', color: '#1E3A5F', gradient: 'from-blue-800 to-blue-600' },
-  { name: 'Edukasi', emoji: '📚', desc: 'Informatif & ceria', color: '#065F46', gradient: 'from-emerald-800 to-emerald-600' },
-  { name: 'Kreatif', emoji: '🎨', desc: 'Dinamis & vibrant', color: '#7C3AED', gradient: 'from-violet-700 to-purple-600' },
-  { name: 'Minimalis', emoji: '✨', desc: 'Bersih & elegan', color: '#111827', gradient: 'from-gray-800 to-gray-700' },
-  { name: 'Teknologi', emoji: '🚀', desc: 'Futuristik & modern', color: '#0F172A', gradient: 'from-slate-800 to-blue-900' },
-];
-
 const stats = [
-  { value: '5', label: 'Tema Premium', suffix: '' },
-  { value: '10', label: 'Layout Slide', suffix: '+' },
-  { value: '25', label: 'Font Pairing', suffix: '+' },
-  { value: '100', label: 'Color Palettes', suffix: '%' },
+  { value: '100', label: 'Hitam & Putih (B&W)', suffix: '%' },
+  { value: '15', label: 'Maksimal Slide', suffix: '' },
+  { value: '10', label: 'Font Terkurasi', suffix: '+' },
+  { value: '2', label: 'Pilihan Bahasa (ID/EN)', suffix: '' },
 ];
 
 export default function Home() {
@@ -74,70 +66,41 @@ export default function Home() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-300 text-sm font-medium mb-8 animate-fade-in">
             <Sparkles className="w-4 h-4" />
-            Didukung AI Recommendation Engine
+            Base Master Hitam-Putih Berbasis AI
             <Star className="w-3.5 h-3.5 fill-brand-400 text-brand-400" />
           </div>
 
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 animate-slide-up leading-[1.1]">
-            Buat Master{' '}
+            Base Master{' '}
             <span className="gradient-text">PowerPoint</span>{' '}
             <br className="hidden sm:block" />
-            yang <span className="gradient-text-warm">Memukau</span> dalam Detik
+            Cerdas & <span className="gradient-text-warm">Profesional</span>
           </h1>
 
           <p className="text-xl text-dark-400 max-w-2xl mx-auto mb-10 animate-slide-up leading-relaxed" style={{ animationDelay: '0.1s' }}>
-            AI kami menganalisis tema presentasi Anda dan menghasilkan rekomendasi font, warna, dan layout profesional — langsung jadi file <strong className="text-dark-200">.pptx</strong> yang siap dipakai.
+            Hasilkan master presentasi elegan dengan skema hitam-putih murni, tipografi presisi, dan jumlah slide otomatis yang dianalisis oleh AI.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <Link to="/register" className="btn-primary text-base px-8 py-4 gap-3">
+            <Link to="/generator" className="btn-primary text-base px-8 py-4 gap-3">
               <Sparkles className="w-5 h-5" />
-              Mulai Gratis Sekarang
+              Mulai Buat Master PPT
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link to="/login" className="btn-secondary text-base px-8 py-4">
               <Play className="w-4 h-4" />
-              Sudah Punya Akun
+              Masuk ke Akun
             </Link>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-2xl mx-auto mt-16 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+          {/* Stats Bar */}
+          <div className="mt-20 grid grid-cols-2 sm:grid-cols-4 gap-6 glass-card p-8 rounded-3xl border border-white/10 max-w-4xl mx-auto">
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-3xl font-black gradient-text">
+                <div className="text-3xl sm:text-4xl font-extrabold text-white">
                   {stat.value}{stat.suffix}
                 </div>
-                <div className="text-sm text-dark-500 mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Theme Showcase */}
-      <section className="py-20 border-t border-white/8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              5 Tema Presentasi Premium
-            </h2>
-            <p className="text-dark-400 max-w-xl mx-auto">
-              Setiap tema dirancang dengan font pairing, color palette, dan layout yang disesuaikan secara khusus
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-4">
-            {themes.map((theme) => (
-              <div
-                key={theme.name}
-                className="glass-card p-6 w-44 flex flex-col items-center text-center hover:scale-105 transition-all duration-300 cursor-pointer group"
-              >
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${theme.gradient} flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
-                  {theme.emoji}
-                </div>
-                <h3 className="font-bold text-white text-sm">{theme.name}</h3>
-                <p className="text-xs text-dark-500 mt-1">{theme.desc}</p>
+                <div className="text-xs text-dark-400 mt-1">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -149,10 +112,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Fitur Lengkap, Hasil Profesional
+              Desain Bersih, Fokus pada Konten
             </h2>
             <p className="text-dark-400 max-w-xl mx-auto">
-              Semua yang Anda butuhkan untuk presentasi yang mengesankan — dalam satu platform
+              Fondasi master slide hitam dan putih yang siap Anda kembangkan atau presentasikan langsung dengan percaya diri.
             </p>
           </div>
 
@@ -163,7 +126,7 @@ export default function Home() {
                 className="glass-card p-6 hover:scale-[1.02] transition-all duration-300 group animate-fade-in"
                 style={{ animationDelay: `${i * 0.05}s` }}
               >
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg`}>
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg border border-white/10`}>
                   <feature.icon className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="font-bold text-white text-lg mb-2">{feature.title}</h3>
@@ -174,25 +137,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* How It Works - 4 Steps */}
       <section className="py-20 border-t border-white/8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-              Hanya 5 Langkah Mudah
+              Hanya 4 Langkah Mudah
             </h2>
+            <p className="text-dark-400 max-w-xl mx-auto">
+              Alur kerja ringkas dan efisien tanpa kerumitan pemilihan tema manual
+            </p>
           </div>
 
-          <div className="grid sm:grid-cols-5 gap-4 items-start">
+          <div className="grid sm:grid-cols-4 gap-4 items-start">
             {[
-              { step: '01', title: 'Pilih Tema', desc: 'Pilih dari 5 tema presentasi premium' },
-              { step: '02', title: 'AI Analisis', desc: 'Engine AI menghasilkan rekomendasi optimal' },
-              { step: '03', title: 'Preview', desc: 'Lihat preview semua slide yang akan dibuat' },
-              { step: '04', title: 'Kustomisasi', desc: 'Sesuaikan font, warna, dan layout (opsional)' },
-              { step: '05', title: 'Download', desc: 'Unduh file .pptx yang siap dipakai!' },
+              { step: '01', title: 'Tema & Topik', desc: 'Masukkan judul, konteks, dan pilih Bahasa (Indonesia/Inggris)' },
+              { step: '02', title: 'Generate AI', desc: 'AI menentukan jumlah slide (maks 15) & menghasilkan copywriting' },
+              { step: '03', title: 'Preview & Edit', desc: 'Tinjau layout terstruktur, sesuaikan teks, ukuran font, dan posisi' },
+              { step: '04', title: 'Download PPTX', desc: 'Unduh file .pptx Base Master hitam-putih siap pakai!' },
             ].map((item, i) => (
               <div key={item.step} className="relative text-center">
-                {i < 4 && (
+                {i < 3 && (
                   <div className="hidden sm:block absolute top-6 left-1/2 w-full h-px bg-gradient-to-r from-brand-500/50 to-transparent" />
                 )}
                 <div className="relative w-12 h-12 rounded-full bg-brand-gradient flex items-center justify-center text-white font-black text-sm mx-auto mb-3 shadow-glow-brand">
@@ -214,21 +179,17 @@ export default function Home() {
               <Sparkles className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-3xl font-black text-white mb-4">
-              Siap Membuat Presentasi yang{' '}
-              <span className="gradient-text">Memukau?</span>
+              Siap Membuat Presentasi Master{' '}
+              <span className="gradient-text">Berkelas?</span>
             </h2>
             <p className="text-dark-400 mb-8 text-lg">
-              Bergabung dan buat master PowerPoint profesional Anda pertama hari ini — gratis.
+              Mulai buat master PowerPoint cerdas berbasis AI sekarang juga.
             </p>
-            <Link to="/register" className="btn-primary text-lg px-10 py-4 gap-3">
+            <Link to="/generator" className="btn-primary text-lg px-10 py-4 gap-3">
               <Sparkles className="w-5 h-5" />
               Mulai Sekarang — Gratis
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <p className="text-xs text-dark-600 mt-4">
-              <CheckCircle className="w-3.5 h-3.5 inline mr-1 text-emerald-500" />
-              Tidak perlu kartu kredit
-            </p>
           </div>
         </div>
       </section>

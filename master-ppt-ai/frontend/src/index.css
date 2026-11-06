@@ -298,3 +298,36 @@ textarea.slide-text-editor::-webkit-scrollbar {
   display: none !important;
 }
 
+/* ─── Global Contrast & Form Text Safety Net ─────────────── */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  color: #111827 !important;
+  background-color: #FFFFFF !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9CA3AF !important;
+  opacity: 1 !important;
+}
+
+/* Form labels on light background */
+.form-label,
+label.form-label-contrast {
+  color: #374151 !important;
+}
+
+/* Slide preview contrast */
+.slide-preview-text {
+  color: #111827;
+}
+
+.slide-preview-text.on-dark {
+  color: #FFFFFF;
+}
+
+

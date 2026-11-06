@@ -61,7 +61,7 @@ export default function DraftCard({ draft, onResume, onDelete }) {
               <h3 className="font-semibold text-white text-sm leading-tight truncate max-w-[180px]">
                 {draft.customTitle || 'Tanpa Judul'}
               </h3>
-              <p className="text-xs text-dark-400 mt-0.5 flex items-center gap-1.5">
+              <p className="text-xs text-gray-300 mt-0.5 flex items-center gap-1.5">
                 <span>{draft.slideCount || 5} slide</span>
                 <span>•</span>
                 <span>{lang === 'en' ? '🇬🇧 English' : '🇮🇩 Indonesia'}</span>
@@ -83,7 +83,7 @@ export default function DraftCard({ draft, onResume, onDelete }) {
             <button
               type="button"
               onClick={() => onDelete(draft.id)}
-              className="p-1 rounded-lg text-dark-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+              className="p-1 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-colors"
               title="Hapus Draft"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -93,7 +93,7 @@ export default function DraftCard({ draft, onResume, onDelete }) {
 
         {/* Progress bar */}
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-[11px] text-dark-400">
+          <div className="flex items-center justify-between text-[11px] text-gray-300">
             <span>{STEP_LABELS[currentStep] || `Step ${currentStep}`}</span>
             <span className="font-mono">{progressPct}%</span>
           </div>

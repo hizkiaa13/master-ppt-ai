@@ -666,8 +666,8 @@ export default function Generator() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-dark-400">Jumlah Slide:</span>
-                  <span className="text-white font-medium">Otomatis oleh AI (Maksimal 15)</span>
+                  <span className="text-dark-300">Jumlah Slide:</span>
+                  <span className="text-white font-semibold">{formData.slideCount || 5} Slide (Sesuai Pilihan)</span>
                 </div>
               </div>
 

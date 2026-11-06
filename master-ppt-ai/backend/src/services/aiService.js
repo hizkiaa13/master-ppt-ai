@@ -10,6 +10,7 @@ const {
   validateConsecutiveLayouts,
   generateLayoutReason,
 } = require("../utils/layoutSelector");
+const { validateContentRelevance } = require("../utils/contentValidator");
 const {
   FONT_PAIRINGS,
   getRandomPairing,
@@ -89,154 +90,154 @@ function normalizeSlideDeckLayouts(slides, totalCount) {
 }
 
 /**
- * Fallback to rule-based engine when Gemini is unavailable or errors
+ * Fallback cerdas yang dinamis 100% mengikuti judul user
  */
 function getRuleBasedFallback({ title, description, outputLanguage = "id", slideCount = 5 }) {
   const isEn = outputLanguage === "en";
   const count = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
+  const safeTitle = title || (isEn ? "Strategic Master Presentation" : "Presentasi Master Strategis");
+  const safeDesc = description || (isEn ? "Actionable Framework and Core Directives" : "Rencana Strategis dan Panduan Implementasi");
 
   const defaultPairing = FONT_PAIRINGS[0]; // Montserrat + Open Sans
 
-  const catalog = [
+  const dynamicCatalog = [
     {
       slideType: "cover",
       layoutId: "cover-front",
       pointCount: 0,
-      layoutReason: "Slide pembuka dengan judul dan subjudul strategis",
-      title: title || (isEn ? "Strategic Master Presentation" : "Presentasi Master Strategis"),
-      subtitle: description || (isEn ? "AI-Powered Professional Master Deck" : "Presentasi Terstruktur Berbasis AI"),
+      layoutReason: `Slide pembuka memuat judul utama "${safeTitle}"`,
+      title: safeTitle,
+      subtitle: safeDesc,
       content: [],
     },
     {
       slideType: "agenda",
       layoutId: "table-of-contents",
       pointCount: 4,
-      layoutReason: "Daftar isi dan agenda pembahasan utama",
-      title: isEn ? "Table of Contents" : "Daftar Isi & Agenda",
-      subtitle: isEn ? "Overview of key strategic areas" : "Ikhtisar topik pembahasan utama",
+      layoutReason: `Daftar isi dan agenda pembahasan "${safeTitle}"`,
+      title: isEn ? "Table of Contents" : "Agenda Pembahasan",
+      subtitle: isEn ? `Key areas of ${safeTitle}` : `4 Topik Utama ${safeTitle}`,
       content: isEn
         ? [
-            "01. Context & Problem Analysis",
-            "02. Strategic Approach & Framework",
-            "03. Execution Plan & Key Milestones",
-            "04. Success Metrics & Performance Impact",
+            `01. Current Context & Objectives of ${safeTitle}`,
+            `02. Core Strategic Pillars & Framework`,
+            `03. Actionable Implementation Steps`,
+            `04. Performance Metrics & Expected Outcomes`,
           ]
         : [
-            "01. Latar Belakang & Analisis Masalah",
-            "02. Pendekatan Strategis & Metodologi",
-            "03. Rencana Eksekusi & Timeline Proyek",
-            "04. Indikator Keberhasilan & Dampak Kinerja",
+            `01. Latar Belakang & Urgensi ${safeTitle}`,
+            `02. Pilar Strategis & Metodologi Utama`,
+            `03. Rencana Eksekusi & Tahapan Praktis`,
+            `04. Indikator Keberhasilan & Dampak Kinerja`,
           ],
     },
     {
       slideType: "content",
       layoutId: "comparison",
       pointCount: 2,
-      layoutReason: "Slide perbandingan dua kondisi untuk evaluasi mendalam",
-      title: isEn ? "Current Situation vs Target State" : "Kondisi Saat Ini vs Target Baru",
-      subtitle: isEn ? "Key transformational focus" : "Fokus transformasi terarah",
+      layoutReason: `Perbandingan pendekatan dalam implementasi "${safeTitle}"`,
+      title: isEn ? "Conventional Approach vs New Strategy" : "Pendekatan Konvensional vs Strategi Baru",
+      subtitle: isEn ? `Evaluating transformational impact for ${safeTitle}` : `Evaluasi efisiensi implementasi ${safeTitle}`,
       content: isEn
         ? [
-            "Current State: Manual workflows consume 40% more operational time with 12% discrepancy rate.",
-            "Target State: Intelligent automation accelerates cycle by 65% with 99.2% verified precision.",
+            `Conventional Method: Manual coordination with fragmented execution and limited measurable outcomes.`,
+            `Target Strategy: Data-driven automation accelerating execution with verified precision and efficiency.`,
           ]
         : [
-            "Kondisi Saat Ini: Alur manual memakan 40% waktu operasional dengan tingkat ketidaksesuaian 12%.",
-            "Target Baru: Otomatisasi cerdas memangkas siklus kerja hingga 65% dengan akurasi terverifikasi 99.2%.",
+            `Pendekatan Konvensional: Koordinasi manual yang terfragmentasi dengan keterbatasan pengukuran hasil.`,
+            `Strategi Baru: Eksekusi berbasis data terarah yang mengoptimalkan kecepatan dan akurasi implementasi.`,
           ],
     },
     {
       slideType: "content",
       layoutId: "three-points",
       pointCount: 3,
-      layoutReason: "Tiga pilar strategis fondasi pelaksanaan",
-      title: isEn ? "Core Pillars of Execution" : "Pilar Utama Eksekusi",
-      subtitle: isEn ? "Foundational strategies for scalable impact" : "Fondasi pelaksanaan berkesinambungan",
+      layoutReason: `Tiga pilar utama penggerak keberhasilan "${safeTitle}"`,
+      title: isEn ? "Core Pillars of Execution" : "Pilar Utama Pelaksanaan",
+      subtitle: isEn ? `Foundational drivers for ${safeTitle}` : `Fondasi keberhasilan ${safeTitle}`,
       content: isEn
         ? [
-            "Speed & Agility: Accelerate decision-making velocity across all operational divisions.",
-            "Quality Standardization: Ensure consistent elite deliverables through structured workflows.",
-            "Scalability & Governance: Build robust scalable infrastructure with strict security protocols.",
+            `Priority Focus: Directing resources toward high-impact initiatives that accelerate results.`,
+            `Standardized Workflow: Ensuring consistent elite quality across all operational touchpoints.`,
+            `Continuous Tracking: Real-time visibility and adaptive adjustments based on concrete feedback.`,
           ]
         : [
-            "Kecepatan & Agilitas: Mempercepat ritme pengambilan keputusan di seluruh divisi kerja.",
-            "Standarisasi Mutu: Menjamin mutu hasil kerja berstandar tinggi secara konsisten.",
-            "Skalabilitas & Tata Kelola: Membangun fondasi yang siap bertumbuh dengan integritas data.",
+            `Fokus Prioritas: Mengarahkan sumber daya pada inisiatif bernilai dampak tertinggi untuk akselerasi hasil.`,
+            `Standarisasi Mutu: Memastikan konsistensi kualitas eksekusi di setiap alur kerja operasional.`,
+            `Pemantauan Berkelanjutan: Visibilitas metrik real-time dan penyesuaian adaptif berbasis data nyata.`,
           ],
     },
     {
       slideType: "content",
       layoutId: "steps",
       pointCount: 4,
-      layoutReason: "Tahapan implementasi terstruktur bernomor",
+      layoutReason: `Tahapan pelaksanaan terstruktur untuk "${safeTitle}"`,
       title: isEn ? "Implementation Roadmap" : "Tahapan Implementasi",
-      subtitle: isEn ? "Sequential operational milestones" : "Langkah pelaksanaan berurutan",
+      subtitle: isEn ? `Sequential milestones to execute ${safeTitle}` : `Langkah sistematis penerapan ${safeTitle}`,
       content: isEn
         ? [
-            "Phase 1: Discovery & Needs Assessment",
-            "Phase 2: Architecture & Setup",
-            "Phase 3: Rollout & Integration",
-            "Phase 4: Monitoring & Optimization",
+            `Step 1: Alignment & Readiness Assessment`,
+            `Step 2: Architecture & Setup`,
+            `Step 3: Strategic Rollout`,
+            `Step 4: Review & Scaling`,
           ]
         : [
-            "Tahap 1: Analisis Kebutuhan & Riset",
-            "Tahap 2: Perancangan Arsitektur & Setup",
-            "Tahap 3: Implementasi & Peluncuran",
-            "Tahap 4: Pemantauan & Evaluasi Kinerja",
+            `Tahap 1: Penyelarasan Kebutuhan & Analisis Awal`,
+            `Tahap 2: Penyusunan Kerangka Kerja & Setup`,
+            `Tahap 3: Peluncuran Strategis & Uji Lapangan`,
+            `Tahap 4: Evaluasi Hasil & Ekspansi Skala`,
           ],
     },
     {
       slideType: "chart",
       layoutId: "chart",
       pointCount: 2,
-      layoutReason: "Visualisasi metrik proyeksi pertumbuhan",
-      title: isEn ? "Growth Projection & Impact" : "Proyeksi Pertumbuhan & Dampak",
-      subtitle: isEn ? "Targeted measurable outcomes" : "Target pencapaian terukur",
+      layoutReason: `Target capaian dan dampak terukur dari "${safeTitle}"`,
+      title: isEn ? "Impact & Target Outcomes" : "Target Capaian & Dampak",
+      subtitle: isEn ? `Measurable return on ${safeTitle}` : `Indikator keberhasilan terukur ${safeTitle}`,
       content: isEn
         ? [
-            "Target efisiensi biaya operasional sebesar 35% pada kuartal pertama.",
-            "Peningkatan retensi pelanggan mencapai indeks 94.8% secara tahunan.",
+            `Expected operational efficiency improvement of up to 45% within initial execution cycle.`,
+            `Consistent quality attainment with high satisfaction ratings across key stakeholders.`,
           ]
         : [
-            "Target efisiensi biaya operasional sebesar 35% pada kuartal pertama.",
-            "Peningkatan retensi pelanggan mencapai indeks 94.8% secara tahunan.",
+            `Peningkatan efisiensi operasional terukur hingga 45% dalam periode implementasi awal.`,
+            `Pencapaian target kualitas berstandar tinggi dengan kepuasan menyeluruh dari pemangku kepentingan.`,
           ],
     },
     {
       slideType: "closing",
       layoutId: "cover-back",
       pointCount: 3,
-      layoutReason: "Slide penutup dengan kontak dan apresiasi",
-      title: isEn ? "Thank You" : "Terima Kasih",
-      subtitle: isEn ? "Let's connect and collaborate" : "Kolaborasi & Tanya Jawab Terbuka",
+      layoutReason: `Slide penutup dan call to action untuk "${safeTitle}"`,
+      title: isEn ? "Execute Your Strategy" : "Mulai Implementasi Anda",
+      subtitle: isEn ? `Consult and collaborate on ${safeTitle}` : `Konsultasi & sesi diskusi lanjutan mengenai ${safeTitle}`,
       content: [
         "Email: contact@masterpptai.id",
         "Website: www.masterpptai.id",
-        isEn ? "Open for Strategic Discussions" : "Konsultasi & Sesi Diskusi Terbuka",
+        isEn ? "Open for Strategic Alignment Sessions" : "Konsultasi & Sesi Diskusi Terbuka",
       ],
     },
   ];
 
-  // Susun slide sesuai slideCount
   let selected = [];
   if (count === 1) {
-    selected = [catalog[0]];
+    selected = [dynamicCatalog[0]];
   } else if (count === 2) {
-    selected = [catalog[0], catalog[6]];
+    selected = [dynamicCatalog[0], dynamicCatalog[6]];
   } else if (count <= 5) {
-    const middle = [catalog[1], catalog[2], catalog[3], catalog[4]].slice(0, count - 2);
-    selected = [catalog[0], ...middle, catalog[6]];
+    const middle = [dynamicCatalog[1], dynamicCatalog[2], dynamicCatalog[3], dynamicCatalog[4]].slice(0, count - 2);
+    selected = [dynamicCatalog[0], ...middle, dynamicCatalog[6]];
   } else {
-    // > 5 slide
     const extra = [];
     for (let i = 1; i <= count - 2; i++) {
-      const source = catalog[(i % (catalog.length - 2)) + 1];
+      const source = dynamicCatalog[(i % (dynamicCatalog.length - 2)) + 1];
       extra.push({
         ...source,
         title: `${source.title} (${i})`,
       });
     }
-    selected = [catalog[0], ...extra, catalog[6]];
+    selected = [dynamicCatalog[0], ...extra, dynamicCatalog[6]];
   }
 
   const assigned = selected.map((s, idx) => ({
@@ -274,6 +275,7 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id", slide
 
 /**
  * Main AI generation function for Base Master (Hitam & Putih)
+ * Dilengkapi Validasi Relevansi Konten & Mekanisme Retry Anti-Drift
  */
 async function generateCopywriting(input) {
   const {
@@ -291,13 +293,6 @@ async function generateCopywriting(input) {
     console.warn("GEMINI_API_KEY tidak dikonfigurasi. Menggunakan rule-based fallback.");
     return getRuleBasedFallback({ title, description, outputLanguage, slideCount: effectiveSlideCount });
   }
-
-  const prompt = buildMasterPrompt({
-    title,
-    description,
-    outputLanguage,
-    slideCount: effectiveSlideCount,
-  });
 
   const configuredModel = process.env.GEMINI_MODEL;
   const candidateModels = [
@@ -319,21 +314,57 @@ async function generateCopywriting(input) {
         {
           model: modelName,
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.65, // Lebih deterministik agar tetap fokus ke judul
             responseMimeType: "application/json",
           },
         },
         { timeout: 30000 }
       );
 
+      const prompt = buildMasterPrompt({
+        title,
+        description,
+        outputLanguage,
+        slideCount: effectiveSlideCount,
+      });
+
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
-
-      const parsed = cleanAndParseJSON(text);
+      let parsed = cleanAndParseJSON(response.text());
 
       if (!parsed.slides || !Array.isArray(parsed.slides) || parsed.slides.length === 0) {
         throw new Error("Format respons AI tidak memiliki array 'slides' yang valid");
+      }
+
+      // Validasi Relevansi Konten terhadap Judul User
+      const relevance = validateContentRelevance(parsed, title, description);
+      console.log(`🔍 Skor Relevansi AI (${modelName}): ${relevance.relevanceScore}% (${relevance.relevantSlides}/${relevance.totalSlides} slide relevan)`);
+
+      // Jika kurang dari 60% relevan, lakukan retry dengan peringatan keras
+      if (!relevance.isRelevant) {
+        console.warn(`⚠️ Konten dinilai kurang relevan (${relevance.relevanceScore}% < 60%). Mencoba generate ulang dengan prompt penegasan...`);
+        const retryPrompt = buildMasterPrompt({
+          title,
+          description,
+          outputLanguage,
+          slideCount: effectiveSlideCount,
+          retryContext: true,
+        });
+
+        const retryResult = await model.generateContent(retryPrompt);
+        const retryResponse = await retryResult.response;
+        try {
+          const retryParsed = cleanAndParseJSON(retryResponse.text());
+          if (retryParsed.slides && Array.isArray(retryParsed.slides) && retryParsed.slides.length > 0) {
+            const secondCheck = validateContentRelevance(retryParsed, title, description);
+            console.log(`🔍 Skor Relevansi Setelah Retry: ${secondCheck.relevanceScore}%`);
+            if (secondCheck.relevanceScore >= relevance.relevanceScore) {
+              parsed = retryParsed;
+            }
+          }
+        } catch (retryParseErr) {
+          console.warn("Retry parsing gagal, menggunakan hasil generasi pertama:", retryParseErr.message);
+        }
       }
 
       // Potong ke tepat effectiveSlideCount
@@ -374,7 +405,7 @@ async function generateCopywriting(input) {
         layoutReason: s.layoutReason,
       }));
 
-      console.log(`✅ Berhasil menghasilkan ${parsed.slides.length} slide menggunakan Gemini (${modelName})`);
+      console.log(`✅ Berhasil menghasilkan ${parsed.slides.length} slide relevan menggunakan Gemini (${modelName})`);
 
       return {
         success: true,

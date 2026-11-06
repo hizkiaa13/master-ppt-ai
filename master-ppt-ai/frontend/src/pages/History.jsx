@@ -177,13 +177,13 @@ const History = () => {
         {/* Search */}
         {masters.length > 0 && (
           <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari berdasarkan judul..."
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-black transition-all"
+              className="w-full pl-10 pr-4 py-3 bg-white text-gray-900 placeholder-gray-400 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
             />
           </div>
         )}
@@ -195,10 +195,10 @@ const History = () => {
           </div>
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-700 font-medium">{error}</p>
             <button
               onClick={() => fetchHistory(localStorage.getItem('token'))}
-              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
+              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700"
             >
               Coba Lagi
             </button>
@@ -209,20 +209,20 @@ const History = () => {
               <div key={master.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-all">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 text-lg truncate">
+                    <h3 className="font-bold text-gray-900 text-lg truncate">
                       {master.title || master.custom_title || master.theme_name || 'Untitled'}
                     </h3>
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
                         📊 {getSlideCount(master)} slide
                       </span>
-                      <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
                         {master.output_language === 'en' ? '🇬🇧 English' : '🇮🇩 Indonesia'}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
                         🎨 Base Master B&W
                       </span>
-                      <span className="text-sm text-gray-400">
+                      <span className="text-sm text-gray-600">
                         📅 {new Date(master.created_at).toLocaleDateString('id-ID', {
                           year: 'numeric',
                           month: 'long',

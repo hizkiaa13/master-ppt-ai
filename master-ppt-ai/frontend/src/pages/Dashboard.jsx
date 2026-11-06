@@ -37,9 +37,9 @@ function HistoryCard({ item }) {
           <p className="font-semibold text-white text-sm truncate">
             {displayTitle}
           </p>
-          <p className="text-xs text-dark-500 flex items-center gap-2 mt-0.5">
+          <p className="text-xs text-gray-300 flex items-center gap-2 mt-0.5">
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3 h-3 text-gray-400" />
               {new Date(item.created_at).toLocaleDateString('id-ID', {
                 day: 'numeric',
                 month: 'short',
@@ -127,7 +127,7 @@ export default function DashboardPage() {
         <div>
           <p className="text-sm text-brand-400 font-medium mb-1">Selamat datang kembali 👋</p>
           <h1 className="text-2xl sm:text-3xl font-black text-white">{user?.name || 'Pengguna'}</h1>
-          <p className="text-dark-400 mt-1 text-sm">
+          <p className="text-gray-300 mt-1 text-sm">
             Siap menghasilkan Base Master PowerPoint hitam & putih berkelas studio hari ini?
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
               <stat.icon className={`w-5 h-5 ${stat.color}`} />
             </div>
             <div className="text-2xl font-black text-white">{stat.value}</div>
-            <div className="text-xs text-dark-500">{stat.label}</div>
+            <div className="text-xs text-gray-300">{stat.label}</div>
           </div>
         ))}
       </div>
@@ -164,7 +164,7 @@ export default function DashboardPage() {
                   </span>
                 )}
               </h2>
-              <p className="text-sm text-dark-500 mt-0.5">Lanjutkan pembuatan master yang belum selesai</p>
+              <p className="text-sm text-gray-300 mt-0.5">Lanjutkan pembuatan master yang belum selesai</p>
             </div>
           </div>
 

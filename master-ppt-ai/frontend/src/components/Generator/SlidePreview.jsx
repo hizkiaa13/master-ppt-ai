@@ -588,7 +588,19 @@ export default function SlidePreview({
           {currentSlide.placeholders?.map((placeholder, idx) => {
             const isText = placeholder.type === 'text';
             const isSelected = selectedElementId === placeholder.id;
-            const textColor = placeholder.color || (isDarkBg ? '#FFFFFF' : '#1F2937');
+            
+            // Jamin kontras tinggi: background putih = teks hitam/abu gelap pekat
+            let resolvedColor = placeholder.color;
+            if (!isDarkBg) {
+              if (!resolvedColor || resolvedColor === '#FFFFFF' || resolvedColor === '#9CA3AF' || resolvedColor === '#CBD5E1' || resolvedColor === '#E2E8F0') {
+                resolvedColor = placeholder.id?.startsWith('title') ? '#000000' : '#1F2937';
+              }
+            } else {
+              if (!resolvedColor || resolvedColor === '#000000' || resolvedColor === '#111827' || resolvedColor === '#1F2937') {
+                resolvedColor = '#FFFFFF';
+              }
+            }
+            const textColor = resolvedColor;
 
             // Convert coordinate system to current canvas pixels (supports 0-100% and 0-10 units)
             const cW = canvasDimensions.width || 960;

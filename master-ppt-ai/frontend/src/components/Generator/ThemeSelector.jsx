@@ -49,31 +49,31 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
       <div className="space-y-6">
         {/* Judul Presentasi */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2 form-label-contrast">
             Judul Presentasi <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={formData.customTitle || ''}
             onChange={(e) => setFormData({ ...formData, customTitle: e.target.value })}
-            placeholder="Contoh: Strategi Pemasaran Digital 2027"
-            className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black/10 ${
+            placeholder="Contoh: Strategi Pemasaran Digital 2026"
+            className={`w-full px-4 py-3 border rounded-xl bg-white text-gray-900 placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
               errors.title
-                ? 'border-red-300 bg-red-50'
-                : 'border-gray-200 hover:border-gray-300 focus:border-black'
+                ? 'border-red-400 bg-red-50 text-red-900'
+                : 'border-gray-300 hover:border-gray-400'
             }`}
           />
           {errors.title && (
-            <p className="mt-1 text-sm text-red-500">{errors.title}</p>
+            <p className="mt-1 text-sm font-medium text-red-600">{errors.title}</p>
           )}
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-500">
             {(formData.customTitle || '').length}/100 karakter
           </p>
         </div>
 
         {/* Deskripsi / Topik */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2 form-label-contrast">
             Deskripsi / Topik
           </label>
           <textarea
@@ -81,37 +81,37 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
             onChange={(e) => setFormData({ ...formData, customDescription: e.target.value })}
             placeholder="Jelaskan topik presentasi Anda secara singkat. AI akan menggunakan deskripsi ini untuk membuat konten yang relevan..."
             rows={4}
-            className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black/10 resize-none ${
+            className={`w-full px-4 py-3 border rounded-xl bg-white text-gray-900 placeholder-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
               errors.description
-                ? 'border-red-300 bg-red-50'
-                : 'border-gray-200 hover:border-gray-300 focus:border-black'
+                ? 'border-red-400 bg-red-50 text-red-900'
+                : 'border-gray-300 hover:border-gray-400'
             }`}
           />
           {errors.description && (
-            <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+            <p className="mt-1 text-sm font-medium text-red-600">{errors.description}</p>
           )}
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-gray-500">
             {(formData.customDescription || '').length}/500 karakter
           </p>
         </div>
 
         {/* Bahasa Output */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2 form-label-contrast">
             <Globe className="w-4 h-4 inline mr-1" />
             Bahasa Output PPT
           </label>
-          <p className="text-xs text-gray-400 mb-3">
+          <p className="text-xs text-gray-500 mb-3">
             Pilih bahasa untuk isi teks/copywriting slide
           </p>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => setFormData({ ...formData, outputLanguage: 'id' })}
-              className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 font-medium ${
+              className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 font-semibold ${
                 (formData.outputLanguage || 'id') === 'id'
-                  ? 'border-black bg-black text-white'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                  : 'border-gray-300 hover:border-gray-400 bg-white text-gray-800 hover:bg-gray-50'
               }`}
             >
               🇮🇩 Bahasa Indonesia
@@ -119,10 +119,10 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
             <button
               type="button"
               onClick={() => setFormData({ ...formData, outputLanguage: 'en' })}
-              className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 font-medium ${
+              className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 font-semibold ${
                 formData.outputLanguage === 'en'
-                  ? 'border-black bg-black text-white'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                  : 'border-gray-300 hover:border-gray-400 bg-white text-gray-800 hover:bg-gray-50'
               }`}
             >
               🇬🇧 English
@@ -132,11 +132,11 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
 
         {/* Jumlah Slide */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2 form-label-contrast">
             <Hash className="w-4 h-4 inline mr-1" />
             Jumlah Slide
           </label>
-          <p className="text-xs text-gray-400 mb-3">
+          <p className="text-xs text-gray-500 mb-3">
             Tentukan jumlah slide yang akan dibuat (1-15)
           </p>
 
@@ -148,7 +148,7 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
               max="15"
               value={slideCount}
               onChange={(e) => setFormData({ ...formData, slideCount: parseInt(e.target.value) })}
-              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+              className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-gray-900"
             />
             <div className="relative">
               <input
@@ -163,7 +163,7 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
                   if (val > 15) val = 15;
                   setFormData({ ...formData, slideCount: val });
                 }}
-                className="w-16 px-2 py-2 text-center rounded-lg border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-lg"
+                className="w-16 px-2 py-2 text-center rounded-lg border-2 border-gray-300 bg-white text-gray-900 focus:border-blue-500 focus:outline-none font-bold text-lg shadow-sm"
               />
             </div>
           </div>

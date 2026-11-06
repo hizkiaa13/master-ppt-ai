@@ -1,7 +1,63 @@
 /**
  * Content Relevance Validator - Master PPT AI
  * Memvalidasi apakah konten presentasi yang dihasilkan AI benar-benar relevan dengan judul dari pengguna.
+ * Mendukung pencocokan dwibahasa (ID <-> EN) secara otomatis.
  */
+
+const DICTIONARY_MAP = {
+  // ID -> EN
+  'strategi': ['strategy', 'strategic'],
+  'pemasaran': ['marketing', 'market'],
+  'penjualan': ['sales', 'selling'],
+  'bisnis': ['business', 'enterprise'],
+  'digital': ['digital'],
+  'teknologi': ['technology', 'tech'],
+  'produk': ['product'],
+  'pelanggan': ['customer', 'client', 'consumer'],
+  'rencana': ['plan', 'planning', 'roadmap'],
+  'kinerja': ['performance'],
+  'manajemen': ['management', 'managing'],
+  'keuangan': ['finance', 'financial'],
+  'pendidikan': ['education', 'learning', 'training'],
+  'kesehatan': ['health', 'healthcare'],
+  'transformasi': ['transformation', 'transform'],
+  'operasional': ['operations', 'operational'],
+  'pengembangan': ['development', 'growth'],
+  'kepemimpinan': ['leadership', 'leader'],
+  'inovasi': ['innovation', 'innovative'],
+  'analisis': ['analysis', 'analytics'],
+  'target': ['target', 'goal', 'objective'],
+  'riset': ['research'],
+  'proyek': ['project'],
+  'data': ['data'],
+  'kecerdasan': ['intelligence'],
+  'buatan': ['artificial'],
+  'sistem': ['system'],
+  'evaluasi': ['evaluation', 'assessment'],
+  'keberlanjutan': ['sustainability', 'sustainable'],
+  'komunikasi': ['communication'],
+  'eksekusi': ['execution'],
+  'pilar': ['pillar', 'foundational'],
+  'tahapan': ['steps', 'phases', 'stages'],
+
+  // EN -> ID
+  'strategy': ['strategi', 'strategis'],
+  'marketing': ['pemasaran', 'pasar'],
+  'sales': ['penjualan'],
+  'business': ['bisnis', 'usaha'],
+  'technology': ['teknologi'],
+  'product': ['produk'],
+  'customer': ['pelanggan', 'konsumen'],
+  'plan': ['rencana', 'perencanaan'],
+  'performance': ['kinerja'],
+  'management': ['manajemen', 'pengelolaan'],
+  'finance': ['keuangan', 'finansial'],
+  'education': ['pendidikan', 'pelatihan'],
+  'growth': ['pertumbuhan', 'pengembangan'],
+  'innovation': ['inovasi'],
+  'analysis': ['analisis'],
+  'leadership': ['kepemimpinan'],
+};
 
 function validateContentRelevance(aiResult, userTitle) {
   const stopWords = [
@@ -22,14 +78,24 @@ function validateContentRelevance(aiResult, userTitle) {
     };
   }
 
-  const keywords = (userTitle || '')
+  const baseKeywords = (userTitle || '')
     .toLowerCase()
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
     .map(w => w.trim())
-    .filter(word => word.length > 3 && !stopWords.includes(word));
+    .filter(word => word.length > 2 && !stopWords.includes(word));
 
-  // Fallback jika judul hanya kata pendek (misal "AI", "SEO")
+  // Kembangkan kata kunci dengan padanan kamus dwibahasa
+  const expandedKeywords = new Set(baseKeywords);
+  baseKeywords.forEach(kw => {
+    if (DICTIONARY_MAP[kw]) {
+      DICTIONARY_MAP[kw].forEach(synonym => expandedKeywords.add(synonym));
+    }
+  });
+
+  const keywords = Array.from(expandedKeywords);
+
+  // Fallback jika judul hanya kata sangat pendek (misal "AI", "VR")
   if (keywords.length === 0 && (userTitle || '').trim().length > 0) {
     keywords.push((userTitle || '').trim().toLowerCase());
   }
@@ -45,7 +111,7 @@ function validateContentRelevance(aiResult, userTitle) {
   const relevanceScore = Math.round((relevantSlides / aiResult.slides.length) * 100);
 
   return {
-    isRelevant: relevanceScore >= 60,
+    isRelevant: relevanceScore >= 50, // Minimal 50% slide memuat kata kunci/padanannya
     relevanceScore,
     relevantSlides,
     totalSlides: aiResult.slides.length,

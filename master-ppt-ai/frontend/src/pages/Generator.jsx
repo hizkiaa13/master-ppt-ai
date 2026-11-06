@@ -257,7 +257,7 @@ export default function Generator() {
       });
 
       if (response && response.success && response.data) {
-        const mappedSlides = mapAIResultToSlides(response.data);
+        const mappedSlides = mapAIResultToSlides(response.data, formData.outputLanguage || 'id');
 
         setGeneratedData(response.data);
         setSlides(mappedSlides);

@@ -470,6 +470,14 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   const layoutDef = renderLayout(newLayoutId);
   const updatedSlide = { ...slide, layoutId: newLayoutId, layout: newLayoutId };
 
+  // Deteksi bahasa output (ID vs EN)
+  const isEn = (
+    slide.outputLanguage === 'en' ||
+    slide.language === 'en' ||
+    themeConfig.outputLanguage === 'en' ||
+    themeConfig.language === 'en'
+  );
+
   const existingPlaceholders = slide.placeholders || [];
   const titleP = existingPlaceholders.find((p) => p.id?.startsWith('title') || p.name?.toLowerCase().includes('judul'));
   const subtitleP = existingPlaceholders.find((p) => p.id?.startsWith('subtitle') || p.name?.toLowerCase().includes('subjudul'));
@@ -546,8 +554,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
-      name: 'Judul Utama',
-      content: titleP?.content || slide.title || 'Judul Presentasi',
+      name: isEn ? 'Main Title' : 'Judul Utama',
+      content: titleP?.content || slide.title || (isEn ? 'Presentation Title' : 'Judul Presentasi'),
       font: fontHeading,
       fontSize: calculateFontSize(0, (titleP?.content || '').length, true, newLayoutId),
       color: '#000000',
@@ -561,8 +569,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       newPlaceholders.push({
         id: `subtitle-${slide.slideNumber}`,
         type: 'text',
-        name: 'Subjudul',
-        content: subtitleP?.content || slide.subtitle || 'Master Presentasi Berbasis AI',
+        name: isEn ? 'Subtitle' : 'Subjudul',
+        content: subtitleP?.content || slide.subtitle || (isEn ? 'Strategic Executive Framework' : 'Master Presentasi Berbasis AI'),
         font: fontBody,
         fontSize: calculateFontSize(0, 50, false, newLayoutId),
         color: '#4B5563',
@@ -576,8 +584,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       newPlaceholders.push({
         id: `presenter-${slide.slideNumber}`,
         type: 'text',
-        name: 'Presenter Info',
-        content: 'Master PPT AI — Base Master (Hitam & Putih)',
+        name: isEn ? 'Presenter Info' : 'Presenter Info',
+        content: isEn ? 'Master PPT AI — Executive Master (Black & White)' : 'Master PPT AI — Base Master (Hitam & Putih)',
         font: fontBody,
         fontSize: 14,
         color: '#6B7280',
@@ -590,6 +598,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'cover';
     updatedSlide.pointCount = 0;
+    updatedSlide.outputLanguage = isEn ? 'en' : 'id';
     updatedSlide.placeholders = newPlaceholders;
     return updatedSlide;
   }
@@ -598,11 +607,15 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   const isClosing = newLayoutId === 'cover-back' || newLayoutId === 'cover-back-statement' || newLayoutId.startsWith('closing-p');
   if (isClosing) {
     const isStatement = newLayoutId === 'cover-back-statement' || newLayoutId === 'closing-p180' || newLayoutId === 'closing-p186' || newLayoutId === 'closing-p188';
+    const defaultTitle = isEn
+      ? (isStatement ? 'Thank You' : 'Let\'s Connect')
+      : (isStatement ? 'Terima Kasih' : 'Let\'s Connect');
+
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
-      name: 'Judul Penutup',
-      content: titleP?.content || (isStatement ? 'Terima Kasih' : 'Let\'s Connect'),
+      name: isEn ? 'Closing Title' : 'Judul Penutup',
+      content: titleP?.content || defaultTitle,
       font: fontHeading,
       fontSize: isStatement ? 48 : 40,
       color: '#000000',
@@ -616,8 +629,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       newPlaceholders.push({
         id: `subtitle-${slide.slideNumber}`,
         type: 'text',
-        name: 'Pesan Penutup',
-        content: subtitleP?.content || 'Kolaborasi & Diskusi Terbuka',
+        name: isEn ? 'Closing Message' : 'Pesan Penutup',
+        content: subtitleP?.content || (isEn ? 'Open for Strategic Collaboration & Inquiries' : 'Kolaborasi & Diskusi Terbuka'),
         font: fontBody,
         fontSize: 18,
         color: '#4B5563',
@@ -628,11 +641,15 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     }
 
     if (layoutDef.contact) {
+      const defaultContact = isEn
+        ? '📞 123-456-7890\n✉️ hello@reallygreatsite.com\n🌐 www.reallygreatsite.com\n📍 123 Anywhere St., Any City'
+        : '📞 62-819-9977-3020\n✉️ halo@situssupercanggih.co.id\n🌐 www.situssupercanggih.co.id\n📍 Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310';
+
       newPlaceholders.push({
         id: `contact-${slide.slideNumber}`,
         type: 'text',
-        name: 'Kontak & Tautan',
-        content: '📞 62-819-9977-3020\n✉️ halo@situssupercanggih.co.id\n🌐 www.situssupercanggih.co.id\n📍 Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310',
+        name: isEn ? 'Contact Info' : 'Kontak & Tautan',
+        content: defaultContact,
         font: fontBody,
         fontSize: 14,
         color: '#4B5563',
@@ -645,6 +662,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'closing';
     updatedSlide.pointCount = 0;
+    updatedSlide.outputLanguage = isEn ? 'en' : 'id';
     updatedSlide.placeholders = newPlaceholders;
     return updatedSlide;
   }
@@ -655,8 +673,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
-      name: 'Judul Slide',
-      content: titleP?.content || 'Customer Testimonials',
+      name: isEn ? 'Slide Title' : 'Judul Slide',
+      content: titleP?.content || (isEn ? 'Client Testimonials' : 'Testimoni Pelanggan'),
       font: fontHeading,
       fontSize: 28,
       color: '#000000',
@@ -666,14 +684,18 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     });
 
     const slots = layoutDef.points;
-    const names = ['AARON LOEB', 'ROSA MARIA', 'HANNAH MORALES'];
+    const names = isEn ? ['AARON LOEB', 'ROSA MARIA', 'HANNAH MORALES'] : ['Adinda Fitria', 'Baskara Lim', 'Cindy Savira'];
     slots.forEach((slot, idx) => {
-      const quote = contentItems[idx] || 'Solusi ini memberikan efisiensi yang luar biasa bagi pertumbuhan tim kami.';
+      const defaultQuote = isEn
+        ? 'This framework delivered extraordinary efficiency and accelerated our core milestones.'
+        : 'Solusi ini memberikan efisiensi yang luar biasa bagi pertumbuhan tim kami.';
+      const quote = contentItems[idx] || defaultQuote;
+      const clientLabel = isEn ? `Client ${idx + 1}` : `Klien ${idx + 1}`;
       newPlaceholders.push({
         id: `point-${slide.slideNumber}-${idx + 1}`,
         type: 'text',
-        name: `Testimoni ${idx + 1}`,
-        content: `★★★★ ${slot.rating || '4.9/5'}\n\n"${quote}"\n\n— ${names[idx] || `Klien ${idx + 1}`}`,
+        name: isEn ? `Testimonial ${idx + 1}` : `Testimoni ${idx + 1}`,
+        content: `★★★★ ${slot.rating || '4.9/5'}\n\n"${quote}"\n\n— ${names[idx] || clientLabel}`,
         font: fontBody,
         fontSize: 14,
         color: '#1F2937',
@@ -687,17 +709,22 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'testimonial';
     updatedSlide.pointCount = slots.length;
+    updatedSlide.outputLanguage = isEn ? 'en' : 'id';
     updatedSlide.placeholders = newPlaceholders;
     return updatedSlide;
   }
 
   const isTestimonialSingle = newLayoutId === 'testimonial' || newLayoutId === 'testi-p176' || newLayoutId === 'testi-p178';
   if (isTestimonialSingle) {
+    const defaultQuote = isEn
+      ? 'Strategic innovation is the ultimate foundation for sustainable growth.'
+      : 'Inovasi adalah kunci pertumbuhan yang berkelanjutan.';
+
     newPlaceholders.push({
       id: `quote-${slide.slideNumber}`,
       type: 'text',
-      name: 'Kutipan Testimoni',
-      content: `"${contentItems[0] || titleP?.content || 'Inovasi adalah kunci pertumbuhan yang berkelanjutan.'}"`,
+      name: isEn ? 'Quote' : 'Kutipan Testimoni',
+      content: `"${contentItems[0] || titleP?.content || defaultQuote}"`,
       font: fontHeading,
       fontSize: calculateFontSize(1, (contentItems[0] || '').length, false, 'testimonial'),
       color: '#000000',
@@ -710,8 +737,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     newPlaceholders.push({
       id: `author-${slide.slideNumber}`,
       type: 'text',
-      name: 'Nama & Jabatan',
-      content: contentItems[1] || '— Klien Eksekutif / Founder',
+      name: isEn ? 'Author & Role' : 'Nama & Jabatan',
+      content: contentItems[1] || (isEn ? '— Executive Leader / Managing Director' : '— Klien Eksekutif / Founder'),
       font: fontBody,
       fontSize: 16,
       color: '#4B5563',
@@ -723,6 +750,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'testimonial';
     updatedSlide.pointCount = 1;
+    updatedSlide.outputLanguage = isEn ? 'en' : 'id';
     updatedSlide.placeholders = newPlaceholders;
     return updatedSlide;
   }
@@ -733,8 +761,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
-      name: 'Judul Slide',
-      content: titleP?.content || 'Capaian & Metrik Utama',
+      name: isEn ? 'Slide Title' : 'Judul Slide',
+      content: titleP?.content || (isEn ? 'Key Metrics & Performance' : 'Capaian & Metrik Utama'),
       font: fontHeading,
       fontSize: 30,
       color: '#000000',
@@ -746,11 +774,12 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     const slots = layoutDef.points;
     const defaultStats = ['67%', '85%', '94%'];
     slots.forEach((slot, idx) => {
-      const itemDesc = contentItems[idx] || `Pertumbuhan metrik ${idx + 1} meningkat signifikan`;
+      const defaultDesc = isEn ? `Significant growth in primary KPI metric ${idx + 1}` : `Pertumbuhan metrik ${idx + 1} meningkat signifikan`;
+      const itemDesc = contentItems[idx] || defaultDesc;
       newPlaceholders.push({
         id: `point-${slide.slideNumber}-${idx + 1}`,
         type: 'text',
-        name: `Statistik ${idx + 1}`,
+        name: isEn ? `Statistic ${idx + 1}` : `Statistik ${idx + 1}`,
         content: `${defaultStats[idx] || '80%'}\n\n${itemDesc}`,
         font: fontHeading,
         fontSize: 16,
@@ -765,6 +794,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'chart';
     updatedSlide.pointCount = slots.length;
+    updatedSlide.outputLanguage = isEn ? 'en' : 'id';
     updatedSlide.placeholders = newPlaceholders;
     return updatedSlide;
   }
@@ -774,8 +804,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
-      name: 'Judul Slide',
-      content: titleP?.content || 'Analisis & Data Kinerja',
+      name: isEn ? 'Slide Title' : 'Judul Slide',
+      content: titleP?.content || (isEn ? 'Performance Analytics & Metrics' : 'Analisis & Data Kinerja'),
       font: fontHeading,
       fontSize: 30,
       color: '#000000',
@@ -784,14 +814,18 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       position: { ...layoutDef.title },
     });
 
+    const defaultInfo = isEn
+      ? '• Efficiency improvement sustained at +185%\n\n• Operational turnaround time reduced by 65%\n\n• Overall user satisfaction rating reached 99.4%'
+      : '• Peningkatan efisiensi sebesar +185%\n\n• Pengurangan waktu kerja hingga 65%\n\n• Kepuasan pengguna mencapai 99.4%';
+
     const infoText = contentItems.length > 0
       ? contentItems.map(c => `• ${c}`).join('\n\n')
-      : '• Peningkatan efisiensi sebesar +185%\n\n• Pengurangan waktu kerja hingga 65%\n\n• Kepuasan pengguna mencapai 99.4%';
+      : defaultInfo;
 
     newPlaceholders.push({
       id: `info-${slide.slideNumber}`,
       type: 'text',
-      name: 'Penjelasan Data',
+      name: isEn ? 'Data Analysis' : 'Penjelasan Data',
       content: infoText,
       font: fontBody,
       fontSize: calculateFontSize(contentItems.length || 3, infoText.length, false),
@@ -804,15 +838,16 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     newPlaceholders.push({
       id: `chart-${slide.slideNumber}`,
       type: 'image',
-      name: 'Area Grafik / Chart',
+      name: isEn ? 'Chart Visual Area' : 'Area Grafik / Chart',
       content: null,
-      placeholder: 'Area Visual Chart / Grafik Statistik Hitam-Putih',
+      placeholder: isEn ? 'Visual Chart Area / Black-and-White Metric Graph' : 'Area Visual Chart / Grafik Statistik Hitam-Putih',
       position: { ...(layoutDef.chartArea || { x: 47, y: 25, w: 47, h: 63, align: 'center' }) },
     });
 
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'chart';
     updatedSlide.pointCount = Math.max(1, contentItems.length);
+    updatedSlide.outputLanguage = isEn ? 'en' : 'id';
     updatedSlide.placeholders = newPlaceholders;
     return updatedSlide;
   }
@@ -821,8 +856,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   newPlaceholders.push({
     id: `title-${slide.slideNumber}`,
     type: 'text',
-    name: 'Judul Slide',
-    content: titleP?.content || slide.title || 'Judul Slide',
+    name: isEn ? 'Slide Title' : 'Judul Slide',
+    content: titleP?.content || slide.title || (isEn ? 'Slide Title' : 'Judul Slide'),
     font: fontHeading,
     fontSize: calculateFontSize(layoutDef.points?.length || 3, (titleP?.content || '').length, true, newLayoutId),
     color: '#000000',
@@ -832,36 +867,42 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   });
 
   const slots = layoutDef.points || [];
-  const slideContext = titleP?.content || slide.title || 'Materi Slide';
+  const slideContext = titleP?.content || slide.title || (isEn ? 'Core Topic' : 'Materi Slide');
 
   slots.forEach((slot, i) => {
     let itemText = contentItems[i];
     if (!itemText) {
-      if (newLayoutId === 'table-of-contents') {
-        itemText = `Pembahasan ${slideContext} Bagian ${i + 1}`;
+      if (newLayoutId === 'table-of-contents' || newLayoutId.startsWith('agenda-')) {
+        itemText = isEn
+          ? `Discussion on ${slideContext} — Part ${i + 1}`
+          : `Pembahasan ${slideContext} Bagian ${i + 1}`;
       } else if (slot.stepLabel) {
-        itemText = `Tahap ${slot.stepLabel}: Pelaksanaan konkret dalam mendukung ${slideContext}`;
+        itemText = isEn
+          ? `Phase ${slot.stepLabel}: Actionable execution driving ${slideContext}`
+          : `Tahap ${slot.stepLabel}: Pelaksanaan konkret dalam mendukung ${slideContext}`;
       } else {
-        itemText = `Fokus utama ke-${i + 1}: Penjelasan mendalam mengenai ${slideContext}`;
+        itemText = isEn
+          ? `Core Pillar ${i + 1}: In-depth strategic focus on ${slideContext}`
+          : `Fokus utama ke-${i + 1}: Penjelasan mendalam mengenai ${slideContext}`;
       }
     }
 
     // Format tampilan teks sesuai desain Base Layout
     let formattedText = itemText;
-    if (newLayoutId === 'table-of-contents') {
+    if (newLayoutId === 'table-of-contents' || newLayoutId.startsWith('agenda-')) {
       formattedText = `${slot.number || `0${i + 1}`}  ${itemText.toUpperCase()}`;
     } else if (slot.badge === 'arrow') {
       formattedText = `→  ${itemText}`;
     } else if (slot.stepLabel) {
       formattedText = `${slot.stepLabel}\n${itemText}`;
     } else if (slot.number) {
-      // PENTING: Karena UI preview kartu sudah menampilkan nomor besar (placeholder.number) di atas,
-      // jangan menduplikasi nomor ke dalam teks isi agar tidak muncul ganda (seperti "01  01...")
       formattedText = itemText;
     } else if (slot.badge) {
       formattedText = `${slot.badge}  ${itemText}`;
     } else if (newLayoutId === 'comparison') {
-      const colLabel = i === 0 ? 'KONDISI SEBELUM / PENDEKATAN A' : 'KONDISI SESUDAH / PENDEKATAN B';
+      const colLabel = isEn
+        ? (i === 0 ? 'CONVENTIONAL APPROACH / OPTION A' : 'TRANSFORMATIONAL STRATEGY / OPTION B')
+        : (i === 0 ? 'KONDISI SEBELUM / PENDEKATAN A' : 'KONDISI SESUDAH / PENDEKATAN B');
       formattedText = `${colLabel}\n\n${itemText}`;
     } else if (newLayoutId !== 'one-point' && newLayoutId !== 'one-point-split') {
       formattedText = itemText;
@@ -870,7 +911,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     newPlaceholders.push({
       id: `point-${slide.slideNumber}-${i + 1}`,
       type: 'text',
-      name: `Poin ${i + 1}`,
+      name: isEn ? `Point ${i + 1}` : `Poin ${i + 1}`,
       content: formattedText,
       font: fontBody,
       fontSize: calculateFontSize(slots.length, itemText.length, false, newLayoutId),
@@ -888,16 +929,17 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     newPlaceholders.push({
       id: `image-${slide.slideNumber}`,
       type: 'image',
-      name: 'Area Gambar / Visual',
+      name: isEn ? 'Visual / Image Area' : 'Area Gambar / Visual',
       content: null,
-      placeholder: 'Area Visual / Foto / Diagram Hitam-Putih',
+      placeholder: isEn ? 'Visual / Graphic / Diagram Area (B&W)' : 'Area Visual / Foto / Diagram Hitam-Putih',
       position: { x: 55, y: 22, w: 40, h: 65 },
     });
   }
 
   updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
-  updatedSlide.slideType = newLayoutId === 'table-of-contents' ? 'agenda' : 'content';
+  updatedSlide.slideType = (newLayoutId === 'table-of-contents' || newLayoutId.startsWith('agenda-')) ? 'agenda' : 'content';
   updatedSlide.pointCount = slots.length;
+  updatedSlide.outputLanguage = isEn ? 'en' : 'id';
   updatedSlide.placeholders = newPlaceholders;
   return updatedSlide;
 }

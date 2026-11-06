@@ -31,13 +31,14 @@ function resolveLayout(layoutId) {
  * @param {Object} aiResult - The AI result object { slides, designRecommendation }
  * @returns {Array} Mapped slides array ready for the editor
  */
-export function mapAIResultToSlides(aiResult) {
+export function mapAIResultToSlides(aiResult, outputLanguage = 'id') {
   if (!aiResult) return [];
 
   const slides = aiResult.slides || [];
   const designRec = aiResult.designRecommendation || {};
   const fonts = designRec.fonts || {};
   const layoutsInfo = designRec.layouts || [];
+  const resolvedLanguage = (outputLanguage || aiResult.outputLanguage || 'id').toLowerCase();
 
   if (!Array.isArray(slides) || slides.length === 0) {
     console.warn('No slides found in AI result');
@@ -114,6 +115,7 @@ export function mapAIResultToSlides(aiResult) {
       secondary: '#1F2937',
       accent: '#000000',
       bg: '#FFFFFF',
+      outputLanguage: resolvedLanguage,
       fonts: {
         heading: fonts.heading || 'Montserrat',
         body: fonts.body || 'Open Sans',
@@ -125,6 +127,7 @@ export function mapAIResultToSlides(aiResult) {
       slideNumber,
       slideType,
       layoutId,
+      outputLanguage: resolvedLanguage,
       title: slide.title || '',
       subtitle: slide.subtitle || '',
       content: Array.isArray(slide.content) ? slide.content : [],
@@ -140,6 +143,7 @@ export function mapAIResultToSlides(aiResult) {
       slideNumber,
       slideType,
       layoutId,
+      outputLanguage: resolvedLanguage,
       catalogLayoutId: originalCatalogLayoutId, // preserve original catalog ID
       pointCount: tempSlide.pointCount,
       layoutReason: slide.layoutReason || '',

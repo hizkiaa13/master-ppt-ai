@@ -403,6 +403,7 @@ export default function SlidePreview({
     const remappedSlide = applyLayoutToSlide(targetSlide, newLayoutId, {
       fonts: recommendations?.fonts,
       colors: { primary: '#000000', secondary: '#1F2937', accent: '#000000' },
+      outputLanguage: targetSlide.outputLanguage || 'id',
     });
 
     updated[currentSlideIndex] = remappedSlide;

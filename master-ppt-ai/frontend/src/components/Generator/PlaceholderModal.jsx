@@ -301,3 +301,4 @@ export default function PlaceholderModal({ isOpen, onClose, onInsert }) {
     </div>
   );
 }
+

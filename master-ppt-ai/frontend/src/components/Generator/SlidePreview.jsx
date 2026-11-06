@@ -1041,7 +1041,7 @@ export default function SlidePreview({
             onChange={(e) => handleLayoutChange(e.target.value)}
             className="input text-xs py-1.5 px-3 bg-white text-gray-900 border-gray-300 rounded-lg font-medium shadow-sm cursor-pointer"
           >
-            {['Cover & Penutup', 'Agenda', '1 & 2 Poin', '3 Poin', '4-6 Poin', 'Data & Testimoni', 'Variasi Khusus'].map((grp) => (
+            {Array.from(new Set(LAYOUT_OPTIONS.map((opt) => opt.group))).map((grp) => (
               <optgroup key={grp} label={grp} className="font-semibold text-gray-500">
                 {LAYOUT_OPTIONS.filter((opt) => opt.group === grp).map((opt) => (
                   <option key={opt.value} value={opt.value} className="font-medium text-gray-900">

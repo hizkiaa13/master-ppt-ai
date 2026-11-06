@@ -32,8 +32,8 @@ export async function generateFinalPPTX(slides, recommendations, title) {
   slides.forEach((slideData) => {
     const slide = pres.addSlide();
     const layoutId = slideData.layoutId || slideData.layout || 'three-points';
-    const isCover = layoutId.startsWith('cover-front') || slideData.slideType === 'cover';
-    const isClosing = layoutId.startsWith('cover-back') || slideData.slideType === 'closing';
+    const isCover = layoutId.startsWith('cover-') || slideData.slideType === 'cover';
+    const isClosing = layoutId.startsWith('cover-back') || layoutId.startsWith('closing-') || slideData.slideType === 'closing';
 
     // 1. Background Selalu Putih Murni (#FFFFFF)
     slide.background = { color: 'FFFFFF' };

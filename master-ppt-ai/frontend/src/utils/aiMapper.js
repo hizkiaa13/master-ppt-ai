@@ -1,9 +1,30 @@
 /**
  * AI Mapper - Maps AI-generated content to slide format for the editor
  * Preserves layoutId, layoutReason, pointCount from AI response
+ * Supports 189 extended catalog layouts + 25 legacy layouts
  */
 
 import { applyLayoutToSlide, LAYOUT_DEFINITIONS } from './layoutRenderer.js';
+import { FULL_LAYOUT_CATALOG, getLayoutById, LAYOUT_ALIASES } from './layoutCatalog.js';
+
+/**
+ * Check if a layoutId exists in either definitions or full catalog
+ */
+function isValidLayoutId(layoutId) {
+  if (LAYOUT_DEFINITIONS[layoutId]) return true;
+  if (FULL_LAYOUT_CATALOG && FULL_LAYOUT_CATALOG[layoutId]) return true;
+  if (LAYOUT_ALIASES && LAYOUT_ALIASES[layoutId]) return true;
+  return false;
+}
+
+/**
+ * Resolve layoutId to valid registered layout
+ */
+function resolveLayout(layoutId) {
+  if (LAYOUT_DEFINITIONS[layoutId]) return layoutId;
+  if (LAYOUT_ALIASES[layoutId]) return LAYOUT_ALIASES[layoutId];
+  return null;
+}
 
 /**
  * Map AI result to slides array for the editor
@@ -37,6 +58,8 @@ export function mapAIResultToSlides(aiResult) {
 
     // Determine layoutId - prefer AI's choice, then infer
     let layoutId = slide.layoutId || '';
+    let originalCatalogLayoutId = layoutId; // preserve original for metadata
+    
     if (!layoutId) {
       if (isFirst || slideType === 'cover') {
         layoutId = 'cover-front';
@@ -61,24 +84,29 @@ export function mapAIResultToSlides(aiResult) {
       }
     }
 
-    // Validate layoutId exists in definitions, fallback if not
-    if (!LAYOUT_DEFINITIONS[layoutId]) {
-      // Map to closest available layout
-      const fallbackMap = {
-        'cover-front-editorial': 'cover-front',
-        'cover-back-statement': 'cover-back',
-        'one-point-split': 'one-point',
-        'two-points-horizontal': 'two-points',
-        'three-points-horizontal': 'three-points',
-        'three-points-timeline': 'three-points',
-        'four-points-steps': 'four-points',
-        'five-points-timeline': 'five-points',
-        'six-points-columns': 'six-points',
-        'chart-stat': 'chart',
-        'testimonial-cards': 'testimonial',
-      };
-      layoutId = fallbackMap[layoutId] || 'one-point';
+    // Resolve layout for rendering - support all 189 catalog layouts + aliases
+    let renderLayoutId = layoutId;
+    if (!LAYOUT_DEFINITIONS[renderLayoutId]) {
+      if (LAYOUT_ALIASES[renderLayoutId] && LAYOUT_DEFINITIONS[LAYOUT_ALIASES[renderLayoutId]]) {
+        renderLayoutId = LAYOUT_ALIASES[renderLayoutId];
+      } else {
+        const fallbackMap = {
+          'cover-front-editorial': 'cover-front',
+          'cover-back-statement': 'cover-back',
+          'one-point-split': 'one-point',
+          'two-points-horizontal': 'two-points',
+          'three-points-horizontal': 'three-points',
+          'three-points-timeline': 'three-points',
+          'four-points-steps': 'four-points',
+          'five-points-timeline': 'five-points',
+          'six-points-columns': 'six-points',
+          'chart-stat': 'chart',
+          'testimonial-cards': 'testimonial',
+        };
+        renderLayoutId = fallbackMap[renderLayoutId] || 'three-points';
+      }
     }
+    layoutId = renderLayoutId;
 
     // Build theme config for applyLayoutToSlide
     const themeConfig = {
@@ -112,6 +140,7 @@ export function mapAIResultToSlides(aiResult) {
       slideNumber,
       slideType,
       layoutId,
+      catalogLayoutId: originalCatalogLayoutId, // preserve original catalog ID
       pointCount: tempSlide.pointCount,
       layoutReason: slide.layoutReason || '',
       title: slide.title || '',

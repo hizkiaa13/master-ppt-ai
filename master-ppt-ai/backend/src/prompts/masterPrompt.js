@@ -92,20 +92,36 @@ ATURAN BAHASA:
 - Jika outputLanguage = "en", gunakan English profesional dan natural.
 
 ATURAN LAYOUT:
-Pilih layout berdasarkan konten dan jumlah poin:
-- 1 poin: one-point
-- 2 poin: two-points
-- 3 poin: three-points
-- 4 poin: four-points
-- 5 poin: five-points
-- 6 poin: six-points
+Pilih layout berdasarkan konten dan jumlah poin. Tersedia 189 variasi layout dari katalog "Base Layout Presentasi" (One Piece Design Studio).
+
+LAYOUT UTAMA (legacy, selalu tersedia):
+- 1 poin: one-point, one-point-split
+- 2 poin: two-points, two-points-horizontal
+- 3 poin: three-points, three-points-horizontal, three-points-timeline
+- 4 poin: four-points, four-points-steps
+- 5 poin: five-points, five-points-timeline
+- 6 poin: six-points, six-points-columns
 - Perbandingan: comparison
 - Langkah/tahapan: steps
-- Data/statistik: chart
-- Testimoni: testimonial
-- Slide pertama: cover-front
-- Slide terakhir: cover-back
+- Data/statistik: chart, chart-stat
+- Testimoni: testimonial, testimonial-cards
+- Slide pertama: cover-front, cover-front-editorial
+- Slide terakhir: cover-back, cover-back-statement
 
+LAYOUT KATALOG EXTENDED (189 variasi):
+- Cover Depan: cover-p04 s/d cover-p18 (15 varian)
+- Daftar Isi: agenda-p20 s/d agenda-p23 (4 varian)
+- 1 Poin: point1-p25 s/d point1-p46 (22 varian)
+- 2 Poin: point2-p48 s/d point2-p87 (40 varian)
+- 3 Poin: point3-p89 s/d point3-p128 (40 varian)
+- 4 Poin: point4-p130 s/d point4-p144 (15 varian)
+- 5 Poin: point5-p146 s/d point5-p154 (9 varian)
+- 6 Poin: point6-p156 s/d point6-p161 (6 varian)
+- Chart: chart-p163 s/d chart-p171 (9 varian)
+- Testimoni: testi-p173 s/d testi-p178 (6 varian)
+- Cover Belakang: closing-p180 s/d closing-p202 (23 varian)
+
+Pilih layout yang paling sesuai dengan konten slide. Variasikan layout agar tidak monoton.
 Jangan gunakan layout yang sama lebih dari 2 kali berturut-turut.
 
 FONT PAIRING TERSEDIA:

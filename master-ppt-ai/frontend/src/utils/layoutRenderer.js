@@ -2,9 +2,18 @@
  * Layout Renderer & Auto Layout Design System (Frontend)
  * Berbasis langsung dari katalog desain "Base Layout Presentasi.pdf" (One Piece Design Studio)
  * Mengubah layoutId menjadi posisi placeholder konkret dalam format persentase (0-100%).
+ * 
+ * Mendukung 189 layout katalog lengkap + 25 template legacy.
  */
 
-export const LAYOUT_DEFINITIONS = {
+import {
+  FULL_LAYOUT_CATALOG,
+  LAYOUT_ALIASES,
+  FULL_LAYOUT_OPTIONS,
+  CATEGORY_LABELS,
+} from './layoutCatalog.js';
+
+export const BASE_LAYOUT_DEFINITIONS = {
   // === A. COVER DEPAN ===
   'cover-front': {
     layoutId: 'cover-front',
@@ -366,66 +375,54 @@ export const LAYOUT_DEFINITIONS = {
 };
 
 /**
- * Daftar opsi layout untuk dropdown UI
+ * Gabungan seluruh layout: 189 layout dari katalog PDF + template legacy
+ */
+export const LAYOUT_DEFINITIONS = {
+  ...BASE_LAYOUT_DEFINITIONS,
+  ...FULL_LAYOUT_CATALOG,
+};
+
+/**
+ * Daftar opsi layout lengkap untuk dropdown UI.
+ * Menggabungkan seluruh 189 layout katalog dengan pembagian kategori jelas,
+ * serta menyertakan template legacy.
  */
 export const LAYOUT_OPTIONS = [
-  // Cover & Penutup
-  { value: 'cover-front', label: 'Cover Depan - Terpusat', points: 0, group: 'Cover & Penutup' },
-  { value: 'cover-front-editorial', label: 'Cover Depan - Editorial Kiri', points: 0, group: 'Cover & Penutup' },
-  { value: 'cover-back', label: 'Cover Belakang - Kontak & Let\'s Connect', points: 0, group: 'Cover & Penutup' },
-  { value: 'cover-back-statement', label: 'Cover Belakang - Thank You Masif', points: 0, group: 'Cover & Penutup' },
-
-  // Agenda
-  { value: 'table-of-contents', label: 'Daftar Isi - Grid 01-06 Bergaris', points: [3, 4, 5, 6], group: 'Agenda' },
-
-  // Konten 1-2 Poin
-  { value: 'one-point', label: '1 Poin - Impact Statement Terpusat', points: 1, group: '1 & 2 Poin' },
-  { value: 'one-point-split', label: '1 Poin - Split Kiri & Detail', points: 1, group: '1 & 2 Poin' },
-  { value: 'two-points', label: '2 Poin - Kolom Sejajar (A & B)', points: 2, group: '1 & 2 Poin' },
-  { value: 'two-points-horizontal', label: '2 Poin - Baris Bergaris (01 / 02)', points: 2, group: '1 & 2 Poin' },
-
-  // Konten 3 Poin
-  { value: 'three-points', label: '3 Poin - Tiga Kolom (01, 02, 03)', points: 3, group: '3 Poin' },
-  { value: 'three-points-horizontal', label: '3 Poin - Baris Panah (→)', points: 3, group: '3 Poin' },
-  { value: 'three-points-timeline', label: '3 Poin - Timeline Berangkai', points: 3, group: '3 Poin' },
-
-  // Konten 4-6 Poin
-  { value: 'four-points', label: '4 Poin - Grid 2x2 Kartu Panah', points: 4, group: '4-6 Poin' },
-  { value: 'four-points-steps', label: '4 Poin - Step 1, 2, 3, 4', points: 4, group: '4-6 Poin' },
-  { value: 'five-points', label: '5 Poin - Kartu (3 Atas + 2 Bawah)', points: 5, group: '4-6 Poin' },
-  { value: 'five-points-timeline', label: '5 Poin - Rangkaian 01-05 Horizontal', points: 5, group: '4-6 Poin' },
-  { value: 'six-points', label: '6 Poin - Grid 3x2 Kartu Terstruktur', points: 6, group: '4-6 Poin' },
-  { value: 'six-points-columns', label: '6 Poin - 2 Kolom x 3 Baris Panah (→)', points: 6, group: '4-6 Poin' },
-
-  // Data & Testimoni
-  { value: 'chart', label: 'Chart - Area Grafik & Narasi Metrik', points: [1, 2, 3, 4], group: 'Data & Testimoni' },
-  { value: 'chart-stat', label: 'Chart - 3 Cincin Persentase (67%)', points: 3, group: 'Data & Testimoni' },
-  { value: 'testimonial-cards', label: 'Testimoni - 3 Kartu Pelanggan (★★★★)', points: 3, group: 'Data & Testimoni' },
-  { value: 'testimonial', label: 'Testimoni - Kutipan Visi Besar', points: 1, group: 'Data & Testimoni' },
-
-  // Variasi Khusus
-  { value: 'comparison', label: 'Perbandingan - Dua Kolom Berhadapan', points: 2, group: 'Variasi Khusus' },
-  { value: 'steps', label: 'Langkah-langkah - 4 Tahapan Berurutan', points: 4, group: 'Variasi Khusus' },
-  { value: 'image-text', label: 'Teks & Visual - Narasi + Area Gambar', points: 1, group: 'Variasi Khusus' },
+  ...FULL_LAYOUT_OPTIONS,
+  // Template Legacy untuk kemudahan akses cepat
+  { value: 'cover-front', label: 'Cover Depan - Terpusat (Legacy)', points: 0, group: 'Template Standar' },
+  { value: 'cover-back', label: 'Cover Belakang - Kontak (Legacy)', points: 0, group: 'Template Standar' },
+  { value: 'table-of-contents', label: 'Daftar Isi - Grid 01-06 (Legacy)', points: [3, 4, 5, 6], group: 'Template Standar' },
+  { value: 'one-point', label: '1 Poin - Impact Statement (Legacy)', points: 1, group: 'Template Standar' },
+  { value: 'two-points', label: '2 Poin - Kolom Sejajar (Legacy)', points: 2, group: 'Template Standar' },
+  { value: 'three-points', label: '3 Poin - Tiga Kolom (Legacy)', points: 3, group: 'Template Standar' },
+  { value: 'four-points', label: '4 Poin - Grid 2x2 (Legacy)', points: 4, group: 'Template Standar' },
+  { value: 'five-points', label: '5 Poin - Kartu 3+2 (Legacy)', points: 5, group: 'Template Standar' },
+  { value: 'six-points', label: '6 Poin - Grid 3x2 (Legacy)', points: 6, group: 'Template Standar' },
+  { value: 'chart', label: 'Chart - Grafik & Metrik (Legacy)', points: [1, 2, 3, 4], group: 'Template Standar' },
+  { value: 'testimonial-cards', label: 'Testimoni - 3 Kartu (Legacy)', points: 3, group: 'Template Standar' },
+  { value: 'comparison', label: 'Perbandingan - 2 Kolom (Legacy)', points: 2, group: 'Template Standar' },
+  { value: 'steps', label: 'Langkah / Tahapan (Legacy)', points: 4, group: 'Template Standar' },
+  { value: 'image-text', label: 'Teks & Visual (Legacy)', points: 1, group: 'Template Standar' },
 ];
 
 export function calculateFontSize(pointCount, textLength = 0, isTitle = false, layoutId = null) {
-  if (layoutId === 'cover-front' || layoutId === 'cover-front-editorial') {
+  if (layoutId?.startsWith('cover-front') || layoutId?.startsWith('cover-p')) {
     if (isTitle) return textLength > 60 ? 40 : textLength > 35 ? 44 : 48;
     return textLength > 80 ? 18 : 22;
   }
 
-  if (layoutId === 'cover-back' || layoutId === 'cover-back-statement') {
+  if (layoutId?.startsWith('cover-back') || layoutId?.startsWith('closing-p')) {
     if (isTitle) return textLength > 30 ? 40 : 48;
     return 18;
   }
 
-  if (layoutId === 'testimonial' || layoutId === 'testimonial-cards') {
+  if (layoutId?.includes('testimonial') || layoutId?.startsWith('testi-p')) {
     if (isTitle) return 24;
     return textLength > 120 ? 14 : textLength > 60 ? 16 : 18;
   }
 
-  if (layoutId === 'chart-stat') {
+  if (layoutId === 'chart-stat' || layoutId === 'chart-p168') {
     if (isTitle) return 28;
     return 15;
   }
@@ -462,7 +459,11 @@ export function renderLayout(slideOrLayoutId) {
     ? slideOrLayoutId
     : (slideOrLayoutId?.layoutId || slideOrLayoutId?.layout || 'three-points');
 
-  return LAYOUT_DEFINITIONS[layoutId] || LAYOUT_DEFINITIONS['three-points'];
+  if (LAYOUT_DEFINITIONS[layoutId]) return LAYOUT_DEFINITIONS[layoutId];
+  if (LAYOUT_ALIASES[layoutId] && LAYOUT_DEFINITIONS[LAYOUT_ALIASES[layoutId]]) {
+    return LAYOUT_DEFINITIONS[LAYOUT_ALIASES[layoutId]];
+  }
+  return LAYOUT_DEFINITIONS['three-points'];
 }
 
 export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
@@ -540,7 +541,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   const newPlaceholders = [];
 
   // 1. Cover Depan (Base Master: Background Putih, Teks Hitam & Abu)
-  if (newLayoutId === 'cover-front' || newLayoutId === 'cover-front-editorial') {
+  const isCover = newLayoutId === 'cover-front' || newLayoutId === 'cover-front-editorial' || newLayoutId.startsWith('cover-p');
+  if (isCover) {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
@@ -550,36 +552,40 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       fontSize: calculateFontSize(0, (titleP?.content || '').length, true, newLayoutId),
       color: '#000000',
       isBold: true,
-      align: layoutDef.title.align || 'center',
+      align: layoutDef.title?.align || 'center',
       lineHeight: 1.15,
-      position: { ...layoutDef.title },
+      position: { ...(layoutDef.title || { x: 8, y: 24, w: 84, h: 22, align: 'center' }) },
     });
 
-    newPlaceholders.push({
-      id: `subtitle-${slide.slideNumber}`,
-      type: 'text',
-      name: 'Subjudul',
-      content: subtitleP?.content || slide.subtitle || 'Master Presentasi Berbasis AI',
-      font: fontBody,
-      fontSize: calculateFontSize(0, 50, false, newLayoutId),
-      color: '#4B5563',
-      align: layoutDef.subtitle.align || 'center',
-      lineHeight: 1.4,
-      position: { ...layoutDef.subtitle },
-    });
+    if (layoutDef.subtitle) {
+      newPlaceholders.push({
+        id: `subtitle-${slide.slideNumber}`,
+        type: 'text',
+        name: 'Subjudul',
+        content: subtitleP?.content || slide.subtitle || 'Master Presentasi Berbasis AI',
+        font: fontBody,
+        fontSize: calculateFontSize(0, 50, false, newLayoutId),
+        color: '#4B5563',
+        align: layoutDef.subtitle.align || 'center',
+        lineHeight: 1.4,
+        position: { ...layoutDef.subtitle },
+      });
+    }
 
-    newPlaceholders.push({
-      id: `presenter-${slide.slideNumber}`,
-      type: 'text',
-      name: 'Presenter Info',
-      content: 'Master PPT AI — Base Master (Hitam & Putih)',
-      font: fontBody,
-      fontSize: 14,
-      color: '#6B7280',
-      align: layoutDef.presenter.align || 'center',
-      lineHeight: 1.3,
-      position: { ...layoutDef.presenter },
-    });
+    if (layoutDef.presenter) {
+      newPlaceholders.push({
+        id: `presenter-${slide.slideNumber}`,
+        type: 'text',
+        name: 'Presenter Info',
+        content: 'Master PPT AI — Base Master (Hitam & Putih)',
+        font: fontBody,
+        fontSize: 14,
+        color: '#6B7280',
+        align: layoutDef.presenter.align || 'center',
+        lineHeight: 1.3,
+        position: { ...layoutDef.presenter },
+      });
+    }
 
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'cover';
@@ -589,47 +595,52 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   }
 
   // 2. Cover Belakang (Base Master: Background Putih, Teks Hitam & Abu)
-  if (newLayoutId === 'cover-back' || newLayoutId === 'cover-back-statement') {
-    const isStatement = newLayoutId === 'cover-back-statement';
+  const isClosing = newLayoutId === 'cover-back' || newLayoutId === 'cover-back-statement' || newLayoutId.startsWith('closing-p');
+  if (isClosing) {
+    const isStatement = newLayoutId === 'cover-back-statement' || newLayoutId === 'closing-p180' || newLayoutId === 'closing-p186' || newLayoutId === 'closing-p188';
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
       name: 'Judul Penutup',
-      content: isStatement ? 'Terima Kasih' : 'Let\'s Connect',
+      content: titleP?.content || (isStatement ? 'Terima Kasih' : 'Let\'s Connect'),
       font: fontHeading,
       fontSize: isStatement ? 48 : 40,
       color: '#000000',
       isBold: true,
-      align: layoutDef.title.align || 'center',
+      align: layoutDef.title?.align || 'center',
       lineHeight: 1.1,
-      position: { ...layoutDef.title },
+      position: { ...(layoutDef.title || { x: 10, y: 24, w: 80, h: 26, align: 'center' }) },
     });
 
-    newPlaceholders.push({
-      id: `subtitle-${slide.slideNumber}`,
-      type: 'text',
-      name: 'Pesan Penutup',
-      content: 'Kolaborasi & Diskusi Terbuka',
-      font: fontBody,
-      fontSize: 18,
-      color: '#4B5563',
-      align: layoutDef.subtitle.align || 'center',
-      lineHeight: 1.4,
-      position: { ...layoutDef.subtitle },
-    });
+    if (layoutDef.subtitle) {
+      newPlaceholders.push({
+        id: `subtitle-${slide.slideNumber}`,
+        type: 'text',
+        name: 'Pesan Penutup',
+        content: subtitleP?.content || 'Kolaborasi & Diskusi Terbuka',
+        font: fontBody,
+        fontSize: 18,
+        color: '#4B5563',
+        align: layoutDef.subtitle.align || 'center',
+        lineHeight: 1.4,
+        position: { ...layoutDef.subtitle },
+      });
+    }
 
-    newPlaceholders.push({
-      id: `contact-${slide.slideNumber}`,
-      type: 'text',
-      name: 'Kontak & Tautan',
-      content: '📞 62-819-9977-3020\n✉️ halo@situssupercanggih.co.id\n🌐 www.situssupercanggih.co.id\n📍 Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310',
-      font: fontBody,
-      fontSize: 14,
-      color: '#4B5563',
-      align: layoutDef.contact.align || 'center',
-      lineHeight: 1.5,
-      position: { ...layoutDef.contact },
-    });
+    if (layoutDef.contact) {
+      newPlaceholders.push({
+        id: `contact-${slide.slideNumber}`,
+        type: 'text',
+        name: 'Kontak & Tautan',
+        content: '📞 62-819-9977-3020\n✉️ halo@situssupercanggih.co.id\n🌐 www.situssupercanggih.co.id\n📍 Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310',
+        font: fontBody,
+        fontSize: 14,
+        color: '#4B5563',
+        align: layoutDef.contact.align || 'center',
+        lineHeight: 1.5,
+        position: { ...layoutDef.contact },
+      });
+    }
 
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
     updatedSlide.slideType = 'closing';
@@ -639,7 +650,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   }
 
   // 3. Testimoni (Base Master: Background Putih, Teks Hitam & Abu)
-  if (newLayoutId === 'testimonial-cards') {
+  const isTestimonialCards = newLayoutId === 'testimonial-cards' || newLayoutId === 'testi-p173' || newLayoutId === 'testi-p174' || newLayoutId === 'testi-p175';
+  if (isTestimonialCards) {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
@@ -679,7 +691,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     return updatedSlide;
   }
 
-  if (newLayoutId === 'testimonial') {
+  const isTestimonialSingle = newLayoutId === 'testimonial' || newLayoutId === 'testi-p176' || newLayoutId === 'testi-p178';
+  if (isTestimonialSingle) {
     newPlaceholders.push({
       id: `quote-${slide.slideNumber}`,
       type: 'text',
@@ -691,7 +704,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       isItalic: true,
       align: 'center',
       lineHeight: 1.5,
-      position: { ...layoutDef.quote },
+      position: { ...(layoutDef.quote || { x: 10, y: 26, w: 80, h: 42, align: 'center' }) },
     });
 
     newPlaceholders.push({
@@ -704,7 +717,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       color: '#4B5563',
       align: 'center',
       lineHeight: 1.3,
-      position: { ...layoutDef.author },
+      position: { ...(layoutDef.author || { x: 15, y: 72, w: 70, h: 16, align: 'center' }) },
     });
 
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
@@ -715,7 +728,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   }
 
   // 4. Chart & Data (Area vs Stat Rings)
-  if (newLayoutId === 'chart-stat') {
+  const isChartStat = newLayoutId === 'chart-stat' || newLayoutId === 'chart-p168';
+  if (isChartStat) {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
@@ -755,7 +769,8 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     return updatedSlide;
   }
 
-  if (newLayoutId === 'chart') {
+  const isChartArea = newLayoutId === 'chart' || (newLayoutId.startsWith('chart-p') && newLayoutId !== 'chart-p168');
+  if (isChartArea) {
     newPlaceholders.push({
       id: `title-${slide.slideNumber}`,
       type: 'text',
@@ -783,7 +798,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       color: '#4B5563',
       align: 'left',
       lineHeight: 1.5,
-      position: { ...layoutDef.infoArea },
+      position: { ...(layoutDef.infoArea || { x: 6, y: 25, w: 38, h: 63, align: 'left' }) },
     });
 
     newPlaceholders.push({
@@ -792,7 +807,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       name: 'Area Grafik / Chart',
       content: null,
       placeholder: 'Area Visual Chart / Grafik Statistik Hitam-Putih',
-      position: { ...layoutDef.chartArea },
+      position: { ...(layoutDef.chartArea || { x: 47, y: 25, w: 47, h: 63, align: 'center' }) },
     });
 
     updatedSlide.background = { color: '#FFFFFF', type: 'solid' };

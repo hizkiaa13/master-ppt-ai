@@ -608,9 +608,24 @@ const LAYOUT_TEMPLATES = {
   },
 };
 
-const ALL_LAYOUTS = Object.values(LAYOUT_TEMPLATES);
+// Hubungkan dan satukan dengan katalog 189 layout dari Base Layout Presentasi.pdf
+let CATALOG_LAYOUTS = {};
+try {
+  const { LAYOUT_CATALOG } = require('./layoutCatalog');
+  CATALOG_LAYOUTS = LAYOUT_CATALOG || {};
+} catch (e) {
+  // layoutCatalog fallback
+}
+
+const COMBINED_LAYOUT_TEMPLATES = {
+  ...LAYOUT_TEMPLATES,
+  ...CATALOG_LAYOUTS,
+};
+
+const ALL_LAYOUTS = Object.values(COMBINED_LAYOUT_TEMPLATES);
 
 module.exports = {
-  LAYOUT_TEMPLATES,
+  LAYOUT_TEMPLATES: COMBINED_LAYOUT_TEMPLATES,
+  BASE_TEMPLATES: LAYOUT_TEMPLATES,
   ALL_LAYOUTS,
 };

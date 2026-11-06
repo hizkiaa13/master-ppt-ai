@@ -253,6 +253,7 @@ export default function Generator() {
         title: formData.customTitle.trim(),
         description: formData.customDescription ? formData.customDescription.trim() : '',
         outputLanguage: formData.outputLanguage || 'id',
+        slideCount: formData.slideCount || 5,
       });
 
       if (response && response.success && response.data) {
@@ -339,10 +340,28 @@ export default function Generator() {
   const handleFinalizeAndDownload = async () => {
     setIsFinalizing(true);
     try {
-      if (masterId) {
-        await pptxService.finalize(masterId, { slides, title: formData.customTitle });
-        const fileName = `${formData.customTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}-master.pptx`;
-        await pptxService.download(masterId, fileName, true);
+      let currentMasterId = masterId;
+      if (!currentMasterId) {
+        try {
+          const genRes = await pptxService.generate({
+            title: formData.customTitle,
+            description: formData.customDescription,
+            outputLanguage: formData.outputLanguage || 'id',
+            slides,
+          });
+          if (genRes?.data?.masterId) {
+            currentMasterId = genRes.data.masterId;
+            setMasterId(currentMasterId);
+          }
+        } catch (serverGenErr) {
+          console.warn('Backend history record save:', serverGenErr);
+        }
+      }
+
+      if (currentMasterId) {
+        await pptxService.finalize(currentMasterId, { slides, title: formData.customTitle });
+        const fileName = `${(formData.customTitle || 'presentasi').replace(/[^a-zA-Z0-9_-]/g, '_')}-master.pptx`;
+        await pptxService.download(currentMasterId, fileName, true);
       } else {
         await generateFinalPPTX(slides, recommendations, formData.customTitle);
       }

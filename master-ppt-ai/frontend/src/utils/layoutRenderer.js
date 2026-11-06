@@ -322,6 +322,47 @@ export const LAYOUT_DEFINITIONS = {
     contact: { x: 15, y: 72, w: 70, h: 16, align: 'center' },
     points: [],
   },
+
+  // === L. VARIATIF: COMPARISON, STEPS, IMAGE-TEXT ===
+  'comparison': {
+    layoutId: 'comparison',
+    name: 'Perbandingan (Sebelum vs Sesudah / A vs B)',
+    recommendedPoints: 2,
+    category: 'content',
+    variant: 'comparison',
+    title: { x: 6, y: 8, w: 88, h: 10, align: 'left' },
+    points: [
+      { x: 5, y: 22, w: 43, h: 65, align: 'left' },
+      { x: 52, y: 22, w: 43, h: 65, align: 'left' }
+    ],
+  },
+
+  'steps': {
+    layoutId: 'steps',
+    name: 'Langkah / Tahapan (Proses 1-4)',
+    recommendedPoints: 4,
+    category: 'content',
+    variant: 'steps',
+    title: { x: 6, y: 8, w: 88, h: 10, align: 'left' },
+    points: [
+      { x: 5, y: 24, w: 20, h: 60, align: 'left' },
+      { x: 28, y: 24, w: 20, h: 60, align: 'left' },
+      { x: 51, y: 24, w: 20, h: 60, align: 'left' },
+      { x: 74, y: 24, w: 20, h: 60, align: 'left' }
+    ],
+  },
+
+  'image-text': {
+    layoutId: 'image-text',
+    name: 'Teks + Visual Placeholder',
+    recommendedPoints: 1,
+    category: 'content',
+    variant: 'image-text',
+    title: { x: 6, y: 8, w: 88, h: 10, align: 'left' },
+    points: [
+      { x: 5, y: 22, w: 45, h: 65, align: 'left' },
+    ],
+  },
 };
 
 /**
@@ -361,6 +402,11 @@ export const LAYOUT_OPTIONS = [
   { value: 'chart-stat', label: 'Chart - 3 Cincin Persentase (67%)', points: 3, group: 'Data & Testimoni' },
   { value: 'testimonial-cards', label: 'Testimoni - 3 Kartu Pelanggan (★★★★)', points: 3, group: 'Data & Testimoni' },
   { value: 'testimonial', label: 'Testimoni - Kutipan Visi Besar', points: 1, group: 'Data & Testimoni' },
+
+  // Variasi Khusus
+  { value: 'comparison', label: 'Perbandingan - Dua Kolom Berhadapan', points: 2, group: 'Variasi Khusus' },
+  { value: 'steps', label: 'Langkah-langkah - 4 Tahapan Berurutan', points: 4, group: 'Variasi Khusus' },
+  { value: 'image-text', label: 'Teks & Visual - Narasi + Area Gambar', points: 1, group: 'Variasi Khusus' },
 ];
 
 export function calculateFontSize(pointCount, textLength = 0, isTitle = false, layoutId = null) {
@@ -745,6 +791,9 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       formattedText = `${slot.number}  ${itemText}`;
     } else if (slot.badge) {
       formattedText = `${slot.badge}  ${itemText}`;
+    } else if (newLayoutId === 'comparison') {
+      const colLabel = i === 0 ? 'KONDISI SEBELUM / PENDEKATAN A' : 'KONDISI SESUDAH / PENDEKATAN B';
+      formattedText = `${colLabel}\n\n${itemText}`;
     } else if (newLayoutId !== 'one-point' && newLayoutId !== 'one-point-split') {
       formattedText = `• ${itemText}`;
     }
@@ -765,6 +814,17 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       position: { ...slot },
     });
   });
+
+  if (newLayoutId === 'image-text') {
+    newPlaceholders.push({
+      id: `image-${slide.slideNumber}`,
+      type: 'image',
+      name: 'Area Gambar / Visual',
+      content: null,
+      placeholder: 'Area Visual / Foto / Diagram Hitam-Putih',
+      position: { x: 55, y: 22, w: 40, h: 65 },
+    });
+  }
 
   updatedSlide.background = { color: '#FFFFFF', type: 'solid' };
   updatedSlide.slideType = newLayoutId === 'table-of-contents' ? 'agenda' : 'content';

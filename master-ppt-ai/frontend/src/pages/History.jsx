@@ -1,145 +1,290 @@
-import { useState, useEffect } from 'react';
-import { pptxService } from '../services/pptx';
-import toast from 'react-hot-toast';
-import { Download, Clock, FileText, Search, Loader2, Filter, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Search, Download, Trash2, FileText, Plus, ArrowLeft } from 'lucide-react';
 
-const THEME_EMOJI = { Bisnis: '💼', Edukasi: '📚', Kreatif: '🎨', Minimalis: '✨', Teknologi: '🚀' };
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
-export default function HistoryPage() {
-  const [history, setHistory] = useState([]);
+const History = () => {
+  const navigate = useNavigate();
+  const [masters, setMasters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
-    pptxService.getHistory().then(r => {
-      if (r.success) setHistory(r.data);
-    }).finally(() => setLoading(false));
-  }, []);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    fetchHistory(token);
+  }, [navigate]);
 
-  const filtered = history.filter(h =>
-    h.theme_name?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleDownload = async (item) => {
-    setDownloadingId(item.id);
+  const fetchHistory = async (token) => {
     try {
-      await pptxService.download(item.id, `${item.theme_name}-master.pptx`);
-      toast.success('File berhasil diunduh!');
-    } catch {
-      toast.error('Gagal mengunduh file.');
+      setLoading(true);
+      setError(null);
+
+      // Try /api/history first, fallback to /api/pptx/history
+      let response = await fetch(`${API_BASE}/api/history`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        response = await fetch(`${API_BASE}/api/pptx/history`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+
+      if (!response.ok) throw new Error('Failed to fetch history');
+
+      const data = await response.json();
+      setMasters(data.data || data.history || data.masters || []);
+    } catch (err) {
+      console.error('Failed to fetch history:', err);
+      setError('Gagal memuat riwayat');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Hapus riwayat ini?')) return;
+
+    setDeletingId(id);
+    try {
+      const token = localStorage.getItem('token');
+
+      let response = await fetch(`${API_BASE}/api/history/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        response = await fetch(`${API_BASE}/api/pptx/history/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+
+      if (response.ok) {
+        setMasters(masters.filter(m => m.id !== id));
+      } else {
+        alert('Gagal menghapus');
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert('Gagal menghapus');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDownload = async (id, title) => {
+    setDownloadingId(id);
+    try {
+      const token = localStorage.getItem('token');
+
+      let response = await fetch(`${API_BASE}/api/history/${id}/download`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        response = await fetch(`${API_BASE}/api/pptx/download/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title || 'presentasi'}-master.pptx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert('Gagal mengunduh file. Silakan coba lagi.');
     } finally {
       setDownloadingId(null);
     }
   };
 
+  // Filter masters by search query
+  const filteredMasters = masters.filter(m => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    const title = (m.title || m.theme_name || m.custom_title || '').toLowerCase();
+    return title.includes(query);
+  });
+
+  // Parse slide count from data
+  const getSlideCount = (master) => {
+    if (master.slide_count) return master.slide_count;
+    if (master.edited_slides) {
+      try {
+        const slides = typeof master.edited_slides === 'string' ? JSON.parse(master.edited_slides) : master.edited_slides;
+        return Array.isArray(slides) ? slides.length : 0;
+      } catch { return 0; }
+    }
+    return 0;
+  };
+
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-black text-white">Riwayat Master PPTX</h1>
-          <p className="text-dark-400 text-sm mt-0.5">{history.length} master telah dibuat</p>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
-          <input
-            type="text"
-            placeholder="Cari berdasarkan tema..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="form-input pl-10 w-60"
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="space-y-4">
-          {[1,2,3,4,5].map(i => (
-            <div key={i} className="glass-card p-5 flex items-center gap-4">
-              <div className="shimmer w-14 h-14 rounded-xl flex-shrink-0" />
-              <div className="flex-1 space-y-2">
-                <div className="shimmer h-5 rounded w-1/4" />
-                <div className="shimmer h-3 rounded w-1/3" />
-              </div>
-              <div className="shimmer w-24 h-10 rounded-xl flex-shrink-0" />
-            </div>
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="glass-card p-14 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-dark-600" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Navbar */}
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link to="/dashboard" className="flex items-center gap-2 text-xl font-bold text-gray-900">
+            <FileText className="w-6 h-6" />
+            Master PPT AI
+          </Link>
+          <div className="flex items-center gap-4">
+            <Link to="/generator" className="text-sm text-gray-600 hover:text-gray-900">
+              Generator
+            </Link>
+            <Link to="/history" className="text-sm text-gray-900 font-semibold">
+              Riwayat
+            </Link>
           </div>
-          <h3 className="font-bold text-dark-300 mb-2">
-            {search ? 'Tidak ditemukan' : 'Belum Ada Riwayat'}
-          </h3>
-          <p className="text-dark-500 text-sm">
-            {search ? `Tidak ada master dengan kata kunci "${search}"` : 'Buat master PowerPoint pertama Anda!'}
-          </p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map((item) => (
-            <div
-              key={item.id}
-              className="glass-card p-5 flex items-center gap-4 hover:border-white/20 transition-all group"
+      </nav>
+
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Riwayat Master</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              {masters.length} presentasi telah dibuat
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/generator')}
+            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Buat Baru
+          </button>
+        </div>
+
+        {/* Search */}
+        {masters.length > 0 && (
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari berdasarkan judul..."
+              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-black transition-all"
+            />
+          </div>
+        )}
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="w-8 h-8 border-2 border-gray-200 border-t-black rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={() => fetchHistory(localStorage.getItem('token'))}
+              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
             >
-              {/* Icon */}
-              <div
-                className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 border border-white/10"
-                style={{ backgroundColor: (item.color_primary || '#6366f1') + '22' }}
-              >
-                {THEME_EMOJI[item.theme_name] || '📊'}
+              Coba Lagi
+            </button>
+          </div>
+        ) : filteredMasters.length > 0 ? (
+          <div className="space-y-3">
+            {filteredMasters.map((master) => (
+              <div key={master.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-all">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 text-lg truncate">
+                      {master.title || master.custom_title || master.theme_name || 'Untitled'}
+                    </h3>
+                    <div className="flex items-center gap-3 mt-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                        📊 {getSlideCount(master)} slide
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                        {master.output_language === 'en' ? '🇬🇧 English' : '🇮🇩 Indonesia'}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                        🎨 Base Master B&W
+                      </span>
+                      <span className="text-sm text-gray-400">
+                        📅 {new Date(master.created_at).toLocaleDateString('id-ID', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                    <button
+                      onClick={() => handleDownload(master.id, master.title || master.custom_title)}
+                      disabled={downloadingId === master.id}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-all disabled:opacity-50"
+                    >
+                      {downloadingId === master.id ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      Download
+                    </button>
+                    <button
+                      onClick={() => handleDelete(master.id)}
+                      disabled={deletingId === master.id}
+                      className="p-2 text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-all"
+                      title="Hapus"
+                    >
+                      {deletingId === master.id ? (
+                        <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-white">{item.theme_name} Master Template</h3>
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: item.color_accent || '#F59E0B' }}
-                  />
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-dark-500">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {new Date(item.created_at).toLocaleDateString('id-ID', {
-                      day: 'numeric', month: 'long', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
-                  </span>
-                  <span>•</span>
-                  <span>10 Slide Layouts</span>
-                  <span>•</span>
-                  <span>Format .pptx</span>
-                </div>
-
-                {/* Color dots */}
-                <div className="flex items-center gap-1.5 mt-2">
-                  {[item.color_primary, item.color_secondary, item.color_accent].filter(Boolean).map((c, i) => (
-                    <div key={i} className="w-4 h-4 rounded border border-white/15" style={{ backgroundColor: c }} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Download button */}
-              <button
-                onClick={() => handleDownload(item)}
-                disabled={downloadingId === item.id}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 text-sm font-medium hover:bg-brand-500/20 hover:border-brand-500/40 transition-all flex-shrink-0 disabled:opacity-50"
-              >
-                {downloadingId === item.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                Unduh
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        ) : searchQuery ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Tidak Ditemukan</h3>
+            <p className="text-gray-500">Tidak ada riwayat yang cocok dengan "{searchQuery}"</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="text-5xl mb-4">📄</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum Ada Riwayat</h3>
+            <p className="text-gray-500 mb-6">Buat presentasi pertama Anda dengan AI</p>
+            <button
+              onClick={() => navigate('/generator')}
+              className="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800"
+            >
+              Mulai Buat Presentasi
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default History;

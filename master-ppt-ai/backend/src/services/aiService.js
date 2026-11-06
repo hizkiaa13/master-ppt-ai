@@ -4,7 +4,12 @@ require("dotenv").config();
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { buildMasterPrompt } = require("../prompts/masterPrompt");
-const { selectLayout, normalizePoints } = require("../utils/layoutSelector");
+const {
+  selectLayout,
+  normalizePoints,
+  validateConsecutiveLayouts,
+  generateLayoutReason,
+} = require("../utils/layoutSelector");
 const {
   FONT_PAIRINGS,
   getRandomPairing,
@@ -37,11 +42,10 @@ function normalizeSlideDeckLayouts(slides, totalCount) {
   const count = Math.min(Math.max(totalCount || slides.length || 5, 1), 15);
   const sliced = slides.slice(0, count);
 
-  return sliced.map((slide, idx) => {
+  let normalized = sliced.map((slide, idx) => {
     const slideNumber = slide.slideNumber || idx + 1;
     let content = Array.isArray(slide.content) ? slide.content : [];
 
-    // Jika lebih dari 6 poin, gabungkan agar rapi di grid 6-points
     if (content.length > 6) {
       content = normalizePoints(content);
     }
@@ -49,60 +53,65 @@ function normalizeSlideDeckLayouts(slides, totalCount) {
     const calculatedPointCount = content.length;
     const computedLayout = selectLayout({ ...slide, content, slideNumber }, count, idx);
 
-    // Prioritaskan layoutId dari AI jika valid, atau gunakan computedLayout
     const finalLayoutId = slide.layoutId || computedLayout;
 
-    // Tentukan slideType yang selaras
     let slideType = slide.slideType || "content";
-    if (idx === 0 || finalLayoutId === "cover-front") {
+    if (idx === 0 || finalLayoutId === "cover-front" || finalLayoutId === "cover-front-editorial") {
       slideType = "cover";
-    } else if (idx === count - 1 || finalLayoutId === "cover-back") {
+    } else if (idx === count - 1 || finalLayoutId === "cover-back" || finalLayoutId === "cover-back-statement") {
       slideType = "closing";
     } else if (finalLayoutId === "table-of-contents") {
       slideType = "agenda";
-    } else if (finalLayoutId === "chart") {
+    } else if (finalLayoutId === "chart" || finalLayoutId === "chart-stat") {
       slideType = "chart";
-    } else if (finalLayoutId === "testimonial") {
+    } else if (finalLayoutId === "testimonial" || finalLayoutId === "testimonial-cards") {
       slideType = "testimonial";
     }
+
+    const layoutReason = slide.layoutReason || generateLayoutReason(slide, finalLayoutId);
 
     return {
       slideNumber,
       slideType,
       layoutId: finalLayoutId,
       pointCount: calculatedPointCount,
+      layoutReason,
       title: slide.title || (idx === 0 ? "Judul Presentasi" : `Slide ${slideNumber}`),
       subtitle: slide.subtitle || (idx === 0 ? "Presentasi Master Berbasis AI" : undefined),
       content,
     };
   });
+
+  // Validasi agar tidak ada layout sama > 2 kali berturut-turut
+  normalized = validateConsecutiveLayouts(normalized);
+
+  return normalized;
 }
 
 /**
  * Fallback to rule-based engine when Gemini is unavailable or errors
- * Menghasilkan konten berkualitas Base Master Hitam & Putih sesuai bahasa yang dipilih
  */
-function getRuleBasedFallback({ title, description, outputLanguage = "id" }) {
+function getRuleBasedFallback({ title, description, outputLanguage = "id", slideCount = 5 }) {
   const isEn = outputLanguage === "en";
-  const count = 5; // Default 5 slide seimbang jika fallback
+  const count = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
 
   const defaultPairing = FONT_PAIRINGS[0]; // Montserrat + Open Sans
 
-  const baseSlides = [
+  const catalog = [
     {
-      slideNumber: 1,
       slideType: "cover",
       layoutId: "cover-front",
       pointCount: 0,
+      layoutReason: "Slide pembuka dengan judul dan subjudul strategis",
       title: title || (isEn ? "Strategic Master Presentation" : "Presentasi Master Strategis"),
       subtitle: description || (isEn ? "AI-Powered Professional Master Deck" : "Presentasi Terstruktur Berbasis AI"),
       content: [],
     },
     {
-      slideNumber: 2,
       slideType: "agenda",
       layoutId: "table-of-contents",
       pointCount: 4,
+      layoutReason: "Daftar isi dan agenda pembahasan utama",
       title: isEn ? "Table of Contents" : "Daftar Isi & Agenda",
       subtitle: isEn ? "Overview of key strategic areas" : "Ikhtisar topik pembahasan utama",
       content: isEn
@@ -120,10 +129,10 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id" }) {
           ],
     },
     {
-      slideNumber: 3,
       slideType: "content",
-      layoutId: "two-points",
+      layoutId: "comparison",
       pointCount: 2,
+      layoutReason: "Slide perbandingan dua kondisi untuk evaluasi mendalam",
       title: isEn ? "Current Situation vs Target State" : "Kondisi Saat Ini vs Target Baru",
       subtitle: isEn ? "Key transformational focus" : "Fokus transformasi terarah",
       content: isEn
@@ -137,10 +146,10 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id" }) {
           ],
     },
     {
-      slideNumber: 4,
       slideType: "content",
       layoutId: "three-points",
       pointCount: 3,
+      layoutReason: "Tiga pilar strategis fondasi pelaksanaan",
       title: isEn ? "Core Pillars of Execution" : "Pilar Utama Eksekusi",
       subtitle: isEn ? "Foundational strategies for scalable impact" : "Fondasi pelaksanaan berkesinambungan",
       content: isEn
@@ -156,10 +165,48 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id" }) {
           ],
     },
     {
-      slideNumber: 5,
+      slideType: "content",
+      layoutId: "steps",
+      pointCount: 4,
+      layoutReason: "Tahapan implementasi terstruktur bernomor",
+      title: isEn ? "Implementation Roadmap" : "Tahapan Implementasi",
+      subtitle: isEn ? "Sequential operational milestones" : "Langkah pelaksanaan berurutan",
+      content: isEn
+        ? [
+            "Phase 1: Discovery & Needs Assessment",
+            "Phase 2: Architecture & Setup",
+            "Phase 3: Rollout & Integration",
+            "Phase 4: Monitoring & Optimization",
+          ]
+        : [
+            "Tahap 1: Analisis Kebutuhan & Riset",
+            "Tahap 2: Perancangan Arsitektur & Setup",
+            "Tahap 3: Implementasi & Peluncuran",
+            "Tahap 4: Pemantauan & Evaluasi Kinerja",
+          ],
+    },
+    {
+      slideType: "chart",
+      layoutId: "chart",
+      pointCount: 2,
+      layoutReason: "Visualisasi metrik proyeksi pertumbuhan",
+      title: isEn ? "Growth Projection & Impact" : "Proyeksi Pertumbuhan & Dampak",
+      subtitle: isEn ? "Targeted measurable outcomes" : "Target pencapaian terukur",
+      content: isEn
+        ? [
+            "Target efisiensi biaya operasional sebesar 35% pada kuartal pertama.",
+            "Peningkatan retensi pelanggan mencapai indeks 94.8% secara tahunan.",
+          ]
+        : [
+            "Target efisiensi biaya operasional sebesar 35% pada kuartal pertama.",
+            "Peningkatan retensi pelanggan mencapai indeks 94.8% secara tahunan.",
+          ],
+    },
+    {
       slideType: "closing",
       layoutId: "cover-back",
       pointCount: 3,
+      layoutReason: "Slide penutup dengan kontak dan apresiasi",
       title: isEn ? "Thank You" : "Terima Kasih",
       subtitle: isEn ? "Let's connect and collaborate" : "Kolaborasi & Tanya Jawab Terbuka",
       content: [
@@ -170,7 +217,34 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id" }) {
     },
   ];
 
-  const normalizedSlides = normalizeSlideDeckLayouts(baseSlides, count);
+  // Susun slide sesuai slideCount
+  let selected = [];
+  if (count === 1) {
+    selected = [catalog[0]];
+  } else if (count === 2) {
+    selected = [catalog[0], catalog[6]];
+  } else if (count <= 5) {
+    const middle = [catalog[1], catalog[2], catalog[3], catalog[4]].slice(0, count - 2);
+    selected = [catalog[0], ...middle, catalog[6]];
+  } else {
+    // > 5 slide
+    const extra = [];
+    for (let i = 1; i <= count - 2; i++) {
+      const source = catalog[(i % (catalog.length - 2)) + 1];
+      extra.push({
+        ...source,
+        title: `${source.title} (${i})`,
+      });
+    }
+    selected = [catalog[0], ...extra, catalog[6]];
+  }
+
+  const assigned = selected.map((s, idx) => ({
+    ...s,
+    slideNumber: idx + 1,
+  }));
+
+  const normalizedSlides = normalizeSlideDeckLayouts(assigned, count);
 
   const layouts = normalizedSlides.map((s) => ({
     slideNumber: s.slideNumber,
@@ -178,6 +252,7 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id" }) {
     layout: s.layoutId,
     layoutId: s.layoutId,
     pointCount: s.pointCount,
+    layoutReason: s.layoutReason,
   }));
 
   return {
@@ -205,39 +280,34 @@ async function generateCopywriting(input) {
     title,
     description = "",
     outputLanguage = "id",
+    slideCount = 5,
   } = input;
+
+  const effectiveSlideCount = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
 
   const apiKey = process.env.GEMINI_API_KEY;
 
-  // Fallback if no valid key is provided
   if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "") {
     console.warn("GEMINI_API_KEY tidak dikonfigurasi. Menggunakan rule-based fallback.");
-    return getRuleBasedFallback({
-      title,
-      description,
-      outputLanguage,
-    });
+    return getRuleBasedFallback({ title, description, outputLanguage, slideCount: effectiveSlideCount });
   }
 
   const prompt = buildMasterPrompt({
     title,
     description,
     outputLanguage,
+    slideCount: effectiveSlideCount,
   });
 
   const configuredModel = process.env.GEMINI_MODEL;
   const candidateModels = [
     configuredModel,
-    "gemini-3.1-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
     "gemini-flash-lite-latest",
-    "gemini-3.5-flash-lite",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-3.8-flash",
-    "gemini-3.7-flash",
   ].filter((m) => m && typeof m === "string" && m.trim().length > 0);
 
-  // Filter unique model names
   const modelsToTry = [...new Set(candidateModels)];
 
   let lastError = null;
@@ -253,7 +323,7 @@ async function generateCopywriting(input) {
             responseMimeType: "application/json",
           },
         },
-        { timeout: 25000 }
+        { timeout: 30000 }
       );
 
       const result = await model.generateContent(prompt);
@@ -262,26 +332,20 @@ async function generateCopywriting(input) {
 
       const parsed = cleanAndParseJSON(text);
 
-      // Validate slides array
       if (!parsed.slides || !Array.isArray(parsed.slides) || parsed.slides.length === 0) {
         throw new Error("Format respons AI tidak memiliki array 'slides' yang valid");
       }
 
-      // Enforce max 15 slides limit as requested
-      if (parsed.slides.length > 15) {
-        console.log(`Jumlah slide dari AI (${parsed.slides.length}) melebihi 15, dipotong menjadi 15 slide.`);
-        parsed.slides = parsed.slides.slice(0, 15);
+      // Potong ke tepat effectiveSlideCount
+      if (parsed.slides.length > effectiveSlideCount) {
+        parsed.slides = parsed.slides.slice(0, effectiveSlideCount);
       }
 
-      const slideCount = parsed.slides.length;
+      const slideCountResult = Math.min(parsed.slides.length, effectiveSlideCount);
+      parsed.slides = normalizeSlideDeckLayouts(parsed.slides, slideCountResult);
 
-      // Normalisasi setiap slide dengan Auto Layout Design System
-      parsed.slides = normalizeSlideDeckLayouts(parsed.slides, slideCount);
-
-      // Sinkronkan designRecommendation
       parsed.designRecommendation = parsed.designRecommendation || {};
 
-      // Pastikan font yang dipilih valid dari toolkit, jika tidak fallback ke pairing default
       let headingFont = parsed.designRecommendation.fonts?.heading;
       let bodyFont = parsed.designRecommendation.fonts?.body;
 
@@ -299,7 +363,6 @@ async function generateCopywriting(input) {
           "Kombinasi font profesional dan elegan dari text toolkit untuk master hitam-putih.",
       };
 
-      // Pastikan field colors tidak ada di response designRecommendation
       delete parsed.designRecommendation.colors;
 
       parsed.designRecommendation.layouts = parsed.slides.map((s) => ({
@@ -308,6 +371,7 @@ async function generateCopywriting(input) {
         layout: s.layoutId,
         layoutId: s.layoutId,
         pointCount: s.pointCount,
+        layoutReason: s.layoutReason,
       }));
 
       console.log(`✅ Berhasil menghasilkan ${parsed.slides.length} slide menggunakan Gemini (${modelName})`);
@@ -335,6 +399,7 @@ async function generateCopywriting(input) {
     title,
     description,
     outputLanguage,
+    slideCount: effectiveSlideCount,
   });
 
   return {

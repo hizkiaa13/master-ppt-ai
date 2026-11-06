@@ -989,7 +989,7 @@ export default function SlidePreview({
             onChange={(e) => handleLayoutChange(e.target.value)}
             className="input text-xs py-1.5 px-3 bg-white text-gray-900 border-gray-300 rounded-lg font-medium shadow-sm cursor-pointer"
           >
-            {['Cover & Penutup', 'Agenda', 'Konten Poin', 'Khusus'].map((grp) => (
+            {['Cover & Penutup', 'Agenda', '1 & 2 Poin', '3 Poin', '4-6 Poin', 'Data & Testimoni', 'Variasi Khusus'].map((grp) => (
               <optgroup key={grp} label={grp} className="font-semibold text-gray-500">
                 {LAYOUT_OPTIONS.filter((opt) => opt.group === grp).map((opt) => (
                   <option key={opt.value} value={opt.value} className="font-medium text-gray-900">
@@ -1000,6 +1000,16 @@ export default function SlidePreview({
             ))}
           </select>
         </div>
+
+        {/* AI Layout Reason Badge */}
+        {currentSlide.layoutReason && (
+          <div className="flex items-center gap-1.5 text-xs text-dark-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg max-w-md truncate">
+            <Info className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+            <span className="truncate" title={currentSlide.layoutReason}>
+              {currentSlide.layoutReason}
+            </span>
+          </div>
+        )}
 
         {/* Base Master Hitam-Putih Badge */}
         <div className="flex items-center gap-2">

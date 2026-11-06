@@ -1,106 +1,125 @@
 /**
- * AI Result to Slide Mapper - Master PPT AI
- * Memetakan respons AI untuk Base Master Hitam & Putih.
+ * AI Mapper - Maps AI-generated content to slide format for the editor
+ * Preserves layoutId, layoutReason, pointCount from AI response
  */
 
-import { renderLayout, applyLayoutToSlide } from './layoutRenderer';
+import { applyLayoutToSlide, LAYOUT_DEFINITIONS } from './layoutRenderer';
 
 /**
- * Map AI generation response to slide data structure for Base Master (Hitam & Putih)
- * @param {Object} aiResult - { slides, designRecommendation }
- * @returns {Array<Object>} - Array of slide objects ready for preview and export
+ * Map AI result to slides array for the editor
+ * @param {Object} aiResult - The AI result object { slides, designRecommendation }
+ * @returns {Array} Mapped slides array ready for the editor
  */
 export function mapAIResultToSlides(aiResult) {
-  const { slides = [], designRecommendation = {} } = aiResult || {};
+  if (!aiResult) return [];
 
-  const fonts = designRecommendation.fonts || {
-    heading: 'Montserrat',
-    body: 'Open Sans',
-    rationale: 'Kombinasi font profesional dan elegan untuk master hitam-putih.',
-  };
+  const slides = aiResult.slides || [];
+  const designRec = aiResult.designRecommendation || {};
+  const fonts = designRec.fonts || {};
+  const layoutsInfo = designRec.layouts || [];
 
-  const themeConfig = {
-    fonts,
-    colors: {
-      primary: '#000000',
-      secondary: '#1F2937',
-      accent: '#000000',
-    },
-  };
+  if (!Array.isArray(slides) || slides.length === 0) {
+    console.warn('No slides found in AI result');
+    return [];
+  }
 
-  return slides.map((aiSlide, index) => {
-    const slideNumber = aiSlide.slideNumber || index + 1;
-    const rawContent = Array.isArray(aiSlide.content) ? aiSlide.content : [];
+  const totalSlides = slides.length;
 
-    // Tentukan layoutId jika belum ada
-    let layoutId = aiSlide.layoutId;
+  return slides.map((slide, index) => {
+    const slideNumber = slide.slideNumber || index + 1;
+    const isFirst = index === 0;
+    const isLast = index === totalSlides - 1;
+
+    // Determine slideType
+    let slideType = slide.slideType || 'content';
+    if (isFirst && !slide.slideType) slideType = 'cover';
+    if (isLast && !slide.slideType) slideType = 'closing';
+
+    // Determine layoutId - prefer AI's choice, then infer
+    let layoutId = slide.layoutId || '';
     if (!layoutId) {
-      if (index === 0 || aiSlide.slideType === 'cover') {
+      if (isFirst || slideType === 'cover') {
         layoutId = 'cover-front';
-      } else if (index === slides.length - 1 || aiSlide.slideType === 'closing') {
+      } else if (isLast || slideType === 'closing') {
         layoutId = 'cover-back';
-      } else if (index === 1 && slides.length >= 4 && (aiSlide.slideType === 'agenda' || /agenda|daftar isi|table of contents/i.test(aiSlide.title || ''))) {
+      } else if (slideType === 'agenda' || /daftar isi|agenda|table of contents/i.test(slide.title || '')) {
         layoutId = 'table-of-contents';
-      } else if (aiSlide.slideType === 'chart') {
+      } else if (slideType === 'chart') {
         layoutId = 'chart';
-      } else if (aiSlide.slideType === 'testimonial') {
+      } else if (slideType === 'testimonial') {
         layoutId = 'testimonial';
-      } else if (rawContent.length === 1) {
-        layoutId = 'one-point';
-      } else if (rawContent.length === 2) {
-        layoutId = 'two-points';
-      } else if (rawContent.length === 3) {
-        layoutId = 'three-points';
-      } else if (rawContent.length === 4) {
-        layoutId = 'four-points';
-      } else if (rawContent.length === 5) {
-        layoutId = 'five-points';
       } else {
-        layoutId = 'six-points';
+        // Based on content count
+        const content = Array.isArray(slide.content) ? slide.content : [];
+        const pCount = content.length;
+        if (pCount <= 1) layoutId = 'one-point';
+        else if (pCount === 2) layoutId = 'two-points';
+        else if (pCount === 3) layoutId = 'three-points';
+        else if (pCount === 4) layoutId = 'four-points';
+        else if (pCount === 5) layoutId = 'five-points';
+        else layoutId = 'six-points';
       }
     }
 
-    const tempPlaceholders = [
-      {
-        id: `title-${slideNumber}`,
-        type: 'text',
-        name: 'Judul Slide',
-        content: aiSlide.title || (index === 0 ? 'Judul Presentasi' : `Slide ${slideNumber}`),
-      },
-    ];
-
-    if (aiSlide.subtitle) {
-      tempPlaceholders.push({
-        id: `subtitle-${slideNumber}`,
-        type: 'text',
-        name: 'Subjudul',
-        content: aiSlide.subtitle,
-      });
+    // Validate layoutId exists in definitions, fallback if not
+    if (!LAYOUT_DEFINITIONS[layoutId]) {
+      // Map to closest available layout
+      const fallbackMap = {
+        'cover-front-editorial': 'cover-front',
+        'cover-back-statement': 'cover-back',
+        'one-point-split': 'one-point',
+        'two-points-horizontal': 'two-points',
+        'three-points-horizontal': 'three-points',
+        'three-points-timeline': 'three-points',
+        'four-points-steps': 'four-points',
+        'five-points-timeline': 'five-points',
+        'six-points-columns': 'six-points',
+        'chart-stat': 'chart',
+        'testimonial-cards': 'testimonial',
+      };
+      layoutId = fallbackMap[layoutId] || 'one-point';
     }
 
-    rawContent.forEach((cText, pIdx) => {
-      tempPlaceholders.push({
-        id: `point-${slideNumber}-${pIdx + 1}`,
-        type: 'text',
-        name: `Poin ${pIdx + 1}`,
-        content: cText,
-      });
-    });
-
-    const baseSlide = {
-      slideNumber,
-      slideType: aiSlide.slideType || 'content',
-      layoutId,
-      layout: layoutId,
-      name: `${renderLayout(layoutId)?.name || layoutId} - ${aiSlide.title || `Slide ${slideNumber}`}`,
-      placeholders: tempPlaceholders,
-      background: { color: '#FFFFFF', type: 'solid' },
+    // Build theme config for applyLayoutToSlide
+    const themeConfig = {
+      primary: '#000000',
+      secondary: '#1F2937',
+      accent: '#000000',
+      bg: '#FFFFFF',
+      fonts: {
+        heading: fonts.heading || 'Montserrat',
+        body: fonts.body || 'Open Sans',
+      },
     };
 
-    return applyLayoutToSlide(baseSlide, layoutId, themeConfig);
+    // Build temp slide for applyLayoutToSlide
+    const tempSlide = {
+      slideNumber,
+      slideType,
+      layoutId,
+      title: slide.title || '',
+      subtitle: slide.subtitle || '',
+      content: Array.isArray(slide.content) ? slide.content : [],
+      pointCount: slide.pointCount || (Array.isArray(slide.content) ? slide.content.length : 0),
+      layoutReason: slide.layoutReason || '',
+    };
+
+    // Apply layout to get placeholders
+    const applied = applyLayoutToSlide(tempSlide, layoutId, themeConfig);
+
+    return {
+      ...applied,
+      slideNumber,
+      slideType,
+      layoutId,
+      pointCount: tempSlide.pointCount,
+      layoutReason: slide.layoutReason || '',
+      title: slide.title || '',
+      subtitle: slide.subtitle || '',
+      content: tempSlide.content,
+      rawAIData: slide,
+    };
   });
 }
 
-export default {
-  mapAIResultToSlides,
-};
+export default { mapAIResultToSlides };

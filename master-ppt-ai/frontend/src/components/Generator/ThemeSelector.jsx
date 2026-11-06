@@ -1,167 +1,248 @@
-import React from 'react';
-import { Layout, ArrowRight, Save, Globe } from 'lucide-react';
+import React, { useState } from 'react';
+import { Layout, ArrowRight, Save, Globe, Hash } from 'lucide-react';
 
-export default function ThemeSelector({
-  formData,
-  setFormData,
-  onNext,
-  onSaveDraft,
-}) {
-  const currentLang = formData.outputLanguage || 'id';
+const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    const title = formData.customTitle || '';
+    if (!title || title.trim() === '') {
+      newErrors.title = 'Judul presentasi wajib diisi';
+    }
+    if (title && title.length > 100) {
+      newErrors.title = 'Judul maksimal 100 karakter';
+    }
+    const desc = formData.customDescription || '';
+    if (desc && desc.length > 500) {
+      newErrors.description = 'Deskripsi maksimal 500 karakter';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateForm()) {
+      onNext();
+    }
+  };
+
+  const slideCount = formData.slideCount || 5;
+  const presets = [3, 5, 8, 10, 12, 15];
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-3xl mx-auto">
-      <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-dark-900/60 shadow-xl space-y-6">
-        <div className="border-b border-white/10 pb-4">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20 mb-2">
-            <Layout className="w-3.5 h-3.5" />
-            Langkah 1 dari 4
-          </span>
-          <h2 className="text-2xl font-bold text-white tracking-tight">
-            Tema & Topik Presentasi
-          </h2>
-          <p className="text-sm text-dark-400 mt-1">
-            Masukkan judul, konteks topik, dan pilih bahasa output presentasi Anda.
+    <div className="max-w-2xl mx-auto">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center justify-center w-14 h-14 bg-black rounded-2xl mb-4">
+          <Layout className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Tema & Topik Presentasi
+        </h2>
+        <p className="text-gray-500">
+          Masukkan judul dan deskripsi untuk membuat master PowerPoint Anda
+        </p>
+      </div>
+
+      {/* Form */}
+      <div className="space-y-6">
+        {/* Judul Presentasi */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Judul Presentasi <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={formData.customTitle || ''}
+            onChange={(e) => setFormData({ ...formData, customTitle: e.target.value })}
+            placeholder="Contoh: Strategi Pemasaran Digital 2027"
+            className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black/10 ${
+              errors.title
+                ? 'border-red-300 bg-red-50'
+                : 'border-gray-200 hover:border-gray-300 focus:border-black'
+            }`}
+          />
+          {errors.title && (
+            <p className="mt-1 text-sm text-red-500">{errors.title}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-400">
+            {(formData.customTitle || '').length}/100 karakter
           </p>
         </div>
 
-        {/* Info Box: Base Master Hitam-Putih */}
-        <div className="p-4 rounded-xl bg-dark-800/80 border border-white/10 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs border border-white/20">
-            B&W
-          </div>
-          <div className="text-xs space-y-1">
-            <p className="font-semibold text-white">Konsep Base Master (Hitam & Putih)</p>
-            <p className="text-dark-300 leading-relaxed">
-              Aplikasi menghasilkan master PowerPoint berdesain profesional dengan background putih murni (#FFFFFF), teks hitam (#000000) dan abu gelap (#1F2937). Jumlah slide akan ditentukan secara cerdas dan otomatis oleh AI (maksimal 15 slide).
-            </p>
+        {/* Deskripsi / Topik */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Deskripsi / Topik
+          </label>
+          <textarea
+            value={formData.customDescription || ''}
+            onChange={(e) => setFormData({ ...formData, customDescription: e.target.value })}
+            placeholder="Jelaskan topik presentasi Anda secara singkat. AI akan menggunakan deskripsi ini untuk membuat konten yang relevan..."
+            rows={4}
+            className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black/10 resize-none ${
+              errors.description
+                ? 'border-red-300 bg-red-50'
+                : 'border-gray-200 hover:border-gray-300 focus:border-black'
+            }`}
+          />
+          {errors.description && (
+            <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-400">
+            {(formData.customDescription || '').length}/500 karakter
+          </p>
+        </div>
+
+        {/* Bahasa Output */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <Globe className="w-4 h-4 inline mr-1" />
+            Bahasa Output PPT
+          </label>
+          <p className="text-xs text-gray-400 mb-3">
+            Pilih bahasa untuk isi teks/copywriting slide
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, outputLanguage: 'id' })}
+              className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 font-medium ${
+                (formData.outputLanguage || 'id') === 'id'
+                  ? 'border-black bg-black text-white'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
+              }`}
+            >
+              🇮🇩 Bahasa Indonesia
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, outputLanguage: 'en' })}
+              className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all duration-200 font-medium ${
+                formData.outputLanguage === 'en'
+                  ? 'border-black bg-black text-white'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
+              }`}
+            >
+              🇬🇧 English
+            </button>
           </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Judul Presentasi */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-200">
-              Judul Presentasi <span className="text-red-400">*</span>
-            </label>
+        {/* Jumlah Slide */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <Hash className="w-4 h-4 inline mr-1" />
+            Jumlah Slide
+          </label>
+          <p className="text-xs text-gray-400 mb-3">
+            Tentukan jumlah slide yang akan dibuat (1-15)
+          </p>
+
+          {/* Slider + Number Input */}
+          <div className="flex items-center gap-4 mb-3">
             <input
-              type="text"
-              required
-              maxLength={100}
-              value={formData.customTitle || ''}
-              onChange={(e) => setFormData({ ...formData, customTitle: e.target.value })}
-              placeholder="Masukkan judul presentasi (contoh: Strategi Pemasaran Digital 2026)"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none font-medium text-sm transition-all shadow-sm"
+              type="range"
+              min="1"
+              max="15"
+              value={slideCount}
+              onChange={(e) => setFormData({ ...formData, slideCount: parseInt(e.target.value) })}
+              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
             />
-            <div className="flex justify-between items-center text-xs text-dark-400">
-              <span>Wajib diisi untuk slide pembuka</span>
-              <span className="font-mono">{(formData.customTitle || '').length}/100</span>
+            <div className="relative">
+              <input
+                type="number"
+                min="1"
+                max="15"
+                value={slideCount}
+                onChange={(e) => {
+                  let val = parseInt(e.target.value);
+                  if (isNaN(val)) val = 5;
+                  if (val < 1) val = 1;
+                  if (val > 15) val = 15;
+                  setFormData({ ...formData, slideCount: val });
+                }}
+                className="w-16 px-2 py-2 text-center rounded-lg border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-lg"
+              />
             </div>
           </div>
 
-          {/* Textarea Deskripsi / Topik */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-200">
-              Deskripsi / Topik Tambahan (Opsional)
-            </label>
-            <textarea
-              rows="4"
-              maxLength={500}
-              value={formData.customDescription || ''}
-              onChange={(e) => setFormData({ ...formData, customDescription: e.target.value })}
-              placeholder="Deskripsikan konteks presentasi Anda (contoh: Presentasi untuk klien startup teknologi, memuat analisis pasar, timeline eksekusi, dan indikator KPI)"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none resize-none font-medium text-sm transition-all shadow-sm"
-            />
-            <div className="flex justify-between items-center text-xs text-dark-400">
-              <span>AI akan menyusun poin pembahasan dan menentukan jumlah slide berdasarkan deskripsi ini</span>
-              <span className="font-mono">{(formData.customDescription || '').length}/500</span>
-            </div>
-          </div>
-
-          {/* Pilihan Bahasa Output PPT */}
-          <div className="space-y-3 pt-2">
-            <label className="block text-sm font-medium text-gray-200 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-brand-400" />
-              <span>Bahasa Output PPT</span>
-              <span className="text-red-400">*</span>
-            </label>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Bahasa Indonesia */}
+          {/* Quick Preset Buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {presets.map((num) => (
               <button
+                key={num}
                 type="button"
-                onClick={() => setFormData({ ...formData, outputLanguage: 'id' })}
-                className={`p-4 rounded-xl border text-left transition-all flex items-center justify-between ${
-                  currentLang === 'id'
-                    ? 'bg-brand-500/15 border-brand-500 text-white ring-1 ring-brand-500 shadow-lg shadow-brand-500/10'
-                    : 'bg-dark-800/60 border-white/10 text-dark-300 hover:border-white/20 hover:bg-dark-800'
+                onClick={() => setFormData({ ...formData, slideCount: num })}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  slideCount === num
+                    ? 'bg-black text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">🇮🇩</span>
-                  <div>
-                    <p className="font-bold text-white text-sm">Bahasa Indonesia</p>
-                    <p className="text-xs text-dark-400">Gaya formal, profesional & persuasif</p>
-                  </div>
-                </div>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                  currentLang === 'id' ? 'border-brand-400 bg-brand-500' : 'border-white/20'
-                }`}>
-                  {currentLang === 'id' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
+                {num} slide
               </button>
-
-              {/* English */}
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, outputLanguage: 'en' })}
-                className={`p-4 rounded-xl border text-left transition-all flex items-center justify-between ${
-                  currentLang === 'en'
-                    ? 'bg-brand-500/15 border-brand-500 text-white ring-1 ring-brand-500 shadow-lg shadow-brand-500/10'
-                    : 'bg-dark-800/60 border-white/10 text-dark-300 hover:border-white/20 hover:bg-dark-800'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">🇬🇧</span>
-                  <div>
-                    <p className="font-bold text-white text-sm">Bahasa Inggris (English)</p>
-                    <p className="text-xs text-dark-400">Professional executive English</p>
-                  </div>
-                </div>
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                  currentLang === 'en' ? 'border-brand-400 bg-brand-500' : 'border-white/20'
-                }`}>
-                  {currentLang === 'en' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-              </button>
-            </div>
-            <p className="text-xs text-dark-400">
-              *Bahasa yang dipilih hanya memengaruhi isi copywriting slide, bukan antarmuka aplikasi.
-            </p>
+            ))}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-white/10">
-          <button
-            type="button"
-            onClick={onSaveDraft}
-            className="btn-secondary text-xs py-2.5 px-4 flex items-center gap-2"
-          >
-            <Save className="w-4 h-4" />
-            <span>Simpan Draft</span>
-          </button>
+        {/* Info Box */}
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+          <div className="flex items-start gap-3">
+            <span className="text-lg">ℹ️</span>
+            <div>
+              <p className="text-sm font-medium text-gray-700">Base Master Hitam & Putih</p>
+              <p className="text-xs text-gray-500 mt-1">
+                AI akan membuat master PowerPoint dengan desain minimalis hitam-putih.
+                Layout, font, dan konten akan disesuaikan secara otomatis berdasarkan
+                judul dan deskripsi yang Anda berikan.
+              </p>
+            </div>
+          </div>
+        </div>
 
+        {/* Buttons */}
+        <div className="flex gap-3">
+          {onSaveDraft && (
+            <button
+              onClick={onSaveDraft}
+              className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all"
+            >
+              <Save className="w-4 h-4" />
+              Simpan Draft
+            </button>
+          )}
           <button
-            type="button"
-            onClick={onNext}
-            className="btn-primary flex items-center gap-2 py-3 px-6 text-sm font-semibold shadow-lg shadow-brand-500/25"
+            onClick={handleNext}
+            className="flex-1 flex items-center justify-center gap-2 py-4 bg-black text-white rounded-xl font-semibold text-lg hover:bg-gray-800 transition-all duration-200 active:scale-[0.98] shadow-lg shadow-black/20"
           >
-            <span>Lanjut ke Generate AI</span>
-            <ArrowRight className="w-4 h-4" />
+            Lanjut ke Generate AI
+            <ArrowRight className="w-5 h-5" />
           </button>
         </div>
       </div>
+
+      {/* Tips */}
+      <div className="mt-8 p-4 bg-white rounded-xl border border-gray-100">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">💡 Tips untuk hasil terbaik:</h3>
+        <ul className="space-y-2">
+          <li className="flex items-start gap-2">
+            <span className="text-green-500 mt-0.5">✓</span>
+            <span className="text-sm text-gray-600">Gunakan judul yang spesifik dan jelas</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-500 mt-0.5">✓</span>
+            <span className="text-sm text-gray-600">Tambahkan deskripsi detail tentang target audiens dan tujuan</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-green-500 mt-0.5">✓</span>
+            <span className="text-sm text-gray-600">Pilih jumlah slide sesuai kebutuhan (5-10 untuk presentasi standar)</span>
+          </li>
+        </ul>
+      </div>
     </div>
   );
-}
+};
+
+export default ThemeSelector;

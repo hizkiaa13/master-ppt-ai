@@ -1,7 +1,7 @@
 /**
  * Layout Templates Library - Master PPT AI
  * Berbasis langsung dari katalog desain "Base Layout Presentasi.pdf" (One Piece Design Studio)
- * Menyediakan variasi layout untuk 1 poin s/d 6 poin, chart, testimoni, cover depan, dan cover belakang.
+ * Menyediakan variasi layout untuk 1 poin s/d 6 poin, comparison, steps, image-text, chart, testimoni, cover depan, dan cover belakang.
  */
 
 const LAYOUT_TEMPLATES = {
@@ -14,7 +14,7 @@ const LAYOUT_TEMPLATES = {
     description: 'Judul besar terpusat dengan subjudul dan info presenter di bawah (Halaman 4 & 12 Base Layout).',
     usageRule: 'Slide pertama presentasi.',
     recommendedPoints: 0,
-    backgroundType: 'primary',
+    backgroundType: 'light',
     fontSizeRules: {
       title: { min: 40, max: 54, default: 46 },
       subtitle: { min: 18, max: 24, default: 20 },
@@ -84,7 +84,7 @@ const LAYOUT_TEMPLATES = {
     category: 'content',
     variant: 'statement',
     description: 'Kalimat inspiratif masif di tengah dengan paragraf penjelas di bawahnya (Halaman 26-28 Base Layout).',
-    usageRule: 'Slide dengan 1 poin penekanan pesan kunci.',
+    usageRule: 'Slide dengan 1 poin penekanan pesan kunci / pengantar / kesimpulan.',
     recommendedPoints: 1,
     backgroundType: 'light',
     fontSizeRules: {
@@ -128,7 +128,7 @@ const LAYOUT_TEMPLATES = {
     category: 'content',
     variant: 'columns',
     description: 'Dua kolom poin sejajar dengan subjudul dan penjelasan (Halaman 49 & 54 Base Layout).',
-    usageRule: 'Slide dengan 2 poin utama / perbandingan.',
+    usageRule: 'Slide dengan 2 poin utama.',
     recommendedPoints: 2,
     backgroundType: 'light',
     fontSizeRules: {
@@ -164,6 +164,30 @@ const LAYOUT_TEMPLATES = {
       points: [
         { x: 48, y: 16, w: 46, h: 34, number: '01', align: 'left' },
         { x: 48, y: 54, w: 46, h: 36, number: '02', align: 'left' },
+      ],
+    },
+  },
+
+  // === D.2 COMPARISON (Layout Baru) ===
+  'comparison': {
+    layoutId: 'comparison',
+    layoutName: 'Perbandingan - 2 Kolom Berhadapan',
+    category: 'comparison',
+    variant: 'versus',
+    description: 'Dua kolom berhadapan kiri-kanan untuk perbandingan, analisis, atau before vs after.',
+    usageRule: 'Slide perbandingan dua konsep, sebelum vs sesudah, pro vs kontra, atau opsi alternatif.',
+    recommendedPoints: 2,
+    backgroundType: 'light',
+    fontSizeRules: {
+      title: { min: 28, max: 34, default: 30 },
+      pointTitle: { min: 18, max: 24, default: 20 },
+      pointDesc: { min: 14, max: 18, default: 16 },
+    },
+    slots: {
+      title: { x: 6, y: 8, w: 88, h: 12, align: 'left' },
+      points: [
+        { x: 5, y: 25, w: 43, h: 60, badge: 'Opsi A', align: 'left' },
+        { x: 52, y: 25, w: 43, h: 60, badge: 'Opsi B', align: 'left' },
       ],
     },
   },
@@ -289,6 +313,53 @@ const LAYOUT_TEMPLATES = {
         { x: 5, y: 59, w: 43, h: 36, stepLabel: 'Step 3', align: 'left' },
         { x: 52, y: 59, w: 43, h: 36, stepLabel: 'Step 4', align: 'left' },
       ],
+    },
+  },
+
+  // === F.2 STEPS (Layout Baru) ===
+  'steps': {
+    layoutId: 'steps',
+    layoutName: 'Langkah / Tahapan Berurutan',
+    category: 'process',
+    variant: 'sequential-steps',
+    description: 'Empat tahapan terstruktur berurutan secara horizontal dengan penomoran langkah.',
+    usageRule: 'Slide untuk proses, alur kerja, roadmap, atau tahapan eksekusi.',
+    recommendedPoints: [3, 4, 5],
+    backgroundType: 'light',
+    fontSizeRules: {
+      title: { min: 26, max: 32, default: 28 },
+      stepNumber: { min: 18, max: 24, default: 20 },
+      pointDesc: { min: 13, max: 16, default: 14 },
+    },
+    slots: {
+      title: { x: 5, y: 8, w: 90, h: 12, align: 'left' },
+      points: [
+        { x: 5, y: 28, w: 20, h: 56, stepLabel: 'Tahap 1', align: 'left' },
+        { x: 28, y: 28, w: 20, h: 56, stepLabel: 'Tahap 2', align: 'left' },
+        { x: 51, y: 28, w: 20, h: 56, stepLabel: 'Tahap 3', align: 'left' },
+        { x: 74, y: 28, w: 20, h: 56, stepLabel: 'Tahap 4', align: 'left' },
+      ],
+    },
+  },
+
+  // === F.3 IMAGE-TEXT (Layout Baru) ===
+  'image-text': {
+    layoutId: 'image-text',
+    layoutName: 'Teks & Visual Gambar',
+    category: 'media',
+    variant: 'split-media',
+    description: 'Teks deskriptif terstruktur di kiri dan area visual/gambar di sisi kanan.',
+    usageRule: 'Slide pengenalan produk, profil arsitektur, atau konten dengan representasi visual.',
+    recommendedPoints: [1, 2, 3],
+    backgroundType: 'light',
+    fontSizeRules: {
+      title: { min: 28, max: 34, default: 30 },
+      pointDesc: { min: 14, max: 18, default: 16 },
+    },
+    slots: {
+      title: { x: 5, y: 8, w: 90, h: 10, align: 'left' },
+      textArea: { x: 5, y: 20, w: 45, h: 65, align: 'left' },
+      imageArea: { x: 55, y: 20, w: 40, h: 65, align: 'center' },
     },
   },
 
@@ -480,7 +551,7 @@ const LAYOUT_TEMPLATES = {
     description: 'Kutipan sentral berukuran besar dengan atribusi nama penutur di bawah (Halaman 175 & 178 Base Layout).',
     usageRule: 'Slide kutipan penting dari narasumber atau visi pimpinan.',
     recommendedPoints: 1,
-    backgroundType: 'secondary',
+    backgroundType: 'light',
     fontSizeRules: {
       title: { min: 22, max: 28, default: 24 },
       quoteText: { min: 24, max: 34, default: 28 },
@@ -523,7 +594,7 @@ const LAYOUT_TEMPLATES = {
     description: 'Tipografi "Thank You" raksasa terpusat dengan tautan media sosial dan website di bawah (Halaman 180, 186, 188 Base Layout).',
     usageRule: 'Slide terakhir untuk presentasi bernuansa bold.',
     recommendedPoints: 0,
-    backgroundType: 'primary',
+    backgroundType: 'light',
     fontSizeRules: {
       title: { min: 48, max: 64, default: 56 },
       subtitle: { min: 18, max: 24, default: 20 },

@@ -2,7 +2,7 @@ const { generateCopywriting } = require("../services/aiService");
 
 /**
  * Controller for generating AI copywriting and presentation design recommendations
- * Base Master (Hitam & Putih)
+ * Base Master (Hitam & Putih) - Mendukung slideCount dan layoutReason
  */
 async function generateAIContent(req, res) {
   try {
@@ -10,9 +10,9 @@ async function generateAIContent(req, res) {
       title,
       description,
       outputLanguage = "id",
+      slideCount = 5,
     } = req.body;
 
-    // Validasi input judul
     if (!title || typeof title !== "string" || title.trim() === "") {
       return res.status(400).json({
         success: false,
@@ -27,13 +27,14 @@ async function generateAIContent(req, res) {
       });
     }
 
-    // Normalisasi outputLanguage: hanya 'id' atau 'en'
     const normalizedLang = (outputLanguage || "id").toLowerCase() === "en" ? "en" : "id";
+    const effectiveSlideCount = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
 
     const result = await generateCopywriting({
       title: title.trim(),
       description: description ? String(description).trim() : "",
       outputLanguage: normalizedLang,
+      slideCount: effectiveSlideCount,
     });
 
     return res.status(200).json(result);

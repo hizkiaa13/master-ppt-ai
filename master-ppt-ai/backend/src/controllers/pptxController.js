@@ -139,7 +139,7 @@ async function generatePPTX(req, res) {
       id: historyId,
       user_id: req.userId,
       theme_id: null,
-      theme_name: 'Base Master (Hitam & Putih)',
+      theme_name: title || 'Base Master (Hitam & Putih)',
       custom_fonts: JSON.stringify({ heading: defaultPairing.heading, body: defaultPairing.body }),
       custom_colors: null,
       custom_layouts: JSON.stringify(slides.map((s) => s.layout || s.layoutId)),
@@ -380,6 +380,7 @@ async function getHistory(req, res) {
 
     const historiesWithParsed = (histories || []).map((h) => ({
       ...h,
+      title: h.theme_name || 'Base Master',
       theme_display_name: 'Base Master',
       color_primary: '#000000',
       custom_fonts: h.custom_fonts ? JSON.parse(h.custom_fonts) : {},

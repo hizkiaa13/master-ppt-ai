@@ -14,6 +14,7 @@ const themeRoutes = require('./routes/theme');
 const pptxRoutes = require('./routes/pptx');
 const draftRoutes = require('./routes/draft');
 const aiRoutes = require('./routes/ai');
+const historyRoutes = require('./routes/history');
 
 const app = express();
 
@@ -109,6 +110,7 @@ app.use('/api/themes', themeRoutes);
 app.use('/api/pptx', pptxRoutes);
 app.use('/api/drafts', draftRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/history', historyRoutes);
 
 // ─── Health Check ────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

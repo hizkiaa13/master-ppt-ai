@@ -10,6 +10,7 @@ export async function generateAIContent(payload) {
     title: payload.title,
     description: payload.description,
     outputLanguage: payload.outputLanguage || 'id',
+    slideCount: payload.slideCount || 5,
   });
   return response.data;
 }

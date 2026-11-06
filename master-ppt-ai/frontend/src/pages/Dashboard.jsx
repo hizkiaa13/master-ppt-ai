@@ -12,10 +12,12 @@ import {
 
 function HistoryCard({ item }) {
   const [downloading, setDownloading] = useState(false);
+  const displayTitle = item.title || item.theme_name || item.custom_title || 'Base Master PowerPoint';
+
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const fileName = `${(item.custom_title || 'base-master').replace(/[^a-zA-Z0-9_-]/g, '_')}.pptx`;
+      const fileName = `${displayTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}.pptx`;
       await pptxService.download(item.id, fileName);
       toast.success('File berhasil diunduh!');
     } catch {
@@ -33,7 +35,7 @@ function HistoryCard({ item }) {
         </div>
         <div className="min-w-0">
           <p className="font-semibold text-white text-sm truncate">
-            {item.custom_title || 'Base Master PowerPoint'}
+            {displayTitle}
           </p>
           <p className="text-xs text-dark-500 flex items-center gap-2 mt-0.5">
             <span className="flex items-center gap-1">

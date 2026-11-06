@@ -474,15 +474,65 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   const subtitleP = existingPlaceholders.find((p) => p.id?.startsWith('subtitle') || p.name?.toLowerCase().includes('subjudul'));
 
   const contentItems = [];
-  existingPlaceholders.forEach((p) => {
-    if (!p.id?.startsWith('title') && !p.id?.startsWith('subtitle') && !p.id?.startsWith('presenter') && !p.id?.startsWith('contact') && p.type === 'text') {
-      const lines = (p.content || '').split('\n').filter(Boolean);
-      lines.forEach((line) => {
-        const cleaned = line.replace(/^[•\-\*\d+\.]\s*/, '').trim();
+
+  // PRIORITAS 1: Ambil dari slide.content jika ada data (misal saat inisialisasi AI dari mapper)
+  if (Array.isArray(slide.content) && slide.content.length > 0) {
+    slide.content.forEach((item) => {
+      if (typeof item === 'string') {
+        const cleaned = item
+          .replace(/^[•\-\*]\s*/, '')
+          .replace(/^(\d{1,2}\.|\b0\d\b)\s*/, '')
+          .trim();
         if (cleaned) contentItems.push(cleaned);
-      });
+      } else if (item && typeof item === 'object') {
+        const text = item.text || item.content || item.title || item.description || '';
+        const cleaned = text
+          .replace(/^[•\-\*]\s*/, '')
+          .replace(/^(\d{1,2}\.|\b0\d\b)\s*/, '')
+          .trim();
+        if (cleaned) contentItems.push(cleaned);
+      }
+    });
+  }
+
+  // PRIORITAS 2: Jika slide.content belum ada atau kosong, ambil dari existingPlaceholders (saat user ganti layout di editor preview)
+  if (contentItems.length === 0) {
+    existingPlaceholders.forEach((p) => {
+      if (!p.id?.startsWith('title') && !p.id?.startsWith('subtitle') && !p.id?.startsWith('presenter') && !p.id?.startsWith('contact') && p.type === 'text') {
+        const lines = (p.content || '').split('\n').filter(Boolean);
+        lines.forEach((line) => {
+          const cleaned = line
+            .replace(/^[•\-\*]\s*/, '')
+            .replace(/^(\d{1,2}\.|\b0\d\b)\s*/, '')
+            .trim();
+          if (cleaned) contentItems.push(cleaned);
+        });
+      }
+    });
+  }
+
+  // FILTER PENGAMAN: Jika ada teks template lama seperti "implementasi berkelanjutan", buang dan utamakan isi asli
+  const hasLegacyTemplate = contentItems.some((item) =>
+    item.toLowerCase().includes('implementasi berkelanjutan') ||
+    item.toLowerCase().includes('implementasi rencana kerja')
+  );
+  if (hasLegacyTemplate && Array.isArray(slide.content) && slide.content.length > 0) {
+    const freshItems = [];
+    slide.content.forEach((item) => {
+      if (typeof item === 'string') {
+        const cleaned = item
+          .replace(/^[•\-\*]\s*/, '')
+          .replace(/^(\d{1,2}\.|\b0\d\b)\s*/, '')
+          .trim();
+        if (cleaned && !cleaned.toLowerCase().includes('implementasi berkelanjutan')) {
+          freshItems.push(cleaned);
+        }
+      }
+    });
+    if (freshItems.length > 0) {
+      contentItems.splice(0, contentItems.length, ...freshItems);
     }
-  });
+  }
 
   const fontHeading = themeConfig.fonts?.heading || titleP?.font || 'Montserrat';
   const fontBody = themeConfig.fonts?.body || 'Open Sans';
@@ -767,15 +817,17 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   });
 
   const slots = layoutDef.points || [];
+  const slideContext = titleP?.content || slide.title || 'Materi Slide';
+
   slots.forEach((slot, i) => {
     let itemText = contentItems[i];
     if (!itemText) {
       if (newLayoutId === 'table-of-contents') {
-        itemText = `Pembahasan Topik Utama ${i + 1}`;
+        itemText = `Pembahasan ${slideContext} Bagian ${i + 1}`;
       } else if (slot.stepLabel) {
-        itemText = `Penjelasan implementasi rencana kerja ${slot.stepLabel}`;
+        itemText = `Tahap ${slot.stepLabel}: Pelaksanaan konkret dalam mendukung ${slideContext}`;
       } else {
-        itemText = `Poin strategi ${i + 1} untuk implementasi berkelanjutan`;
+        itemText = `Fokus utama ke-${i + 1}: Penjelasan mendalam mengenai ${slideContext}`;
       }
     }
 
@@ -788,14 +840,16 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
     } else if (slot.stepLabel) {
       formattedText = `${slot.stepLabel}\n${itemText}`;
     } else if (slot.number) {
-      formattedText = `${slot.number}  ${itemText}`;
+      // PENTING: Karena UI preview kartu sudah menampilkan nomor besar (placeholder.number) di atas,
+      // jangan menduplikasi nomor ke dalam teks isi agar tidak muncul ganda (seperti "01  01...")
+      formattedText = itemText;
     } else if (slot.badge) {
       formattedText = `${slot.badge}  ${itemText}`;
     } else if (newLayoutId === 'comparison') {
       const colLabel = i === 0 ? 'KONDISI SEBELUM / PENDEKATAN A' : 'KONDISI SESUDAH / PENDEKATAN B';
       formattedText = `${colLabel}\n\n${itemText}`;
     } else if (newLayoutId !== 'one-point' && newLayoutId !== 'one-point-split') {
-      formattedText = `• ${itemText}`;
+      formattedText = itemText;
     }
 
     newPlaceholders.push({

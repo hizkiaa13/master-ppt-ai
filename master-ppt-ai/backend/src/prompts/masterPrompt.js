@@ -53,27 +53,29 @@ SALAH - Slide tentang:
 - Teknologi Hijau
 - Topik lain yang tidak ada hubungannya dengan pemasaran digital
 
-ATURAN COPYWRITING:
+ATURAN COPYWRITING & PENJELASAN SETIAP POIN:
 
-1. Buat konten yang SIAP PAKAI - user tidak perlu mengedit atau memikirkan ulang.
-2. Setiap poin harus:
-   - Spesifik dan informatif
-   - Tidak generik atau kosong
-   - Mengandung informasi nyata yang berguna
-   - Mudah dipahami audiens
-3. Hindari kalimat terlalu umum seperti:
+1. JELASKAN SESUAI ISI DAN SUBSTANSI TOPIK:
+   - Setiap poin HARUS menjelaskan substansi materi secara nyata, mendalam, dan informatif (apa isinya, bagaimana cara kerjanya, atau apa manfaatnya).
+   - DILARANG KERAS menggunakan teks template kosong atau kalimat abstrak seperti "Poin strategi X untuk implementasi berkelanjutan", "Program bagian 1", atau semacamnya!
+   - Format penulisan setiap poin: "[Nama Poin/Subtopik]: [Penjelasan konkret 1-2 kalimat yang menjelaskan isi sebenarnya secara tuntas]".
+   - Contoh format poin yang benar:
+     * "Pelatihan Pembuatan Konten: Program bimbingan intensif memproduksi video pendek di TikTok dan Reels dengan hook menarik untuk memperluas jangkauan organik."
+     * "Optimasi Kampanye Berbayar: Setup dan manajemen iklan Google Performance Max dengan penargetan audiens berbasis data riil konversi."
+     * "Integrasi CRM & Email Funnel: Otomasi alur komunikasi lead nurturing untuk meningkatkan retensi dan konversi repeat order hingga 25%."
+
+2. Buat konten yang SIAP PAKAI - user tidak perlu mengedit atau memikirkan ulang isi materi.
+3. Setiap poin harus:
+   - Spesifik dan informatif sesuai topik "${title}".
+   - Tidak generik atau kosong.
+   - Mengandung informasi nyata yang berguna bagi audiens.
+   - Mudah dipahami saat dibaca di layar slide.
+4. Hindari kalimat terlalu umum seperti:
    - "Penting untuk diperhatikan"
    - "Berbagai faktor memengaruhi"
    - "Ada banyak aspek yang perlu dipertimbangkan"
-4. Gunakan kalimat yang langsung ke intinya dan mengandung informasi.
-
-CONTOH COPYWRITING:
-
-BURUK (terlalu umum):
-"Ada beberapa faktor yang perlu diperhatikan dalam pemasaran digital."
-
-BAIK (spesifik dan siap pakai):
-"Tiga kanal digital dengan ROI tertinggi di 2026: TikTok Ads, Google Performance Max, dan Email Automation."
+   - "Implementasi berkelanjutan untuk jangka panjang" (jika bukan presentasi tentang keberlanjutan)
+5. Gunakan kalimat yang langsung ke intinya dan padat informasi nyata.
 
 ATURAN STRUKTUR SLIDE:
 
@@ -143,9 +145,9 @@ CONTOH OUTPUT YANG DIHARAPKAN:
       "layoutReason": "Menjelaskan tren utama pemasaran digital 2026",
       "title": "Tren Pemasaran Digital 2026",
       "content": [
-        "Video pendek mendominasi engagement dengan tingkat retensi 2x lipat dibanding konten statis",
-        "AI-powered personalization meningkatkan konversi hingga 30% pada campaign tertarget",
-        "Social commerce tumbuh 25% sebagai kanal pembelian langsung dari media sosial"
+        "Short-Form Video: Format vertikal di TikTok dan Reels mendominasi engagement audiens dengan retensi 2x lipat dibanding konten statis.",
+        "Personalisasi Berbasis AI: Algoritma machine learning menyesuaikan pesan iklan secara real-time dan meningkatkan rasio konversi hingga 30%.",
+        "Social Commerce Terintegrasi: Pengalaman checkout langsung di dalam platform media sosial yang memangkas friksi alur transaksi pelanggan."
       ]
     },
     {
@@ -156,9 +158,9 @@ CONTOH OUTPUT YANG DIHARAPKAN:
       "layoutReason": "Menjelaskan 3 kanal digital prioritas",
       "title": "Kanal Pemasaran Prioritas",
       "content": [
-        "TikTok Ads untuk brand awareness dan reach generasi muda",
-        "Google Performance Max untuk conversion-driven campaign",
-        "Email Automation untuk nurturing leads dan retensi pelanggan"
+        "TikTok Ads: Membangun brand awareness cepat dan menjangkau generasi muda melalui storytelling kreatif dan interaktif.",
+        "Google Performance Max: Mengoptimalkan perolehan prospek dan konversi penjualan di seluruh ekosistem Search, Maps, dan YouTube.",
+        "Email Marketing Automation: Mengirimkan urutan pesan terpersonalisasi guna mendidik prospek baru dan memaksimalkan repeat purchase."
       ]
     },
     {

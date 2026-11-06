@@ -164,7 +164,7 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id", slide
         : [
             `Fokus Prioritas: Mengarahkan sumber daya pada inisiatif bernilai dampak tertinggi untuk akselerasi hasil.`,
             `Standarisasi Mutu: Memastikan konsistensi kualitas eksekusi di setiap alur kerja operasional.`,
-            `Pemantauan Berkelanjutan: Visibilitas metrik real-time dan penyesuaian adaptif berbasis data nyata.`,
+            `Pemantauan Metrik Kinerja: Evaluasi berkala berbasis data akurat untuk penyesuaian taktik operasional secara adaptif.`,
           ],
     },
     {

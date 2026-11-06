@@ -3,7 +3,7 @@
  * Preserves layoutId, layoutReason, pointCount from AI response
  */
 
-import { applyLayoutToSlide, LAYOUT_DEFINITIONS } from './layoutRenderer';
+import { applyLayoutToSlide, LAYOUT_DEFINITIONS } from './layoutRenderer.js';
 
 /**
  * Map AI result to slides array for the editor

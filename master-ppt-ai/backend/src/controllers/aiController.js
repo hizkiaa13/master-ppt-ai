@@ -1,4 +1,4 @@
-const { generateCopywriting } = require("../services/aiService");
+const { generateCopywriting, regenerateSlideContent } = require("../services/aiService");
 
 /**
  * Controller for generating AI copywriting and presentation design recommendations
@@ -52,6 +52,52 @@ async function generateAIContent(req, res) {
   }
 }
 
+/**
+ * Controller for dynamically regenerating slide points when layout changes
+ */
+async function regenerateSlide(req, res) {
+  try {
+    const {
+      masterId,
+      slideNumber,
+      currentLayoutId,
+      newLayoutId,
+      slideTitle,
+      slideTheme,
+      outputLanguage = "id",
+      existingContent = [],
+      newPointCount = 3,
+    } = req.body;
+
+    const result = await regenerateSlideContent({
+      slideTitle,
+      slideTheme,
+      currentLayoutId,
+      newLayoutId,
+      outputLanguage,
+      existingContent: Array.isArray(existingContent) ? existingContent : [],
+      newPointCount: parseInt(newPointCount, 10) || 3,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        slideNumber,
+        currentLayoutId,
+        newLayoutId,
+        ...result.data,
+      },
+    });
+  } catch (error) {
+    console.error("Slide regenerate error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Gagal meregenerasi konten slide. Silakan coba lagi.",
+    });
+  }
+}
+
 module.exports = {
   generateAIContent,
+  regenerateSlide,
 };

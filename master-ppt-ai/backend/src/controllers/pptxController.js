@@ -323,7 +323,7 @@ async function finalizePPTX(req, res) {
   }
 }
 
-// GET /api/pptx/download/:id
+// GET /api/pptx/download/:id & GET /api/history/:id/download
 async function downloadPPTX(req, res) {
   const { id } = req.params;
   const isFinal = req.query.final === 'true';
@@ -340,25 +340,31 @@ async function downloadPPTX(req, res) {
       return res.status(404).json({ success: false, message: 'File tidak ditemukan atau bukan milik Anda.' });
     }
 
+    const docTitle = history.title || history.theme_name || history.custom_title || 'Base Master PowerPoint';
+    const safeFileName = `${docTitle.replace(/[^a-zA-Z0-9_\u0600-\u06FF\s-]/g, '').trim().replace(/\s+/g, '_') || 'presentasi'}-master.pptx`;
+
     const base64Data = (isFinal && history.final_pptx_path)
       ? history.final_pptx_path
-      : history.pptx_file_path;
+      : (history.final_pptx_path || history.pptx_file_path);
 
     if (!base64Data) {
-      const slides = history.edited_slides
-        ? JSON.parse(history.edited_slides)
-        : JSON.parse(history.slide_previews || '[]');
+      let slides = [];
+      try {
+        if (history.final_data) slides = JSON.parse(history.final_data);
+        else if (history.edited_slides) slides = JSON.parse(history.edited_slides);
+        else if (history.slide_previews) slides = JSON.parse(history.slide_previews);
+      } catch (parseErr) {
+        slides = [];
+      }
 
-      const pptxBuffer = await generatePPTXBuffer(slides, 'Base Master');
-      const fileName = `base-master.pptx`;
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      const pptxBuffer = await generatePPTXBuffer(slides, docTitle);
+      res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
       return res.send(pptxBuffer);
     }
 
     const buffer = Buffer.from(base64Data, 'base64');
-    const fileName = `base-master.pptx`;
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
     return res.send(buffer);
   } catch (error) {
@@ -367,7 +373,7 @@ async function downloadPPTX(req, res) {
   }
 }
 
-// GET /api/pptx/history
+// GET /api/pptx/history & GET /api/history
 async function getHistory(req, res) {
   try {
     const { data: histories, error } = await supabase
@@ -378,17 +384,31 @@ async function getHistory(req, res) {
 
     if (error) throw error;
 
-    const historiesWithParsed = (histories || []).map((h) => ({
-      ...h,
-      title: h.theme_name || 'Base Master',
-      theme_display_name: 'Base Master',
-      color_primary: '#000000',
-      custom_fonts: h.custom_fonts ? JSON.parse(h.custom_fonts) : {},
-      slide_count: h.edited_slides ? JSON.parse(h.edited_slides).length : 5,
-      downloadUrl: `/api/pptx/download/${h.id}`,
-      pptx_file_path: undefined,
-      final_pptx_path: undefined,
-    }));
+    const historiesWithParsed = (histories || []).map((h) => {
+      let finalSlides = [];
+      try {
+        if (h.final_data) finalSlides = JSON.parse(h.final_data);
+        else if (h.edited_slides) finalSlides = JSON.parse(h.edited_slides);
+        else if (h.slide_previews) finalSlides = JSON.parse(h.slide_previews);
+      } catch (e) {
+        finalSlides = [];
+      }
+
+      const displayTitle = h.title || h.theme_name || h.custom_title || 'Base Master PowerPoint';
+      const slideCount = h.slide_count || finalSlides.length || 5;
+
+      return {
+        ...h,
+        title: displayTitle,
+        theme_display_name: 'Base Master (Hitam & Putih)',
+        color_primary: '#000000',
+        custom_fonts: h.custom_fonts ? (typeof h.custom_fonts === 'string' ? JSON.parse(h.custom_fonts) : h.custom_fonts) : {},
+        slide_count: slideCount,
+        downloadUrl: `/api/history/${h.id}/download`,
+        pptx_file_path: undefined,
+        final_pptx_path: undefined,
+      };
+    });
 
     return res.json({
       success: true,
@@ -403,6 +423,7 @@ async function getHistory(req, res) {
 
 module.exports = {
   generatePPTX,
+  generatePPTXBuffer,
   getPreview,
   updateSlide,
   finalizePPTX,

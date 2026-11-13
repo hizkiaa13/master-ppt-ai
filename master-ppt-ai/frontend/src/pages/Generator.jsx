@@ -367,7 +367,7 @@ export default function Generator() {
     [masterId, draft]
   );
 
-  // ─── Final download with Validation Check ───────────────────
+  // ─── Final download with History Save & Validation Check ───────────────
   const handleFinalizeAndDownload = async (forceDownload = false) => {
     // Validasi konten slide sebelum unduh
     if (!forceDownload) {
@@ -383,33 +383,43 @@ export default function Generator() {
     setIsFinalizing(true);
 
     try {
-      let currentMasterId = masterId;
-      if (!currentMasterId) {
-        try {
-          const genRes = await pptxService.generate({
-            title: formData.customTitle,
-            description: formData.customDescription,
-            outputLanguage: formData.outputLanguage || 'id',
-            slides,
-          });
-          if (genRes?.data?.masterId) {
-            currentMasterId = genRes.data.masterId;
-            setMasterId(currentMasterId);
-          }
-        } catch (serverGenErr) {
-          console.warn('Backend history record save:', serverGenErr);
+      const fileName = `${(formData.customTitle || 'presentasi').replace(/[^a-zA-Z0-9_-]/g, '_')}-master.pptx`;
+      let savedHistoryId = masterId;
+
+      // STEP 1: Simpan data ke Riwayat Master (/api/history/save)
+      try {
+        const saveRes = await pptxService.saveHistory({
+          title: formData.customTitle || 'Base Master PowerPoint',
+          slideCount: slides.length,
+          outputLanguage: formData.outputLanguage || 'id',
+          layoutMode: formData.layoutMode || 'auto',
+          layoutSelections: formData.layoutSelections || [],
+          finalData: slides,
+          slides,
+        });
+
+        if (saveRes?.success && saveRes?.data?.historyId) {
+          savedHistoryId = saveRes.data.historyId;
+          setMasterId(savedHistoryId);
         }
+      } catch (saveErr) {
+        console.warn('Gagal menyimpan riwayat ke backend:', saveErr);
       }
 
-      if (currentMasterId) {
-        await pptxService.finalize(currentMasterId, { slides, title: formData.customTitle });
-        const fileName = `${(formData.customTitle || 'presentasi').replace(/[^a-zA-Z0-9_-]/g, '_')}-master.pptx`;
-        await pptxService.download(currentMasterId, fileName, true);
+      // STEP 2: Unduh file PPTX
+      if (savedHistoryId) {
+        try {
+          await pptxService.finalize(savedHistoryId, { slides, title: formData.customTitle });
+        } catch (finalizeErr) {
+          console.warn('Finalize call notice:', finalizeErr.message);
+        }
+        await pptxService.download(savedHistoryId, fileName, true);
       } else {
         await generateFinalPPTX(slides, recommendations, formData.customTitle);
       }
+
       setDownloadSuccess(true);
-      toast.success('File PPTX Base Master berhasil diunduh!');
+      toast.success('Master berhasil disimpan ke Riwayat & diunduh!');
       await draft.markCompleted();
     } catch (err) {
       console.error('Download error:', err);
@@ -419,7 +429,7 @@ export default function Generator() {
         toast.success('File PPTX Base Master berhasil diekspor!');
         await draft.markCompleted();
       } catch (clientErr) {
-        toast.error('Gagal mengunduh: ' + clientErr.message);
+        toast.error('Gagal mengunduh: ' + (clientErr.message || err.message));
       }
     } finally {
       setIsFinalizing(false);
@@ -923,9 +933,20 @@ export default function Generator() {
             </div>
 
             {downloadSuccess && (
-              <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs flex items-center justify-center gap-2">
-                <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                <span>File PPTX berhasil diunduh. Buka di PowerPoint atau Google Slides!</span>
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs flex items-center justify-center gap-2">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>File PPTX berhasil diunduh dan tersimpan ke Riwayat Master!</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/history')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Layers className="w-4 h-4 text-brand-400" />
+                  <span>Lihat di Riwayat Master</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </button>
               </div>
             )}
           </div>

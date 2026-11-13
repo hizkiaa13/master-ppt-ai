@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Layers,
   Info,
+  Loader2,
 } from 'lucide-react';
 import AlignmentGuidelines from './AlignmentGuidelines';
 import TextFormattingToolbar from './TextFormattingToolbar';
@@ -36,6 +37,7 @@ import {
   applyLayoutToSlide,
 } from '../../utils/layoutRenderer';
 import { isDummyText } from '../../utils/slideContentValidator';
+import { regenerateSlideContent } from '../../services/ai';
 
 /**
  * Determine if a hex color is dark or light for optimal contrast
@@ -75,6 +77,7 @@ export default function SlidePreview({
   const [showFormattingToolbar, setShowFormattingToolbar] = useState(false);
   const [useSnapToGrid, setUseSnapToGrid] = useState(true);
   const [showPlaceholderModal, setShowPlaceholderModal] = useState(false);
+  const [isRegeneratingLayout, setIsRegeneratingLayout] = useState(false);
 
   const handleInsertPlaceholder = (placeholderText) => {
     const currentSlide = editedSlides[currentSlideIndex];
@@ -395,11 +398,71 @@ export default function SlidePreview({
     }
   };
 
-  // Layout preset change - Memetakan ulang posisi poin ke layout baru
-  const handleLayoutChange = (newLayoutId) => {
+  // Layout preset change - Memetakan ulang posisi poin ke layout baru + AI regeneration jika poin bertambah
+  const handleLayoutChange = async (newLayoutId) => {
     const updated = [...editedSlides];
     const targetSlide = updated[currentSlideIndex];
     if (!targetSlide) return;
+
+    const currentLayoutDef = renderLayout(targetSlide.layoutId || 'three-points');
+    const newLayoutDef = renderLayout(newLayoutId);
+    const oldPointCount = currentLayoutDef.points?.length || 0;
+    const newPointCount = newLayoutDef.points?.length || 0;
+
+    // Kumpulkan konten yang sudah ada
+    const existingContent = [];
+    if (Array.isArray(targetSlide.content) && targetSlide.content.length > 0) {
+      targetSlide.content.forEach((item) => {
+        const text = typeof item === 'string' ? item : (item?.text || item?.content || '');
+        const cleaned = text.replace(/^[•\-\*→]\s*/, '').replace(/^\d{1,2}\.\s*/, '').trim();
+        if (cleaned && !isDummyText(cleaned)) existingContent.push(cleaned);
+      });
+    }
+    if (existingContent.length === 0 && Array.isArray(targetSlide.placeholders)) {
+      targetSlide.placeholders.forEach((p) => {
+        if (p.id?.startsWith('point-') && p.type === 'text') {
+          let raw = (p.content || '').replace(/^(→\s+|[•\-\*]\s+|\d{1,2}\.\s+|0\d\s+)/, '').trim();
+          raw = raw.replace(/^(STEP\s+\d|Phase\s+\d|Tahap\s+\d)[:\n]+/i, '').trim();
+          if (raw && !isDummyText(raw)) existingContent.push(raw);
+        }
+      });
+    }
+
+    // Jika poin bertambah → panggil AI regeneration
+    if (newPointCount > oldPointCount && newPointCount > existingContent.length) {
+      setIsRegeneratingLayout(true);
+      const slideTitle = targetSlide.title || targetSlide.placeholders?.find(p => p.id?.startsWith('title'))?.content || '';
+      const slideTheme = slideTitle;
+
+      try {
+        const res = await regenerateSlideContent({
+          slideNumber: targetSlide.slideNumber,
+          currentLayoutId: targetSlide.layoutId,
+          newLayoutId,
+          slideTitle,
+          slideTheme,
+          outputLanguage: targetSlide.outputLanguage || 'id',
+          existingContent,
+          newPointCount,
+        });
+
+        if (res?.success && res?.data?.points && Array.isArray(res.data.points)) {
+          // Pasang konten baru ke slide sebelum applyLayoutToSlide
+          targetSlide.content = res.data.points.slice(0, newPointCount);
+          toast.success(`AI berhasil menyesuaikan ${newPointCount} poin konten!`);
+        }
+      } catch (aiErr) {
+        console.warn('AI layout regeneration fallback:', aiErr.message);
+        // Biarkan applyLayoutToSlide menggunakan fallback bawaan
+      } finally {
+        setIsRegeneratingLayout(false);
+      }
+    }
+
+    // Jika poin berkurang → trim konten
+    if (newPointCount < oldPointCount && newPointCount > 0 && existingContent.length > newPointCount) {
+      targetSlide.content = existingContent.slice(0, newPointCount);
+    }
 
     const remappedSlide = applyLayoutToSlide(targetSlide, newLayoutId, {
       fonts: recommendations?.fonts,
@@ -1076,7 +1139,8 @@ export default function SlidePreview({
           <select
             value={currentLayoutId}
             onChange={(e) => handleLayoutChange(e.target.value)}
-            className="input text-xs py-1.5 px-3 bg-white text-gray-900 border-gray-300 rounded-lg font-medium shadow-sm cursor-pointer"
+            disabled={isRegeneratingLayout}
+            className="input text-xs py-1.5 px-3 bg-white text-gray-900 border-gray-300 rounded-lg font-medium shadow-sm cursor-pointer disabled:opacity-50"
           >
             {Array.from(new Set(LAYOUT_OPTIONS.map((opt) => opt.group))).map((grp) => (
               <optgroup key={grp} label={grp} className="font-semibold text-gray-500">
@@ -1088,6 +1152,12 @@ export default function SlidePreview({
               </optgroup>
             ))}
           </select>
+          {isRegeneratingLayout && (
+            <span className="flex items-center gap-1.5 text-xs text-brand-400 animate-pulse">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>AI menyesuaikan konten...</span>
+            </span>
+          )}
         </div>
 
         {/* AI Layout Reason Badge */}

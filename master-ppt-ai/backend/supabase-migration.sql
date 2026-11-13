@@ -101,3 +101,8 @@ ALTER TABLE drafts ADD COLUMN IF NOT EXISTS layout_mode VARCHAR(20) DEFAULT 'aut
 ALTER TABLE drafts ADD COLUMN IF NOT EXISTS layout_selections JSONB;
 ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS layout_mode VARCHAR(20) DEFAULT 'auto';
 ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS layout_selections JSONB;
+
+-- Migration: Tambahkan kolom title, slide_count, dan final_data untuk riwayat PPT
+ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS slide_count INTEGER;
+ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS final_data TEXT;

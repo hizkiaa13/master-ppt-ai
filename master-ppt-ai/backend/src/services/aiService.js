@@ -4,6 +4,7 @@ require("dotenv").config();
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { buildMasterPrompt, buildSingleSlideRetryPrompt } = require("../prompts/masterPrompt");
+const { buildRegenerateSlidePrompt } = require("../prompts/regenerateSlidePrompt");
 const {
   selectLayout,
   normalizePoints,
@@ -685,8 +686,120 @@ async function generateCopywriting(input) {
   });
 }
 
+/**
+ * Regenerate points for a single slide when layout changes to a higher point count
+ */
+async function regenerateSlideContent({
+  slideTitle,
+  slideTheme,
+  currentLayoutId,
+  newLayoutId,
+  outputLanguage = 'id',
+  existingContent = [],
+  newPointCount = 3,
+}) {
+  const isEn = (outputLanguage || 'id').toLowerCase() === 'en';
+  const targetCount = Math.min(Math.max(parseInt(newPointCount, 10) || 3, 1), 6);
+  const safeTitle = slideTitle || (isEn ? 'Strategic Focus' : 'Fokus Strategis');
+  const safeTheme = slideTheme || safeTitle;
+
+  const validExisting = (existingContent || [])
+    .filter((p) => p && typeof p === 'string' && !isDummyText(p));
+
+  // Fallback points builder (rule-based substantive expansion)
+  const buildSubstantiveFallbackPoints = () => {
+    const poolEn = [
+      `Strategic alignment: establishing core operational milestones for ${safeTitle}.`,
+      `Performance optimization: streamlining workflow pipelines to maximize efficiency.`,
+      `Data-driven metrics: tracking quantifiable KPIs to ensure continuous improvement.`,
+      `Resource allocation: optimizing capital and talent to accelerate strategic execution.`,
+      `Risk mitigation: implementing proactive compliance and contingency frameworks.`,
+      `Scalability architecture: establishing adaptable foundations for sustained growth.`,
+    ];
+    const poolId = [
+      `Penyelarasan strategis: menetapkan tonggak operasional utama untuk ${safeTitle}.`,
+      `Optimalisasi kinerja: menyederhanakan alur kerja guna memaksimalkan efisiensi tim.`,
+      `Metrik berbasis data: memantau KPI terukur untuk menjamin peningkatan berkelanjutan.`,
+      `Alokasi sumber daya: mengoptimalkan modal dan talenta untuk percepatan eksekusi.`,
+      `Mitigasi risiko: menerapkan kepatuhan proaktif dan rencana kontinjensi yang matang.`,
+      `Arsitektur skalabilitas: membangun fondasi yang adaptif demi pertumbuhan jangka panjang.`,
+    ];
+    const pool = isEn ? poolEn : poolId;
+    const result = [...validExisting];
+    let poolIdx = 0;
+    while (result.length < targetCount && poolIdx < pool.length) {
+      if (!result.includes(pool[poolIdx])) {
+        result.push(pool[poolIdx]);
+      }
+      poolIdx++;
+    }
+    return result.slice(0, targetCount);
+  };
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey) {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const candidateModels = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    const prompt = buildRegenerateSlidePrompt({
+      slideTitle: safeTitle,
+      slideTheme: safeTheme,
+      currentLayoutId,
+      newLayoutId,
+      outputLanguage: isEn ? 'en' : 'id',
+      existingContent: validExisting,
+      newPointCount: targetCount,
+    });
+
+    for (const modelName of candidateModels) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            temperature: 0.3,
+            topP: 0.85,
+            maxOutputTokens: 2048,
+          },
+        });
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        const parsed = cleanAndParseJSON(responseText);
+
+        if (parsed && Array.isArray(parsed.points) && parsed.points.length > 0) {
+          const cleanedPoints = parsed.points
+            .map((p) => String(p).trim())
+            .filter((p) => p && !isDummyText(p));
+
+          if (cleanedPoints.length >= targetCount) {
+            return {
+              success: true,
+              data: {
+                slideTitle: parsed.title || safeTitle,
+                points: cleanedPoints.slice(0, targetCount),
+              },
+            };
+          }
+        }
+      } catch (geminiErr) {
+        console.warn(`[Slide Regeneration] Model ${modelName} failed:`, geminiErr.message);
+      }
+    }
+  }
+
+  // Fallback if AI call fails or is unavailable
+  const fallbackPoints = buildSubstantiveFallbackPoints();
+  return {
+    success: true,
+    data: {
+      slideTitle: safeTitle,
+      points: fallbackPoints,
+    },
+  };
+}
+
 module.exports = {
   generateCopywriting,
+  regenerateSlideContent,
   getRuleBasedFallback,
   normalizeSlideDeckLayouts,
   validatePlaceholders,

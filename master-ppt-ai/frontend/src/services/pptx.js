@@ -23,9 +23,14 @@ export const pptxService = {
   },
 
   async download(masterId, fileName, isFinal = false) {
-    const res = await api.get(`/pptx/download/${masterId}${isFinal ? '?final=true' : ''}`, {
-      responseType: 'blob',
-    });
+    let res;
+    try {
+      res = await api.get(`/history/${masterId}/download`, { responseType: 'blob' });
+    } catch {
+      res = await api.get(`/pptx/download/${masterId}${isFinal ? '?final=true' : ''}`, {
+        responseType: 'blob',
+      });
+    }
     
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');
@@ -37,9 +42,24 @@ export const pptxService = {
     window.URL.revokeObjectURL(url);
   },
 
-  async getHistory() {
-    const res = await api.get('/pptx/history');
+  async saveHistory(payload) {
+    const res = await api.post('/history/save', payload);
     return res.data;
+  },
+
+  async deleteHistory(historyId) {
+    const res = await api.delete(`/history/${historyId}`);
+    return res.data;
+  },
+
+  async getHistory() {
+    try {
+      const res = await api.get('/history');
+      return res.data;
+    } catch {
+      const res = await api.get('/pptx/history');
+      return res.data;
+    }
   },
 };
 

@@ -11,10 +11,23 @@ export async function generateAIContent(payload) {
     description: payload.description,
     outputLanguage: payload.outputLanguage || 'id',
     slideCount: payload.slideCount || 5,
+    layoutMode: payload.layoutMode || 'auto',
+    layoutSelections: payload.layoutSelections || [],
   });
+  return response.data;
+}
+
+/**
+ * Regenerate points for a single slide when layout changes to a higher point count
+ * @param {Object} payload - { masterId, slideNumber, currentLayoutId, newLayoutId, slideTitle, slideTheme, outputLanguage, existingContent, newPointCount }
+ * @returns {Promise<Object>}
+ */
+export async function regenerateSlideContent(payload) {
+  const response = await api.post('/ai/regenerate-slide', payload);
   return response.data;
 }
 
 export default {
   generateAIContent,
+  regenerateSlideContent,
 };

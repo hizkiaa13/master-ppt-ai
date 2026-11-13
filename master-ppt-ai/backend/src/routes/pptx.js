@@ -20,6 +20,7 @@ router.put('/slide/:masterId/:slideNumber', updateSlide);
 router.put('/slides/:masterId', updateSlide);
 router.post('/finalize/:masterId', finalizePPTX);
 router.get('/download/:id', downloadPPTX);
+router.post('/download/:id', downloadPPTX);
 router.get('/history', getHistory);
 
 module.exports = router;

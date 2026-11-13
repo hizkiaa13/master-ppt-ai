@@ -1,4 +1,5 @@
 import PptxGenJS from 'pptxgenjs';
+import { validateSlideDeckBeforeExport } from './slideContentValidator.js';
 
 /**
  * Convert hex color string to 6-char hex without '#'
@@ -17,7 +18,15 @@ function hexToRgb(hex) {
  * - Pembatas & kartu: abu terang (#E5E7EB)
  * - Aksen: hitam (#000000)
  */
-export async function generateFinalPPTX(slides, recommendations, title) {
+export async function generateFinalPPTX(slides, recommendations, title, options = {}) {
+  // Jalankan validasi konten slide
+  const validation = validateSlideDeckBeforeExport(slides, title);
+  if (!validation.isValid && options.enforceValidation) {
+    throw new Error(
+      `Terdapat ${validation.invalidSlides.length} slide yang masih kosong atau berupa placeholder.`
+    );
+  }
+
   const pres = new PptxGenJS();
 
   pres.layout = 'LAYOUT_16x9';
@@ -154,6 +163,9 @@ export async function generateFinalPPTX(slides, recommendations, title) {
   return fileName;
 }
 
+export { validateSlideDeckBeforeExport };
+
 export default {
   generateFinalPPTX,
+  validateSlideDeckBeforeExport,
 };

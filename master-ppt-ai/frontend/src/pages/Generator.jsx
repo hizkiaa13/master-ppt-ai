@@ -4,7 +4,9 @@ import { pptxService } from '../services/pptx';
 import { generateAIContent } from '../services/ai';
 import { mapAIResultToSlides } from '../utils/aiMapper';
 import { generateFinalPPTX } from '../utils/pptxGenerator';
+import { validateSlideDeckBeforeExport } from '../utils/slideContentValidator';
 import ThemeSelector from '../components/Generator/ThemeSelector';
+import ManualLayoutSelector, { getDefaultLayoutSelections } from '../components/Generator/ManualLayoutSelector';
 import SlidePreview from '../components/Generator/SlidePreview';
 import ExitConfirmation from '../components/Generator/ExitConfirmation';
 import { useDraft } from '../hooks/useDraft';
@@ -12,7 +14,7 @@ import toast from 'react-hot-toast';
 import {
   Sparkles, Download, Type, Layout, CheckCircle,
   Loader2, Eye, ArrowRight, ArrowLeft, Check,
-  RefreshCw, Save, X, Globe, Layers,
+  RefreshCw, Save, X, Globe, Layers, AlertTriangle,
 } from 'lucide-react';
 
 const STEPS = [
@@ -29,6 +31,8 @@ function buildDraftPayload({ formData, step, slides, recommendations, generatedD
     customDescription: formData.customDescription,
     outputLanguage: formData.outputLanguage || 'id',
     slideCount: formData.slideCount || (slides.length > 0 ? slides.length : 5),
+    layoutMode: formData.layoutMode || 'auto',
+    layoutSelections: formData.layoutSelections || [],
     currentStep: step,
     status: 'in_progress',
     formData: {
@@ -36,6 +40,8 @@ function buildDraftPayload({ formData, step, slides, recommendations, generatedD
       customDescription: formData.customDescription,
       outputLanguage: formData.outputLanguage || 'id',
       slideCount: formData.slideCount,
+      layoutMode: formData.layoutMode || 'auto',
+      layoutSelections: formData.layoutSelections || [],
     },
     generatedSlides: slides.length > 0 ? slides : null,
     editedSlides: slides.length > 0 ? slides : null,
@@ -81,12 +87,14 @@ export default function Generator() {
 
   const [step, setStep] = useState(1);
 
-  // Form State (Hanya judul, deskripsi, bahasa, dan slideCount otomatis)
+  // Form State (mendukung auto & manual layout mode)
   const [formData, setFormData] = useState({
     customTitle: '',
     customDescription: '',
     outputLanguage: 'id',
     slideCount: 5,
+    layoutMode: 'auto', // 'auto' | 'manual'
+    layoutSelections: getDefaultLayoutSelections(5),
   });
 
   // Generation & AI state
@@ -100,9 +108,11 @@ export default function Generator() {
   const [recommendations, setRecommendations] = useState(null);
   const [designRecommendation, setDesignRecommendation] = useState(null);
 
-  // Download state
+  // Download & Validation state
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [validationWarnings, setValidationWarnings] = useState([]);
 
   // Exit confirmation state
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -114,6 +124,23 @@ export default function Generator() {
   // Ref to current state for use in callbacks
   const stateRef = useRef({});
   stateRef.current = { formData, step, slides, originalSlides, recommendations, generatedData };
+
+  // Sinkronisasi jumlah slide ke layoutSelections jika diubah
+  useEffect(() => {
+    const currentSelections = formData.layoutSelections || [];
+    const targetCount = formData.slideCount || 5;
+
+    if (currentSelections.length !== targetCount) {
+      const defaultList = getDefaultLayoutSelections(targetCount);
+      const updated = defaultList.map((def, i) => {
+        if (currentSelections[i]) {
+          return { slideNumber: i + 1, layoutId: currentSelections[i].layoutId };
+        }
+        return def;
+      });
+      setFormData((prev) => ({ ...prev, layoutSelections: updated }));
+    }
+  }, [formData.slideCount]); // eslint-disable-line
 
   // ─── Load draft from URL param ──────────────────────────────
   useEffect(() => {
@@ -127,12 +154,16 @@ export default function Generator() {
 
       // Restore form state
       if (data.formData) {
+        const restoredSlideCount = data.formData.slideCount || data.slideCount || 5;
         setFormData((prev) => ({
           ...prev,
           customTitle: data.formData.customTitle || data.customTitle || prev.customTitle,
           customDescription: data.formData.customDescription || data.customDescription || prev.customDescription,
           outputLanguage: data.formData.outputLanguage || data.outputLanguage || prev.outputLanguage,
-          slideCount: data.formData.slideCount || data.slideCount || prev.slideCount,
+          slideCount: restoredSlideCount,
+          layoutMode: data.formData.layoutMode || data.layoutMode || 'auto',
+          layoutSelections:
+            data.formData.layoutSelections || data.layoutSelections || getDefaultLayoutSelections(restoredSlideCount),
         }));
       }
 
@@ -153,11 +184,10 @@ export default function Generator() {
         setGeneratedData({ slides: data.generatedSlides, designRecommendation: data.recommendations });
       }
 
-      // Map step lama (1..6) ke step baru (1..4)
       let targetStep = data.currentStep || 1;
       if (targetStep > 4) {
-        if (targetStep === 5) targetStep = 3; // Preview & Edit
-        else if (targetStep === 6) targetStep = 4; // Download
+        if (targetStep === 5) targetStep = 3;
+        else if (targetStep === 6) targetStep = 4;
         else targetStep = 2;
       }
       targetStep = Math.max(1, Math.min(targetStep, 4));
@@ -186,9 +216,9 @@ export default function Generator() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []); // eslint-disable-line
+  }, [formData, slides]); // eslint-disable-line
 
-  // ─── beforeunload guard ─────────────────────────────────────
+  // ─── beforeunload Guard ──────────────────────────────────────
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (step < 4 && (slides.length > 0 || formData.customTitle.trim())) {
@@ -254,6 +284,8 @@ export default function Generator() {
         description: formData.customDescription ? formData.customDescription.trim() : '',
         outputLanguage: formData.outputLanguage || 'id',
         slideCount: formData.slideCount || 5,
+        layoutMode: formData.layoutMode || 'auto',
+        layoutSelections: formData.layoutSelections || [],
       });
 
       if (response && response.success && response.data) {
@@ -268,7 +300,6 @@ export default function Generator() {
           layouts: response.data.designRecommendation?.layouts,
         });
 
-        // Simpan jumlah slide yang ditentukan AI ke form data
         setFormData((prev) => ({
           ...prev,
           slideCount: mappedSlides.length,
@@ -276,14 +307,14 @@ export default function Generator() {
 
         if (response.isFallback) {
           toast(
-            '⚠️ Menggunakan template master cadangan. Anda dapat klik "Regenerate Ulang" kapan saja untuk memuat ulang.',
+            '⚠️ Menggunakan template master cadangan terarah. Anda dapat klik "Regenerate Ulang" kapan saja.',
             { icon: '⚠️', duration: 6000 }
           );
         } else {
           toast.success(
-            `Berhasil menghasilkan ${mappedSlides.length} slide dengan AI (${
-              formData.outputLanguage === 'en' ? 'English' : 'Bahasa Indonesia'
-            })!`
+            `Berhasil menghasilkan ${mappedSlides.length} slide (${
+              formData.layoutMode === 'manual' ? 'Layout Manual' : 'Auto AI'
+            }) dalam ${formData.outputLanguage === 'en' ? 'English' : 'Bahasa Indonesia'}!`
           );
         }
 
@@ -336,9 +367,21 @@ export default function Generator() {
     [masterId, draft]
   );
 
-  // ─── Final download ─────────────────────────────────────────
-  const handleFinalizeAndDownload = async () => {
+  // ─── Final download with Validation Check ───────────────────
+  const handleFinalizeAndDownload = async (forceDownload = false) => {
+    // Validasi konten slide sebelum unduh
+    if (!forceDownload) {
+      const validation = validateSlideDeckBeforeExport(slides, formData.customTitle);
+      if (!validation.isValid) {
+        setValidationWarnings(validation.invalidSlides);
+        setShowWarningModal(true);
+        return;
+      }
+    }
+
+    setShowWarningModal(false);
     setIsFinalizing(true);
+
     try {
       let currentMasterId = masterId;
       if (!currentMasterId) {
@@ -391,6 +434,8 @@ export default function Generator() {
       customDescription: '',
       outputLanguage: 'id',
       slideCount: 5,
+      layoutMode: 'auto',
+      layoutSelections: getDefaultLayoutSelections(5),
     });
     setGeneratedData(null);
     setSlides([]);
@@ -399,6 +444,8 @@ export default function Generator() {
     setDesignRecommendation(null);
     setError(null);
     setDownloadSuccess(false);
+    setShowWarningModal(false);
+    setValidationWarnings([]);
   };
 
   return (
@@ -413,6 +460,63 @@ export default function Generator() {
         />
       )}
 
+      {/* Validation Warning Modal Sebelum Ekspor PPTX */}
+      {showWarningModal && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-dark-900 border border-amber-500/30 rounded-2xl p-6 sm:p-7 max-w-lg w-full text-left shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Peringatan Kualitas Slide</h3>
+                <p className="text-xs text-dark-300">
+                  Ditemukan {validationWarnings.length} slide yang masih kosong atau berupa dummy text.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-dark-950/80 border border-white/10 max-h-48 overflow-y-auto space-y-2 text-xs">
+              {validationWarnings.map((item, idx) => (
+                <div key={idx} className="border-b border-white/5 pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-semibold text-amber-300">Slide #{item.slideNumber}:</span>{' '}
+                  <span className="text-white font-medium">{item.slideTitle}</span>
+                  <ul className="list-disc list-inside text-dark-400 mt-1 space-y-0.5">
+                    {item.reasons.map((r, rIdx) => (
+                      <li key={rIdx}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-xs text-dark-400">
+              Anda disarankan mengedit slide tersebut terlebih dahulu agar hasil presentasi 100% siap pakai.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowWarningModal(false);
+                  setStep(3); // kembali ke preview & edit
+                }}
+                className="w-full sm:w-auto btn-primary py-2.5 px-4 text-xs font-semibold"
+              >
+                ✏️ Perbaiki di Editor Slide
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFinalizeAndDownload(true)}
+                className="w-full sm:w-auto btn-secondary py-2.5 px-4 text-xs text-dark-300 hover:text-white"
+              >
+                Tetap Unduh dengan Peringatan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Loading State Overlay */}
       {loading && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -420,7 +524,11 @@ export default function Generator() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4" />
             <h3 className="text-lg font-bold text-gray-900 mb-2">AI Sedang Menyusun Master Deck</h3>
             <p className="text-gray-600 text-sm">
-              Menganalisis topik &ldquo;{formData.customTitle}&rdquo;, menentukan jumlah slide terbaik, dan menghasilkan copywriting profesional dalam {formData.outputLanguage === 'en' ? 'Bahasa Inggris' : 'Bahasa Indonesia'}...
+              Menganalisis topik &ldquo;{formData.customTitle}&rdquo;,{' '}
+              {formData.layoutMode === 'manual'
+                ? 'menerapkan layout pilihan Anda,'
+                : 'menentukan jumlah slide terbaik,'}{' '}
+              dan menghasilkan copywriting bebas dummy text dalam {formData.outputLanguage === 'en' ? 'Bahasa Inggris' : 'Bahasa Indonesia'}...
             </p>
           </div>
         </div>
@@ -433,7 +541,7 @@ export default function Generator() {
             Base Master <span className="gradient-text">PowerPoint Cerdas</span>
           </h1>
           <p className="text-dark-400 text-sm sm:text-base">
-            Hasilkan master PowerPoint hitam-putih berkelas studio dengan copywriting AI dan jumlah slide otomatis.
+            Hasilkan master PowerPoint hitam-putih berkelas studio dengan copywriting AI bebas dummy text dan pilihan mode layout.
           </p>
         </div>
 
@@ -469,9 +577,13 @@ export default function Generator() {
       <div className="glass-card p-4 rounded-2xl border border-white/10 bg-dark-900/60 shadow-xl">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {STEPS.map((s) => {
-            const Icon = s.icon;
             const isCompleted = step > s.id;
             const isCurrent = step === s.id;
+            const labelText =
+              s.id === 2 && formData.layoutMode === 'manual'
+                ? 'Pilih Layout & AI'
+                : s.label;
+
             return (
               <div
                 key={s.id}
@@ -499,7 +611,7 @@ export default function Generator() {
                     Step {s.id}
                   </span>
                   <span className="text-xs font-semibold truncate text-white">
-                    {s.label}
+                    {labelText}
                   </span>
                 </div>
               </div>
@@ -518,11 +630,11 @@ export default function Generator() {
         />
       )}
 
-      {/* ─── STEP 2: AI Generate ─── */}
+      {/* ─── STEP 2: Generate AI / Manual Layout Selector ─── */}
       {step === 2 && (
-        <div className="space-y-8 animate-fade-in max-w-2xl mx-auto">
+        <div className="space-y-8 animate-fade-in">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm flex items-center justify-between">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm flex items-center justify-between max-w-2xl mx-auto">
               <span>{error}</span>
               <button
                 onClick={handleGenerateAI}
@@ -534,7 +646,7 @@ export default function Generator() {
           )}
 
           {isGenerating ? (
-            <div className="glass-card p-12 rounded-3xl border border-white/10 text-center space-y-6 bg-dark-900/80 shadow-2xl">
+            <div className="glass-card p-12 rounded-3xl border border-white/10 text-center space-y-6 bg-dark-900/80 shadow-2xl max-w-2xl mx-auto">
               <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
                 <div className="absolute inset-0 rounded-full border-4 border-brand-500/20 animate-ping" />
                 <div className="w-16 h-16 rounded-full bg-brand-gradient flex items-center justify-center shadow-lg shadow-brand-500/30">
@@ -544,15 +656,32 @@ export default function Generator() {
               <div className="space-y-2">
                 <h3 className="text-xl font-bold text-white">AI Sedang Menyusun Slide Master...</h3>
                 <p className="text-sm text-dark-400">
-                  Menganalisis topik &ldquo;{formData.customTitle}&rdquo;, menentukan jumlah slide optimal (maksimal 15), dan membuat copywriting dalam {formData.outputLanguage === 'en' ? 'Bahasa Inggris' : 'Bahasa Indonesia'}.
+                  Menganalisis topik &ldquo;{formData.customTitle}&rdquo;,{' '}
+                  {formData.layoutMode === 'manual'
+                    ? 'menerapkan layout yang Anda tentukan,'
+                    : 'menentukan variasi layout terbaik,'}{' '}
+                  dan memastikan copywriting bebas dummy text ({formData.outputLanguage === 'en' ? 'Bahasa Inggris' : 'Bahasa Indonesia'}).
                 </p>
               </div>
               <div className="w-full bg-dark-800 rounded-full h-2.5 overflow-hidden">
                 <div className="bg-brand-gradient h-2.5 rounded-full w-3/4 animate-pulse" />
               </div>
             </div>
+          ) : formData.layoutMode === 'manual' && !generatedData ? (
+            /* Mode Manual: Tampilkan Pemilih Layout per Slide */
+            <ManualLayoutSelector
+              slideCount={formData.slideCount || 5}
+              layoutSelections={formData.layoutSelections}
+              onUpdateLayoutSelections={(newSelections) =>
+                setFormData((prev) => ({ ...prev, layoutSelections: newSelections }))
+              }
+              onBack={() => setStep(1)}
+              onGenerate={handleGenerateAI}
+              userTitle={formData.customTitle}
+              outputLanguage={formData.outputLanguage || 'id'}
+            />
           ) : generatedData && slides.length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-2xl mx-auto">
               <div className="glass-card p-6 rounded-2xl border border-white/10 bg-dark-900/70 space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
                   <div>
@@ -637,7 +766,8 @@ export default function Generator() {
               </div>
             </div>
           ) : (
-            <div className="glass-card p-8 rounded-3xl border border-white/10 text-center space-y-6 bg-dark-900/60 shadow-xl">
+            /* Mode Auto: Tampilkan Konfirmasi Generate */
+            <div className="glass-card p-8 rounded-3xl border border-white/10 text-center space-y-6 bg-dark-900/60 shadow-xl max-w-2xl mx-auto">
               <div className="w-16 h-16 rounded-2xl bg-brand-gradient mx-auto flex items-center justify-center shadow-lg shadow-brand-500/30">
                 <Sparkles className="w-8 h-8 text-white" />
               </div>
@@ -645,7 +775,7 @@ export default function Generator() {
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-white">Siap Generate Master AI</h3>
                 <p className="text-sm text-dark-400">
-                  AI akan menentukan jumlah slide secara otomatis berdasarkan judul dan deskripsi Anda, menyusun copywriting profesional, dan menerapkan pairing tipografi Base Master.
+                  AI akan menentukan variasi layout paling pas, menyusun copywriting materi nyata bebas dummy text, dan menerapkan tipografi Base Master.
                 </p>
               </div>
 
@@ -654,6 +784,10 @@ export default function Generator() {
                 <div className="flex justify-between">
                   <span className="text-dark-400">Judul Presentasi:</span>
                   <span className="text-white font-semibold truncate max-w-[280px]">{formData.customTitle}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-dark-400">Mode Layout:</span>
+                  <span className="text-blue-400 font-semibold">Auto Generate AI</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-dark-400">Desain:</span>
@@ -667,7 +801,7 @@ export default function Generator() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-dark-300">Jumlah Slide:</span>
-                  <span className="text-white font-semibold">{formData.slideCount || 5} Slide (Sesuai Pilihan)</span>
+                  <span className="text-white font-semibold">{formData.slideCount || 5} Slide</span>
                 </div>
               </div>
 
@@ -739,6 +873,10 @@ export default function Generator() {
                 <span className="text-brand-300 font-medium">Base Master (Hitam & Putih)</span>
               </div>
               <div className="flex items-center justify-between text-xs">
+                <span className="text-dark-400">Mode Penyusunan:</span>
+                <span className="text-white font-medium capitalize">{formData.layoutMode || 'auto'}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-dark-400">Bahasa Output:</span>
                 <span className="text-white font-medium">
                   {formData.outputLanguage === 'en' ? 'Bahasa Inggris (English)' : 'Bahasa Indonesia'}
@@ -760,7 +898,7 @@ export default function Generator() {
               <button
                 type="button"
                 disabled={isFinalizing}
-                onClick={handleFinalizeAndDownload}
+                onClick={() => handleFinalizeAndDownload(false)}
                 className="w-full btn-primary py-3.5 text-base flex items-center justify-center gap-2 shadow-xl shadow-brand-500/30 disabled:opacity-50"
               >
                 {isFinalizing ? (

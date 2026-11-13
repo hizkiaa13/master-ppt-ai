@@ -35,6 +35,7 @@ import {
   renderLayout,
   applyLayoutToSlide,
 } from '../../utils/layoutRenderer';
+import { isDummyText } from '../../utils/slideContentValidator';
 
 /**
  * Determine if a hex color is dark or light for optimal contrast
@@ -991,6 +992,23 @@ export default function SlidePreview({
             const thumbDark = isColorDark(slide.background?.color || '#FFFFFF');
             const thumbTextColor = thumbDark ? '#FFFFFF' : '#1F2937';
 
+            // Cek apakah slide kosong atau berisi dummy text
+            const hasEmptyOrDummy = (() => {
+              const placeholders = slide.placeholders || [];
+              if (placeholders.length === 0) return true;
+              const titleP = placeholders.find(
+                (p) => p.id?.startsWith('title') || p.name?.toLowerCase().includes('judul')
+              );
+              if (!titleP?.content || isDummyText(titleP.content)) return true;
+              const isCover = slide.slideType === 'cover' || index === 0;
+              const isClosing = slide.slideType === 'closing' || index === editedSlides.length - 1;
+              if (!isCover && !isClosing) {
+                const pointPs = placeholders.filter((p) => p.id?.startsWith('point-'));
+                if (pointPs.length > 0 && pointPs.every((p) => isDummyText(p.content))) return true;
+              }
+              return false;
+            })();
+
             return (
               <button
                 key={`thumbnail-${slide.slideNumber || index}-${index}`}
@@ -998,15 +1016,33 @@ export default function SlidePreview({
                 onClick={() => handleSlideChange(index)}
                 className={`flex-shrink-0 w-36 aspect-[16/9] rounded-xl overflow-hidden border-2 transition-all relative group text-left p-2 flex flex-col justify-between ${
                   isCurrent
-                    ? 'border-brand-500 ring-2 ring-brand-500/40 shadow-lg shadow-brand-500/20'
+                    ? hasEmptyOrDummy
+                      ? 'border-red-500 ring-2 ring-red-500/40 shadow-lg shadow-red-500/20'
+                      : 'border-brand-500 ring-2 ring-brand-500/40 shadow-lg shadow-brand-500/20'
+                    : hasEmptyOrDummy
+                    ? 'border-red-500/70 hover:border-red-500 opacity-90'
                     : 'border-white/10 hover:border-white/30 opacity-75 hover:opacity-100'
                 }`}
                 style={{ backgroundColor: slide.background?.color || '#FFFFFF' }}
               >
+                {/* Warning Badge jika slide bermasalah */}
+                {hasEmptyOrDummy && (
+                  <span
+                    title="Slide ini masih kosong atau berupa placeholder/dummy"
+                    className="absolute top-1.5 right-1.5 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black shadow-md z-10"
+                  >
+                    !
+                  </span>
+                )}
+
                 <div className="flex items-center justify-between w-full">
                   <span
                     className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                      thumbDark ? 'bg-dark-950/80 text-white' : 'bg-gray-200/90 text-gray-800'
+                      hasEmptyOrDummy
+                        ? 'bg-red-500 text-white'
+                        : thumbDark
+                        ? 'bg-dark-950/80 text-white'
+                        : 'bg-gray-200/90 text-gray-800'
                     }`}
                   >
                     #{index + 1}

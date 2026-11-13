@@ -881,10 +881,31 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
           ? `Phase ${slot.stepLabel}: Actionable execution driving ${slideContext}`
           : `Tahap ${slot.stepLabel}: Pelaksanaan konkret dalam mendukung ${slideContext}`;
       } else {
+        const defaultSubtopicsId = [
+          'Penyelarasan Strategis: Mengarahkan kapabilitas tim pada inisiatif prioritas untuk akselerasi hasil.',
+          'Standarisasi Pelaksanaan: Memastikan konsistensi kualitas eksekusi di setiap alur kerja operasional.',
+          'Optimalisasi Berkelanjutan: Evaluasi berkala berbasis data akurat untuk menyempurnakan efisiensi.',
+          'Manajemen Risiko: Pengendalian mitigasi kendala teknis secara terukur dan adaptif.',
+          'Penguatan Kapasitas: Peningkatan kompetensi tim melalui adopsi praktik terbaik.',
+          'Pengukuran Dampak: Pemantauan metrik keberhasilan kunci secara berkala.',
+        ];
+        const defaultSubtopicsEn = [
+          'Strategic Alignment: Directing core team capabilities toward priority initiatives to accelerate outcomes.',
+          'Execution Standardization: Ensuring consistent high-grade quality across all operational workflows.',
+          'Continuous Optimization: Regular data-driven evaluations to refine long-term execution efficiency.',
+          'Risk Mitigation: Controlled management of operational bottlenecks with proactive safeguards.',
+          'Capacity Building: Elevating team competencies through modern workflow practices.',
+          'Impact Telemetry: Transparent tracking of primary performance indicators against benchmarks.',
+        ];
         itemText = isEn
-          ? `Core Pillar ${i + 1}: In-depth strategic focus on ${slideContext}`
-          : `Fokus utama ke-${i + 1}: Penjelasan mendalam mengenai ${slideContext}`;
+          ? (defaultSubtopicsEn[i] || `Strategic Pillar ${i + 1}: In-depth focus advancing ${slideContext}`)
+          : (defaultSubtopicsId[i] || `Pilar Strategis ${i + 1}: Penjelasan mendalam mendukung ${slideContext}`);
       }
+    }
+
+    // Bersihkan nomor ganda di awal teks jika slot sudah memiliki nomor/badge tersendiri
+    if (slot.number) {
+      itemText = itemText.replace(/^(\d{1,2}\.|\b0\d\b)\s*/, '').trim();
     }
 
     // Format tampilan teks sesuai desain Base Layout

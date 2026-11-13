@@ -95,3 +95,9 @@ CREATE POLICY slide_layouts_all ON slide_layouts FOR ALL USING (true) WITH CHECK
 ALTER TABLE drafts ADD COLUMN IF NOT EXISTS output_language VARCHAR(10) DEFAULT 'id';
 ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS output_language VARCHAR(10) DEFAULT 'id';
 ALTER TABLE master_histories ALTER COLUMN theme_id DROP NOT NULL;
+
+-- Migration: Tambahkan kolom layout_mode dan layout_selections (Auto AI vs Manual Layout Mode)
+ALTER TABLE drafts ADD COLUMN IF NOT EXISTS layout_mode VARCHAR(20) DEFAULT 'auto';
+ALTER TABLE drafts ADD COLUMN IF NOT EXISTS layout_selections JSONB;
+ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS layout_mode VARCHAR(20) DEFAULT 'auto';
+ALTER TABLE master_histories ADD COLUMN IF NOT EXISTS layout_selections JSONB;

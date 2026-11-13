@@ -30,8 +30,8 @@ async function generatePPTXBuffer(slides, title) {
     slide.background = { color: 'FFFFFF' };
 
     // 2. Garis aksen minimalis hitam/abu terang jika bukan slide cover/closing
-    const isCover = slideData.slideType === 'cover' || (slideData.layoutId && slideData.layoutId.startsWith('cover-front'));
-    const isClosing = slideData.slideType === 'closing' || (slideData.layoutId && slideData.layoutId.startsWith('cover-back'));
+    const isCover = slideData.slideType === 'cover' || (slideData.layoutId && (slideData.layoutId.startsWith('cover-') || slideData.layoutId.startsWith('cover-p')));
+    const isClosing = slideData.slideType === 'closing' || (slideData.layoutId && (slideData.layoutId.startsWith('cover-back') || slideData.layoutId.startsWith('closing-')));
 
     if (!isCover && !isClosing) {
       slide.addShape(pres.ShapeType.rect, {

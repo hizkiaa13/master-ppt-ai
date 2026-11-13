@@ -1,34 +1,76 @@
 /**
  * Master Prompt Generator for AI PowerPoint Deck Generation
  * Versi Base Master (Hitam & Putih) dengan Relevansi Ketat & Dukungan Penuh Multi-Bahasa (ID & EN).
+ * Mendukung Auto AI Mode & Manual Layout Mode.
  */
 
 const { getPromptFontList } = require('../utils/textToolkit');
 const { getPromptToolkitText } = require('../utils/placeholderToolkit');
 
 /**
- * Ganti total prompt AI untuk menjamin 100% relevansi materi slide dengan judul dan bahasa yang tepat
+ * Format layout selections for prompt
  */
-function buildMasterPrompt({ title, description, outputLanguage = 'id', slideCount = 5, retryContext = false }) {
+function formatLayoutSelections(layoutSelections) {
+  if (!Array.isArray(layoutSelections) || layoutSelections.length === 0) return '';
+  return layoutSelections
+    .map((item, idx) => `Slide ${item.slideNumber || idx + 1}: ${item.layoutId}`)
+    .join('\n');
+}
+
+/**
+ * Prompt AI untuk menjamin 100% relevansi materi slide dengan judul dan bahasa yang tepat
+ */
+function buildMasterPrompt({
+  title,
+  description,
+  outputLanguage = 'id',
+  slideCount = 5,
+  retryContext = false,
+  layoutMode = 'auto',
+  layoutSelections = [],
+}) {
   const fontList = getPromptFontList();
   const toolkitText = getPromptToolkitText(outputLanguage);
   const effectiveSlideCount = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
   const isEn = (outputLanguage || 'id').toLowerCase() === 'en';
+  const isManual = layoutMode === 'manual' && Array.isArray(layoutSelections) && layoutSelections.length > 0;
 
   const retryInstruction = retryContext
     ? (isEn
         ? `\n⚠️ STRICT REGENERATE WARNING:
-THE PREVIOUS OUTPUT DRIFTED OR WAS NOT SUFFICIENTLY RELEVANT TO "${title}".
-Re-generate content that is 100% focused on "${title}". Do NOT deviate from the topic!\n`
+THE PREVIOUS OUTPUT DRIFTED, CONTAINED DUMMY TEXT, OR WAS NOT SUFFICIENTLY RELEVANT TO "${title}".
+Re-generate content that is 100% focused on "${title}". Do NOT deviate from the topic and do NOT use any dummy text or placeholder!\n`
         : `\n⚠️ PERINGATAN KERAS REGENERATE:
-HASIL SEBELUMNYA TIDAK RELEVAN DENGAN JUDUL "${title}".
-Judul user adalah "${title}". Buat ulang konten yang 100% membahas "${title}". Jangan menyimpang dari judul sama sekali!\n`)
+HASIL SEBELUMNYA TIDAK RELEVAN, MENGANDUNG DUMMY TEXT, ATAU MENYIMPANG DARI JUDUL "${title}".
+Judul user adalah "${title}". Buat ulang konten yang 100% membahas "${title}". DILARANG KERAS menggunakan dummy text atau kalimat template kosong!\n`)
     : '';
 
   // ════════════════════════════════════════════════════════════════
   // PROMPT UNTUK BAHASA INGGRIS (100% English prompt & examples)
   // ════════════════════════════════════════════════════════════════
   if (isEn) {
+    const manualLayoutInstruction = isManual
+      ? `
+CRITICAL DIRECTIVE - MANUAL LAYOUT MODE ACTIVE:
+The user has MANUALLY PRE-SELECTED the layout for each slide. You MUST strictly generate copywriting matching these layouts:
+USER SELECTED LAYOUTS:
+${formatLayoutSelections(layoutSelections)}
+
+RULES FOR MANUAL LAYOUT:
+1. RESPECT THE USER'S LAYOUT CHOICES. DO NOT change, alter, or replace any layoutId.
+2. Adapt the number of bullet points to each layout:
+   - one-point / point1-*: exactly 1 strong statement/point
+   - two-points / point2-* / comparison: exactly 2 points
+   - three-points / point3-*: exactly 3 points
+   - four-points / point4-* / steps: exactly 4 points
+   - five-points / point5-*: exactly 5 points
+   - six-points / point6-*: exactly 6 points
+   - chart / chart-stat: 2-3 metric explanations
+   - testimonial: 1 impactful testimonial quote + persona attribution
+   - cover / closing: 0 points
+`
+      : '';
+
     return `You are an elite executive presentation copywriter and deck strategist.
 ${retryInstruction}
 CRITICAL LANGUAGE DIRECTIVE:
@@ -43,10 +85,12 @@ PRESENTATION TITLE: ${title}
 TOPIC / DESCRIPTION: ${description || 'Focus tightly on the presentation title above'}
 OUTPUT LANGUAGE: English (en) - ALL SLIDES IN ENGLISH
 NUMBER OF SLIDES: ${effectiveSlideCount}
+LAYOUT MODE: ${layoutMode.toUpperCase()}
+${manualLayoutInstruction}
 
-CRITICAL RULE - TOPICAL RELEVANCE:
+CRITICAL RULE - TOPICAL RELEVANCE & NO DUMMY TEXT:
 1. EVERY slide and bullet point MUST relate directly to "${title}".
-2. DO NOT include generic filler or unrelated topics (e.g., green tech, sustainability, environmental CSR unless explicitly requested).
+2. STRICTLY FORBIDDEN: "Lorem ipsum", "Your Title Here", "Write a short description", "Add a main point", "Write a subtopic", or generic filler phrases.
 3. Every point must answer: "Does this directly support the presentation goal for '${title}'?"
 
 COPYWRITING & SUBSTANTIVE EXPLANATION RULES:
@@ -59,12 +103,14 @@ COPYWRITING & SUBSTANTIVE EXPLANATION RULES:
      * "Automated Lead Nurturing: Implement multi-stage email funnels tailored to user behavior, boosting repeat conversions by up to 25%."
 2. The deck must be 100% READY TO USE — the audience should gain immediate, clear insights without editing.
 
-SLIDE DECK STRUCTURE:
+${
+  !isManual
+    ? `SLIDE DECK STRUCTURE:
 1. Slide 1: Cover slide — compelling title + subtitle (layoutId: "cover-p04" or "cover-front").
 2. Slide 2: Table of Contents / Agenda if total slides >= 4 (layoutId: "agenda-p20" or "table-of-contents").
 3. Middle Slides: Core strategic content in logical sequence (choose from 1-6 points, comparison, steps, chart, or testimonial layouts).
 4. Last Slide: Conclusion / Call to Action / Contact (layoutId: "closing-p180" or "cover-back").
-5. Each content slide must have 3-5 high-value points.
+5. Each content slide must have 2-5 high-value points.
 
 AVAILABLE LAYOUTS (189 studio layouts):
 - 1 point: point1-p25 to point1-p46, one-point
@@ -76,7 +122,9 @@ AVAILABLE LAYOUTS (189 studio layouts):
 - Chart/Data: chart-p163 to chart-p171, chart, chart-stat
 - Testimonial: testi-p173 to testi-p178, testimonial
 - Cover: cover-p04 to cover-p18, cover-front
-- Closing: closing-p180 to closing-p202, cover-back
+- Closing: closing-p180 to closing-p202, cover-back`
+    : ''
+}
 
 AVAILABLE FONT PAIRINGS:
 ${fontList}
@@ -175,6 +223,28 @@ REMEMBER: Output MUST be 100% in English! Reply ONLY with valid JSON (no markdow
   // ════════════════════════════════════════════════════════════════
   // PROMPT UNTUK BAHASA INDONESIA (Default)
   // ════════════════════════════════════════════════════════════════
+  const manualLayoutInstructionId = isManual
+    ? `
+PETUNJUK KRUSIAL - MODE SUSUN LAYOUT SENDIRI (MANUAL LAYOUT):
+User telah MEMILIH SENDIRI layout untuk setiap slide. Tugas Anda adalah HANYA membuat copywriting konten yang cocok persis dengan layout tersebut:
+LAYOUT YANG SUDAH DIPILIH USER:
+${formatLayoutSelections(layoutSelections)}
+
+ATURAN MODE MANUAL:
+1. HORMATI PILIHAN USER. JANGAN PERNAH mengubah, mengganti, atau memilih ulang layoutId yang sudah ditentukan.
+2. Sesuaikan JUMLAH POIN konten dengan layout masing-masing:
+   - one-point / point1-*: tepat 1 poin/kalimat pernyataan kuat
+   - two-points / point2-* / comparison: tepat 2 poin pembahasan
+   - three-points / point3-*: tepat 3 poin pembahasan
+   - four-points / point4-* / steps: tepat 4 poin pembahasan
+   - five-points / point5-*: tepat 5 poin pembahasan
+   - six-points / point6-*: tepat 6 poin pembahasan
+   - chart / chart-stat: 2-3 poin penjelasan capaian metrik
+   - testimonial: 1 testimoni berdampak + atribusi profil
+   - cover / closing: 0 poin (hanya judul/subjudul)
+`
+    : '';
+
   return `Kamu adalah ahli copywriting presentasi profesional yang sangat teliti terhadap relevansi konten.
 ${retryInstruction}
 TUGAS UTAMA:
@@ -184,20 +254,20 @@ JUDUL PRESENTASI: ${title}
 TOPIK/DESKRIPSI: ${description || 'Fokuskan pada judul presentasi di atas'}
 BAHASA OUTPUT: Bahasa Indonesia (id)
 JUMLAH SLIDE: ${effectiveSlideCount}
+MODE LAYOUT: ${layoutMode.toUpperCase()}
+${manualLayoutInstructionId}
 
-ATURAN PALING PENTING - RELEVANSI KONTEN:
+ATURAN PALING PENTING - RELEVANSI KONTEN & BEBAS DUMMY TEXT:
 
 1. SEMUA konten slide HARUS berkaitan langsung dengan judul presentasi "${title}".
-2. JANGAN menghasilkan konten yang tidak ada hubungannya dengan judul.
-3. Jika judul tentang "${title}", maka semua slide harus membahas "${title}", BUKAN topik lain seperti keberlanjutan, lingkungan, CSR, atau topik tidak relevan lainnya.
-4. Setiap poin di setiap slide harus menjawab pertanyaan: "Apakah poin ini mendukung judul presentasi?"
-5. Jika sebuah poin tidak relevan dengan judul, JANGAN masukkan.
+2. DILARANG KERAS menggunakan dummy text seperti "Lorem ipsum", "Your Title Here", "Write a short description", "Add a main point", "Write a subtopic", "Poin strategi 1 untuk implementasi berkelanjutan", atau template kosong lainnya!
+3. Jika judul tentang "${title}", maka semua slide harus membahas "${title}", BUKAN topik lain yang tidak diminta.
+4. Setiap poin di setiap slide harus menjawab: "Apakah poin ini menjelaskan substansi nyata yang mendukung judul '${title}'?"
 
 ATURAN COPYWRITING & PENJELASAN SETIAP POIN:
 
 1. JELASKAN SESUAI ISI DAN SUBSTANSI TOPIK:
    - Setiap poin HARUS menjelaskan substansi materi secara nyata, mendalam, dan informatif (apa isinya, bagaimana cara kerjanya, atau apa manfaatnya).
-   - DILARANG KERAS menggunakan teks template kosong atau kalimat abstrak seperti "Poin strategi X untuk implementasi berkelanjutan", "Program bagian 1", atau semacamnya!
    - Format penulisan setiap poin: "[Nama Poin/Subtopik]: [Penjelasan konkret 1-2 kalimat yang menjelaskan isi sebenarnya secara tuntas]".
    - Contoh format poin yang benar:
      * "Pelatihan Pembuatan Konten: Program bimbingan intensif memproduksi video pendek di TikTok dan Reels dengan hook menarik untuk memperluas jangkauan organik."
@@ -208,12 +278,14 @@ ATURAN COPYWRITING & PENJELASAN SETIAP POIN:
 3. Hindari kalimat terlalu umum seperti "Penting untuk diperhatikan", "Berbagai faktor memengaruhi".
 4. Gunakan kalimat yang langsung ke intinya dan padat informasi nyata.
 
-ATURAN STRUKTUR SLIDE:
+${
+  !isManual
+    ? `ATURAN STRUKTUR SLIDE:
 1. Slide 1: Cover depan - judul + subjudul yang menarik (layoutId: "cover-p04" atau "cover-front").
 2. Slide 2: Daftar isi/agenda jika total slide >= 4 (layoutId: "agenda-p20" atau "table-of-contents").
 3. Slide tengah: konten utama yang runtut dan logis.
 4. Slide terakhir: kesimpulan atau call to action (layoutId: "closing-p180" atau "cover-back").
-5. Setiap content slide berisi 3-5 poin yang spesifik.
+5. Setiap content slide berisi 2-5 poin yang spesifik.
 
 PILIHAN LAYOUT (189 variasi katalog):
 - 1 poin: point1-p25 s/d point1-p46, one-point
@@ -225,7 +297,9 @@ PILIHAN LAYOUT (189 variasi katalog):
 - Data/statistik: chart-p163 s/d chart-p171, chart, chart-stat
 - Testimoni: testi-p173 s/d testi-p178, testimonial
 - Slide pertama: cover-p04 s/d cover-p18, cover-front
-- Slide terakhir: closing-p180 s/d closing-p202, cover-back
+- Slide terakhir: closing-p180 s/d closing-p202, cover-back`
+    : ''
+}
 
 FONT PAIRING TERSEDIA:
 ${fontList}
@@ -275,7 +349,7 @@ CONTOH OUTPUT YANG DIHARAPKAN:
       "content": [
         "Uji Coba Cepat: Menjalankan sprint pengujian hipotesis awal sebelum mengalokasikan anggaran penuh.",
         "Otomasi Alur Kerja: Mengintegrasikan sistem pendukung untuk memangkas waktu pengerjaan repetitif.",
-        "Evaluasi Hasil: Mengumpulkan data langsung dari lapangan guna menentukan arah perbaikan berkelanjutan."
+        "Evaluasi Hasil: Mengumpulkan data langsung dari lapangan guna menentukan arah perbaikan berkala."
       ]
     },
     {
@@ -317,11 +391,81 @@ CONTOH OUTPUT YANG DIHARAPKAN:
   }
 }
 
-PERHATIKAN: Semua konten 100% relevan dengan judul "${title}" dan siap pakai tanpa perlu revisi.
+PERHATIKAN: Semua konten 100% relevan dengan judul "${title}", bebas dummy text, dan siap pakai tanpa perlu revisi.
 Balas HANYA dalam format JSON valid tanpa tanda markdown (\`\`\`json).
+`;
+}
+
+/**
+ * Prompt khusus retry untuk satu slide yang bermasalah / dummy
+ */
+function buildSingleSlideRetryPrompt({
+  slideNumber,
+  layoutId = 'three-points',
+  currentTitle = '',
+  userTitle = '',
+  userDescription = '',
+  outputLanguage = 'id',
+  reasons = [],
+}) {
+  const isEn = (outputLanguage || 'id').toLowerCase() === 'en';
+  const reasonText = reasons.join(', ');
+
+  if (isEn) {
+    return `You are an executive presentation copywriter.
+CRITICAL TASK: REGENERATE SINGLE SLIDE CONTENT.
+Slide ${slideNumber} with title "${currentTitle || 'Untitled'}" and layout "${layoutId}" was INVALID because: ${reasonText || 'It contained dummy text or was empty'}.
+
+Make a complete, professional replacement object for Slide ${slideNumber} that is 100% RELEVANT to the presentation title "${userTitle}" and topic "${userDescription}".
+DO NOT use placeholder or dummy text (NO "Lorem ipsum", NO "Your Title Here", NO "Write a short description", NO "Poin strategi X").
+Format of each bullet point: "[Subtopic Name]: [Concrete 1-2 sentence informative explanation]".
+
+Reply ONLY with a single JSON object matching this schema:
+{
+  "slideNumber": ${slideNumber},
+  "slideType": "${slideNumber === 1 ? 'cover' : 'content'}",
+  "layoutId": "${layoutId}",
+  "pointCount": 3,
+  "layoutReason": "Concrete focus supporting ${userTitle}",
+  "title": "Specific Informative Title",
+  "subtitle": "Insightful subtitle if applicable",
+  "content": [
+    "Subtopic 1: Clear, informative explanation without filler.",
+    "Subtopic 2: Concrete mechanism and measurable value.",
+    "Subtopic 3: Actionable takeaway or strategic execution."
+  ]
+}
+`;
+  }
+
+  return `Kamu adalah ahli copywriting presentasi profesional.
+TUGAS KHUSUS: PERBAIKI DAN BUAT ULANG KONTEN SATU SLIDE.
+Slide ${slideNumber} dengan judul "${currentTitle || 'Tanpa Judul'}" dan layout "${layoutId}" TIDAK VALID karena: ${reasonText || 'Berisi dummy text atau kosong'}.
+
+Buatkan objek pengganti lengkap yang profesional untuk Slide ${slideNumber} yang 100% RELEVAN dengan judul presentasi "${userTitle}" dan topik "${userDescription}".
+DILARANG KERAS menggunakan placeholder atau dummy text (JANGAN "Lorem ipsum", JANGAN "Your Title Here", JANGAN "Poin strategi X untuk implementasi berkelanjutan", JANGAN "Penjelasan rencana kerja").
+Format setiap poin: "[Nama Subtopik]: [Penjelasan konkret 1-2 kalimat informatif mengenai substansi materi]".
+
+Balas HANYA dengan SATU objek JSON valid sesuai format ini:
+{
+  "slideNumber": ${slideNumber},
+  "slideType": "${slideNumber === 1 ? 'cover' : 'content'}",
+  "layoutId": "${layoutId}",
+  "pointCount": 3,
+  "layoutReason": "Penjelasan mendalam yang mendukung ${userTitle}",
+  "title": "Judul Subtopik Spesifik & Nyata",
+  "subtitle": "Subjudul penjelasan jika relevan",
+  "content": [
+    "Pilar Pertama: Penjelasan konkret dan nyata tanpa kalimat template.",
+    "Pilar Kedua: Mekanisme teknis atau operasional yang informatif.",
+    "Pilar Ketiga: Dampak terukur dan langkah aksi yang jelas."
+  ]
+}
 `;
 }
 
 module.exports = {
   buildMasterPrompt,
+  buildSingleSlideRetryPrompt,
+  formatLayoutSelections,
 };

@@ -311,7 +311,7 @@ function generateSlideDeck({
           id: 'content-3',
           type: 'text',
           name: 'Poin Tantangan',
-          content: '• Dinamika industri yang bergerak cepat menuntut inovasi berkelanjutan.\n• Kebutuhan efisiensi operasional tanpa mengorbankan kualitas luaran.\n• Kesenjangan teknologi dan adopsi otomatisasi cerdas pada skala enterprise.\n• Potensi pertumbuhan eksponensial dengan penerapan solusi terintegrasi.',
+          content: `• Penyelarasan kebutuhan strategis dan urgensi penerapan ${titleText}.\n• Kebutuhan efisiensi operasional tanpa mengorbankan kualitas luaran.\n• Kesenjangan metodologi konvensional terhadap target akselerasi modern.\n• Potensi pertumbuhan eksponensial dengan penerapan strategi terintegrasi.`,
           font: bodyFont,
           fontSize: 18,
           color: '#374151',

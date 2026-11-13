@@ -24,6 +24,8 @@ function formatDraft(row, includeSlides = false) {
     customDescription: row.custom_description || '',
     outputLanguage: row.output_language || 'id',
     slideCount: row.slide_count || 5,
+    layoutMode: row.layout_mode || 'auto',
+    layoutSelections: parseJSON(row.layout_selections, null),
     customColors: null,
     currentStep: row.current_step || 1,
     status: row.status || 'in_progress',
@@ -104,16 +106,18 @@ async function createDraft(req, res) {
       updated_at: now,
     };
 
-    // Tambahkan output_language jika didukung skema
-    if (outputLanguage) {
-      draftData.output_language = outputLanguage;
-    }
+    // Tambahkan output_language, layout_mode, layout_selections jika tersedia
+    if (outputLanguage) draftData.output_language = outputLanguage;
+    if (req.body.layoutMode) draftData.layout_mode = req.body.layoutMode;
+    if (req.body.layoutSelections) draftData.layout_selections = JSON.stringify(req.body.layoutSelections);
 
     let { error: insertError } = await supabase.from('drafts').insert(draftData);
 
-    // Jika kolom output_language belum ada di tabel Supabase remote, coba insert tanpa kolom tersebut
-    if (insertError && (insertError.message?.includes('output_language') || insertError.code === 'PGRST204')) {
+    // Fallback jika kolom baru belum ada di Supabase remote
+    if (insertError && (insertError.message?.includes('output_language') || insertError.message?.includes('layout_') || insertError.code === 'PGRST204')) {
       delete draftData.output_language;
+      delete draftData.layout_mode;
+      delete draftData.layout_selections;
       const retry = await supabase.from('drafts').insert(draftData);
       insertError = retry.error;
     }

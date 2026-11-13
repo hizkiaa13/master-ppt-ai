@@ -187,6 +187,80 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
           </div>
         </div>
 
+        {/* Pilihan Mode Penyusunan Layout */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Layout className="w-4 h-4 inline mr-1 text-gray-900" />
+            Bagaimana Anda ingin menyusun layout slide?
+          </label>
+          <p className="text-xs text-gray-500 mb-3">
+            Pilih apakah AI yang menentukan layout secara otomatis atau Anda ingin memilih sendiri
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Opsi 1: Auto Generate AI */}
+            <div
+              onClick={() => setFormData({ ...formData, layoutMode: 'auto' })}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                (formData.layoutMode || 'auto') === 'auto'
+                  ? 'border-gray-900 bg-gray-50 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    (formData.layoutMode || 'auto') === 'auto'
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  <span className="text-base">✨</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-gray-900">Auto Generate AI</h4>
+                    <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                      Default
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    AI akan memilih layout yang paling sesuai secara otomatis berdasarkan judul dan jumlah poin.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Opsi 2: Susun Layout Sendiri */}
+            <div
+              onClick={() => setFormData({ ...formData, layoutMode: 'manual' })}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                formData.layoutMode === 'manual'
+                  ? 'border-gray-900 bg-gray-50 shadow-sm'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    formData.layoutMode === 'manual'
+                      ? 'bg-black text-white'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}
+                >
+                  <Layout className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-gray-900">Susun Layout Sendiri</h4>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Anda memilih layout untuk setiap slide secara manual sebelum AI menghasilkan konten.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Info Box */}
         <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
           <div className="flex items-start gap-3">
@@ -194,9 +268,8 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
             <div>
               <p className="text-sm font-medium text-gray-700">Base Master Hitam & Putih</p>
               <p className="text-xs text-gray-500 mt-1">
-                AI akan membuat master PowerPoint dengan desain minimalis hitam-putih.
-                Layout, font, dan konten akan disesuaikan secara otomatis berdasarkan
-                judul dan deskripsi yang Anda berikan.
+                AI akan membuat master PowerPoint dengan desain minimalis hitam-putih studio.
+                Font, tata letak kartu, dan konten akan disesuaikan secara presisi bebas dari teks template kosong.
               </p>
             </div>
           </div>
@@ -217,7 +290,7 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
             onClick={handleNext}
             className="flex-1 flex items-center justify-center gap-2 py-4 bg-black text-white rounded-xl font-semibold text-lg hover:bg-gray-800 transition-all duration-200 active:scale-[0.98] shadow-lg shadow-black/20"
           >
-            Lanjut ke Generate AI
+            {formData.layoutMode === 'manual' ? 'Pilih Layout per Slide' : 'Lanjut ke Generate AI'}
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>

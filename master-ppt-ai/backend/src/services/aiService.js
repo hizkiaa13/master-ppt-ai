@@ -3,7 +3,7 @@ require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 require("dotenv").config();
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { buildMasterPrompt } = require("../prompts/masterPrompt");
+const { buildMasterPrompt, buildSingleSlideRetryPrompt } = require("../prompts/masterPrompt");
 const {
   selectLayout,
   normalizePoints,
@@ -11,6 +11,7 @@ const {
   generateLayoutReason,
 } = require("../utils/layoutSelector");
 const { validateContentRelevance } = require("../utils/contentValidator");
+const { validateSlideContent, isDummyText } = require("../utils/slideContentValidator");
 const {
   FONT_PAIRINGS,
   getRandomPairing,
@@ -44,7 +45,6 @@ function cleanAndParseJSON(text) {
 
 /**
  * Validasi dan Sanitisasi Placeholder Canva Ipsum Toolkit
- * Memastikan tidak ada nama, alamat, nomor telepon, nomor rekening, email, atau website fiktif yang dikarang
  */
 function validatePlaceholders(aiResult, outputLanguage = 'id') {
   const isEn = outputLanguage === 'en';
@@ -60,7 +60,7 @@ function validatePlaceholders(aiResult, outputLanguage = 'id') {
   let violationsCount = 0;
 
   if (!aiResult || !Array.isArray(aiResult.slides)) {
-    return { isValid: true, violationsCount: 0, result: aiResult };
+    return { isValid: true, violationsCount: 0, sanitizedResult: aiResult };
   }
 
   aiResult.slides.forEach((slide) => {
@@ -99,7 +99,7 @@ function validatePlaceholders(aiResult, outputLanguage = 'id') {
         }
 
         // C. Cek & Ganti Website / Domain
-        const urlPattern = /(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.(com|co\.id|org|net|id|io)\b(?!\/reallygreatsite|\/situssupercanggih)/gi;
+        const urlPattern = /\b(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.(?:com|co\.id|id|org|io|net))\b/g;
         if (urlPattern.test(text)) {
           text = text.replace(urlPattern, (matched) => {
             if (matched.includes('situssupercanggih') || matched.includes('reallygreatsite')) return matched;
@@ -108,33 +108,13 @@ function validatePlaceholders(aiResult, outputLanguage = 'id') {
           });
         }
 
-        // D. Cek & Ganti Nomor Telepon/Ponsel
-        const phonePattern = /(?:\+?62|08|021|\+?1-?)[0-9\s-]{8,16}/g;
-        if (phonePattern.test(text)) {
-          text = text.replace(phonePattern, (matched) => {
-            if (matched.trim() === officialPhone || matched.trim() === officialMobile) return matched;
+        // D. Cek & Ganti Nomor Rekening
+        const bankPattern = /(?:rekening|rek|account\s+no\.?|acc\s+no\.?)\s*[:=]?\s*(\d{8,16})/gi;
+        if (bankPattern.test(text)) {
+          text = text.replace(bankPattern, (match, digits) => {
+            if (digits === officialAccount) return match;
             violationsCount++;
-            return officialPhone;
-          });
-        }
-
-        // E. Cek & Ganti Nomor Rekening / Akun
-        const accPattern = /(rekening|no\. rek|account\s*(?:no|number)?)\s*[:\-]?\s*(\d+)/gi;
-        if (accPattern.test(text)) {
-          text = text.replace(accPattern, (m, p1, p2) => {
-            if (p2 === officialAccount) return m;
-            violationsCount++;
-            return `${p1}: ${officialAccount}`;
-          });
-        }
-
-        // F. Cek & Ganti Handle Medsos
-        const socialPattern = /@([a-zA-Z0-9_]{4,})/g;
-        if (socialPattern.test(text)) {
-          text = text.replace(socialPattern, (matched) => {
-            if (matched === officialSocial) return matched;
-            violationsCount++;
-            return officialSocial;
+            return isEn ? `Account No: ${officialAccount}` : `No. Rekening: ${officialAccount}`;
           });
         }
 
@@ -142,10 +122,26 @@ function validatePlaceholders(aiResult, outputLanguage = 'id') {
       });
     }
 
-    // 3. Khusus slide closing / penutup: pastikan data kontak konsisten dari toolkit
-    if (slide.slideType === 'closing' || slide.layoutId === 'cover-back' || slide.layoutId === 'cover-back-statement') {
-      if (Array.isArray(slide.content) && slide.content.length > 0) {
-        slide.content = slide.content.map(line => {
+    // 3. Khusus slide penutup
+    const isClosing = slide.slideType === 'closing' || (slide.layoutId && slide.layoutId.includes('closing'));
+    if (isClosing && Array.isArray(slide.content)) {
+      if (slide.content.length === 0) {
+        slide.content = isEn
+          ? [
+              `Phone: ${officialPhone}`,
+              `Email: ${officialEmail}`,
+              `Website: ${officialWebsite}`,
+              `Address: ${officialAddress}`,
+            ]
+          : [
+              `Telepon: ${officialPhone}`,
+              `Email: ${officialEmail}`,
+              `Website: ${officialWebsite}`,
+              `Alamat: ${officialAddress}`,
+            ];
+      } else {
+        slide.content = slide.content.map((line) => {
+          if (typeof line !== 'string') return line;
           if (line.toLowerCase().includes('email') || line.includes('@')) {
             return `Email: ${officialEmail}`;
           }
@@ -174,7 +170,9 @@ function validatePlaceholders(aiResult, outputLanguage = 'id') {
 /**
  * Normalisasi dan validasi slide agar mematuhi Auto Layout Design System (Maksimal 15 slide)
  */
-function normalizeSlideDeckLayouts(slides, totalCount) {
+function normalizeSlideDeckLayouts(slides, totalCount, options = {}) {
+  const { layoutMode = 'auto', layoutSelections = [] } = options;
+  const isManual = layoutMode === 'manual' && Array.isArray(layoutSelections) && layoutSelections.length > 0;
   const count = Math.min(Math.max(totalCount || slides.length || 5, 1), 15);
   const sliced = slides.slice(0, count);
 
@@ -187,20 +185,27 @@ function normalizeSlideDeckLayouts(slides, totalCount) {
     }
 
     const calculatedPointCount = content.length;
-    const computedLayout = selectLayout({ ...slide, content, slideNumber }, count, idx);
 
-    const finalLayoutId = slide.layoutId || computedLayout;
+    // Jika manual mode, ambil layout yang dipilih user
+    let finalLayoutId;
+    if (isManual) {
+      const userSel = layoutSelections.find((item) => item.slideNumber === slideNumber);
+      finalLayoutId = userSel?.layoutId || slide.layoutId || 'three-points';
+    } else {
+      const computedLayout = selectLayout({ ...slide, content, slideNumber }, count, idx);
+      finalLayoutId = slide.layoutId || computedLayout;
+    }
 
     let slideType = slide.slideType || "content";
-    if (idx === 0 || finalLayoutId === "cover-front" || finalLayoutId === "cover-front-editorial") {
+    if (idx === 0 || finalLayoutId === "cover-front" || finalLayoutId === "cover-front-editorial" || finalLayoutId.startsWith("cover-p")) {
       slideType = "cover";
-    } else if (idx === count - 1 || finalLayoutId === "cover-back" || finalLayoutId === "cover-back-statement") {
+    } else if (idx === count - 1 || finalLayoutId === "cover-back" || finalLayoutId === "cover-back-statement" || finalLayoutId.startsWith("closing-p")) {
       slideType = "closing";
-    } else if (finalLayoutId === "table-of-contents") {
+    } else if (finalLayoutId === "table-of-contents" || finalLayoutId.startsWith("agenda-")) {
       slideType = "agenda";
-    } else if (finalLayoutId === "chart" || finalLayoutId === "chart-stat") {
+    } else if (finalLayoutId === "chart" || finalLayoutId === "chart-stat" || finalLayoutId.startsWith("chart-p")) {
       slideType = "chart";
-    } else if (finalLayoutId === "testimonial" || finalLayoutId === "testimonial-cards") {
+    } else if (finalLayoutId === "testimonial" || finalLayoutId === "testimonial-cards" || finalLayoutId.startsWith("testi-p")) {
       slideType = "testimonial";
     }
 
@@ -218,46 +223,50 @@ function normalizeSlideDeckLayouts(slides, totalCount) {
     };
   });
 
-  // Validasi agar tidak ada layout sama > 2 kali berturut-turut
-  normalized = validateConsecutiveLayouts(normalized);
+  // Hanya jalankan validateConsecutiveLayouts jika BUKAN manual mode
+  if (!isManual) {
+    normalized = validateConsecutiveLayouts(normalized);
+  }
 
   return normalized;
 }
 
 /**
- * Fallback cerdas yang dinamis 100% mengikuti judul user
+ * Buat slide pengganti yang substantif, kontekstual, dan bebas dummy text
  */
-function getRuleBasedFallback({ title, description, outputLanguage = "id", slideCount = 5 }) {
-  const isEn = outputLanguage === "en";
-  const count = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
-  const safeTitle = title || (isEn ? "Strategic Master Presentation" : "Presentasi Master Strategis");
-  const safeDesc = description || (isEn ? "Actionable Framework and Core Directives" : "Rencana Strategis dan Panduan Implementasi");
+function createDynamicSubstantiveSlide(slideNumber, layoutId, userTitle, userDescription, outputLanguage = 'id') {
+  const isEn = (outputLanguage || 'id').toLowerCase() === 'en';
+  const safeTitle = userTitle || (isEn ? 'Strategic Focus' : 'Fokus Strategis');
 
-  const defaultPairing = FONT_PAIRINGS[0]; // Montserrat + Open Sans
-
-  const dynamicCatalog = [
-    {
-      slideType: "cover",
-      layoutId: "cover-front",
+  // Tentukan judul dan konten berdasarkan slideNumber
+  if (slideNumber === 1) {
+    return {
+      slideNumber: 1,
+      slideType: 'cover',
+      layoutId: layoutId || 'cover-front',
       pointCount: 0,
-      layoutReason: `Slide pembuka memuat judul utama "${safeTitle}"`,
+      layoutReason: isEn ? `Opening cover presenting ${safeTitle}` : `Slide pembuka memuat judul utama ${safeTitle}`,
       title: safeTitle,
-      subtitle: safeDesc,
+      subtitle: userDescription ? userDescription.slice(0, 100) : (isEn ? 'Strategic Executive Framework' : 'Panduan Strategis & Kerangka Eksekusi'),
       content: [],
-    },
-    {
-      slideType: "agenda",
-      layoutId: "table-of-contents",
+    };
+  }
+
+  if (slideNumber === 2 && (layoutId === 'table-of-contents' || layoutId.startsWith('agenda-'))) {
+    return {
+      slideNumber: 2,
+      slideType: 'agenda',
+      layoutId: layoutId || 'table-of-contents',
       pointCount: 4,
-      layoutReason: `Daftar isi dan agenda pembahasan "${safeTitle}"`,
-      title: isEn ? "Table of Contents" : "Agenda Pembahasan",
-      subtitle: isEn ? `Key areas of ${safeTitle}` : `4 Topik Utama ${safeTitle}`,
+      layoutReason: isEn ? `Agenda overview for ${safeTitle}` : `Agenda pembahasan utama ${safeTitle}`,
+      title: isEn ? 'Table of Contents' : 'Agenda Pembahasan',
+      subtitle: isEn ? `Structured overview of ${safeTitle}` : `Rangkaian pembahasan ${safeTitle}`,
       content: isEn
         ? [
-            `01. Current Context & Objectives of ${safeTitle}`,
-            `02. Core Strategic Pillars & Framework`,
-            `03. Actionable Implementation Steps`,
-            `04. Performance Metrics & Expected Outcomes`,
+            `01. Context & Core Objectives of ${safeTitle}`,
+            `02. Methodological Architecture & Strategy`,
+            `03. Actionable Tactical Implementation`,
+            `04. Performance Metrics & Measurable Outcomes`,
           ]
         : [
             `01. Latar Belakang & Urgensi ${safeTitle}`,
@@ -265,128 +274,140 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id", slide
             `03. Rencana Eksekusi & Tahapan Praktis`,
             `04. Indikator Keberhasilan & Dampak Kinerja`,
           ],
+    };
+  }
+
+  // Slide konten substantif
+  const topicsId = [
+    {
+      title: `Pilar Utama ${safeTitle}`,
+      points: [
+        `Penyelarasan Strategis: Mengarahkan seluruh sumber daya dan kapabilitas tim pada inisiatif prioritas guna mempercepat pencapaian target.`,
+        `Standarisasi Operasional: Membangun alur kerja terstruktur untuk memastikan konsistensi kualitas luaran di setiap lini pelaksanaan.`,
+        `Optimalisasi Berkelanjutan: Memantau metrik performa secara berkala guna melakukan adaptasi taktik berbasis data riil.`,
+      ],
     },
     {
-      slideType: "content",
-      layoutId: "comparison",
-      pointCount: 2,
-      layoutReason: `Perbandingan pendekatan dalam implementasi "${safeTitle}"`,
-      title: isEn ? "Conventional Approach vs New Strategy" : "Pendekatan Konvensional vs Strategi Baru",
-      subtitle: isEn ? `Evaluating transformational impact for ${safeTitle}` : `Evaluasi efisiensi implementasi ${safeTitle}`,
-      content: isEn
-        ? [
-            `Conventional Method: Manual coordination with fragmented execution and limited measurable outcomes.`,
-            `Target Strategy: Data-driven automation accelerating execution with verified precision and efficiency.`,
-          ]
-        : [
-            `Pendekatan Konvensional: Koordinasi manual yang terfragmentasi dengan keterbatasan pengukuran hasil.`,
-            `Strategi Baru: Eksekusi berbasis data terarah yang mengoptimalkan kecepatan dan akurasi implementasi.`,
-          ],
+      title: `Langkah Eksekusi ${safeTitle}`,
+      points: [
+        `Fase Penyiapan: Menyiapkan infrastruktur pendukung, dokumentasi prosedur, dan alokasi tim sebelum pelaksanaan dimulai.`,
+        `Fase Implementasi: Meluncurkan inisiatif terarah secara bertahap dengan pengawasan kualitas berkala untuk meminimalkan risiko.`,
+        `Fase Evaluasi: Menganalisis hasil penerapan menggunakan indikator kinerja kunci guna menyempurnakan efisiensi proses.`,
+      ],
     },
     {
-      slideType: "content",
-      layoutId: "three-points",
-      pointCount: 3,
-      layoutReason: `Tiga pilar utama penggerak keberhasilan "${safeTitle}"`,
-      title: isEn ? "Core Pillars of Execution" : "Pilar Utama Pelaksanaan",
-      subtitle: isEn ? `Foundational drivers for ${safeTitle}` : `Fondasi keberhasilan ${safeTitle}`,
-      content: isEn
-        ? [
-            `Priority Focus: Directing resources toward high-impact initiatives that accelerate results.`,
-            `Standardized Workflow: Ensuring consistent elite quality across all operational touchpoints.`,
-            `Continuous Tracking: Real-time visibility and adaptive adjustments based on concrete feedback.`,
-          ]
-        : [
-            `Fokus Prioritas: Mengarahkan sumber daya pada inisiatif bernilai dampak tertinggi untuk akselerasi hasil.`,
-            `Standarisasi Mutu: Memastikan konsistensi kualitas eksekusi di setiap alur kerja operasional.`,
-            `Pemantauan Metrik Kinerja: Evaluasi berkala berbasis data akurat untuk penyesuaian taktik operasional secara adaptif.`,
-          ],
-    },
-    {
-      slideType: "content",
-      layoutId: "steps",
-      pointCount: 4,
-      layoutReason: `Tahapan pelaksanaan terstruktur untuk "${safeTitle}"`,
-      title: isEn ? "Implementation Roadmap" : "Tahapan Implementasi",
-      subtitle: isEn ? `Sequential milestones to execute ${safeTitle}` : `Langkah sistematis penerapan ${safeTitle}`,
-      content: isEn
-        ? [
-            `Step 1: Alignment & Readiness Assessment`,
-            `Step 2: Architecture & Setup`,
-            `Step 3: Strategic Rollout`,
-            `Step 4: Review & Scaling`,
-          ]
-        : [
-            `Tahap 1: Penyelarasan Kebutuhan & Analisis Awal`,
-            `Tahap 2: Penyusunan Kerangka Kerja & Setup`,
-            `Tahap 3: Peluncuran Strategis & Uji Lapangan`,
-            `Tahap 4: Evaluasi Hasil & Ekspansi Skala`,
-          ],
-    },
-    {
-      slideType: "chart",
-      layoutId: "chart",
-      pointCount: 2,
-      layoutReason: `Target capaian dan dampak terukur dari "${safeTitle}"`,
-      title: isEn ? "Impact & Target Outcomes" : "Target Capaian & Dampak",
-      subtitle: isEn ? `Measurable return on ${safeTitle}` : `Indikator keberhasilan terukur ${safeTitle}`,
-      content: isEn
-        ? [
-            `Expected operational efficiency improvement of up to 45% within initial execution cycle.`,
-            `Consistent quality attainment with high satisfaction ratings across key stakeholders.`,
-          ]
-        : [
-            `Peningkatan efisiensi operasional terukur hingga 45% dalam periode implementasi awal.`,
-            `Pencapaian target kualitas berstandar tinggi dengan kepuasan menyeluruh dari pemangku kepentingan.`,
-          ],
-    },
-    {
-      slideType: "closing",
-      layoutId: "cover-back",
-      pointCount: 3,
-      layoutReason: `Slide penutup dan call to action untuk "${safeTitle}"`,
-      title: isEn ? "Execute Your Strategy" : "Mulai Implementasi Anda",
-      subtitle: isEn ? `Consult and collaborate on ${safeTitle}` : `Konsultasi & sesi diskusi lanjutan mengenai ${safeTitle}`,
-      content: isEn
-        ? [
-            "Email: hello@reallygreatsite.com",
-            "Website: www.reallygreatsite.com",
-            "Address: 123 Anywhere St., Any City",
-          ]
-        : [
-            "Email: halo@situssupercanggih.co.id",
-            "Website: www.situssupercanggih.co.id",
-            "Alamat: Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310",
-          ],
+      title: `Indikator Capaian ${safeTitle}`,
+      points: [
+        `Efisiensi Operasional: Menargetkan penghematan waktu siklus kerja hingga 35% melalui otomatisasi dan penyederhanaan alur.`,
+        `Kualitas & Akurasi: Menjaga standar kepuasan pemangku kepentingan di atas 90% dengan verifikasi mutu berlapis.`,
+      ],
     },
   ];
 
-  let selected = [];
-  if (count === 1) {
-    selected = [dynamicCatalog[0]];
-  } else if (count === 2) {
-    selected = [dynamicCatalog[0], dynamicCatalog[6]];
-  } else if (count <= 5) {
-    const middle = [dynamicCatalog[1], dynamicCatalog[2], dynamicCatalog[3], dynamicCatalog[4]].slice(0, count - 2);
-    selected = [dynamicCatalog[0], ...middle, dynamicCatalog[6]];
-  } else {
-    const extra = [];
-    for (let i = 1; i <= count - 2; i++) {
-      const source = dynamicCatalog[(i % (dynamicCatalog.length - 2)) + 1];
-      extra.push({
-        ...source,
-        title: `${source.title} (${i})`,
-      });
+  const topicsEn = [
+    {
+      title: `Core Strategic Pillars of ${safeTitle}`,
+      points: [
+        `Strategic Alignment: Directing core resources and team capabilities toward priority initiatives to accelerate target milestones.`,
+        `Operational Standardization: Building structured workflows to guarantee consistent elite delivery across all execution channels.`,
+        `Continuous Optimization: Tracking key performance indicators in real-time to implement data-driven tactical adjustments.`,
+      ],
+    },
+    {
+      title: `Tactical Execution Plan for ${safeTitle}`,
+      points: [
+        `Readiness Phase: Establishing foundation architectures, operational guidelines, and resource allocation before rollout.`,
+        `Implementation Phase: Deploying targeted initiatives iteratively with quality safeguards to mitigate operational risks.`,
+        `Synthesis Phase: Analyzing outcome metrics against primary benchmarks to refine long-term efficiency and impact.`,
+      ],
+    },
+    {
+      title: `Key Performance Benchmarks`,
+      points: [
+        `Operational Efficiency: Target a 35% reduction in cycle duration through workflow streamlining and automated toolchains.`,
+        `Quality Standards: Sustain stakeholder satisfaction ratings above 90% through rigorous multi-tier verification.`,
+      ],
+    },
+  ];
+
+  const topics = isEn ? topicsEn : topicsId;
+  const topicData = topics[(slideNumber - 2) % topics.length] || topics[0];
+
+  return {
+    slideNumber,
+    slideType: 'content',
+    layoutId: layoutId || 'three-points',
+    pointCount: topicData.points.length,
+    layoutReason: isEn ? `Substantive content supporting ${safeTitle}` : `Pembahasan mendalam mendukung ${safeTitle}`,
+    title: topicData.title,
+    subtitle: isEn ? `Actionable insight on ${safeTitle}` : `Penjelasan konkret ${safeTitle}`,
+    content: topicData.points,
+  };
+}
+
+/**
+ * Fallback cerdas yang dinamis 100% mengikuti judul user dan layout pilihan
+ */
+function getRuleBasedFallback({
+  title,
+  description,
+  outputLanguage = "id",
+  slideCount = 5,
+  layoutMode = "auto",
+  layoutSelections = [],
+}) {
+  const isEn = (outputLanguage || "id").toLowerCase() === "en";
+  const count = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
+  const safeTitle = title || (isEn ? "Strategic Master Presentation" : "Presentasi Master Strategis");
+  const safeDesc = description || (isEn ? "Actionable Framework and Core Directives" : "Rencana Strategis dan Panduan Implementasi");
+  const isManual = layoutMode === "manual" && Array.isArray(layoutSelections) && layoutSelections.length > 0;
+
+  const defaultPairing = FONT_PAIRINGS[0]; // Montserrat + Open Sans
+
+  const generatedSlides = [];
+  for (let i = 1; i <= count; i++) {
+    let layoutId = "three-points";
+    if (isManual) {
+      const userSel = layoutSelections.find((item) => item.slideNumber === i);
+      if (userSel) layoutId = userSel.layoutId;
+    } else {
+      if (i === 1) layoutId = "cover-front";
+      else if (i === count) layoutId = "cover-back";
+      else if (i === 2 && count >= 4) layoutId = "table-of-contents";
+      else if (i === 3) layoutId = "comparison";
+      else if (i === 4) layoutId = "three-points";
+      else if (i === 5) layoutId = "steps";
+      else if (i === 6) layoutId = "chart";
+      else layoutId = "three-points";
     }
-    selected = [dynamicCatalog[0], ...extra, dynamicCatalog[6]];
+
+    if (i === count && (layoutId === "cover-back" || layoutId.startsWith("closing-"))) {
+      generatedSlides.push({
+        slideNumber: i,
+        slideType: "closing",
+        layoutId,
+        pointCount: 0,
+        layoutReason: isEn ? `Closing slide for ${safeTitle}` : `Slide penutup dan call to action untuk ${safeTitle}`,
+        title: isEn ? "Initiate Your Strategy" : "Mulai Langkah Transformasi Anda",
+        subtitle: isEn ? `Consult and collaborate on ${safeTitle}` : `Konsultasi & sesi diskusi lanjutan mengenai ${safeTitle}`,
+        content: isEn
+          ? [
+              "Email: hello@reallygreatsite.com",
+              "Website: www.reallygreatsite.com",
+              "Address: 123 Anywhere St., Any City",
+            ]
+          : [
+              "Email: halo@situssupercanggih.co.id",
+              "Website: www.situssupercanggih.co.id",
+              "Alamat: Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310",
+            ],
+      });
+    } else {
+      generatedSlides.push(createDynamicSubstantiveSlide(i, layoutId, safeTitle, safeDesc, outputLanguage));
+    }
   }
 
-  const assigned = selected.map((s, idx) => ({
-    ...s,
-    slideNumber: idx + 1,
-  }));
-
-  const normalizedSlides = normalizeSlideDeckLayouts(assigned, count);
+  const normalizedSlides = normalizeSlideDeckLayouts(generatedSlides, count, { layoutMode, layoutSelections });
 
   const layouts = normalizedSlides.map((s) => ({
     slideNumber: s.slideNumber,
@@ -416,10 +437,7 @@ function getRuleBasedFallback({ title, description, outputLanguage = "id", slide
 
 /**
  * Main AI generation function for Base Master (Hitam & Putih)
- * Menerapkan alur 3 tahap:
- * 1. Gemini API dengan prompt standar
- * 2. Jika skor < 60%: Gemini API retry dengan prompt anti-drift tegas
- * 3. Jika tetap < 60% atau error: Fallback rule-based dinamis ketat mengikuti judul
+ * Menerapkan alur 3 tahap dengan validasi slide bebas dummy text & retry per slide
  */
 async function generateCopywriting(input) {
   const {
@@ -427,15 +445,25 @@ async function generateCopywriting(input) {
     description = "",
     outputLanguage = "id",
     slideCount = 5,
+    layoutMode = "auto",
+    layoutSelections = [],
   } = input;
 
   const effectiveSlideCount = Math.min(Math.max(parseInt(slideCount) || 5, 1), 15);
+  const isEn = (outputLanguage || "id").toLowerCase() === "en";
 
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === "your_gemini_api_key_here" || apiKey.trim() === "") {
     console.warn("GEMINI_API_KEY tidak dikonfigurasi. Menggunakan rule-based fallback.");
-    return getRuleBasedFallback({ title, description, outputLanguage, slideCount: effectiveSlideCount });
+    return getRuleBasedFallback({
+      title,
+      description,
+      outputLanguage,
+      slideCount: effectiveSlideCount,
+      layoutMode,
+      layoutSelections,
+    });
   }
 
   const configuredModel = process.env.GEMINI_MODEL;
@@ -449,8 +477,6 @@ async function generateCopywriting(input) {
 
   const modelsToTry = [...new Set(candidateModels)];
 
-  let lastError = null;
-
   for (const modelName of modelsToTry) {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -458,21 +484,23 @@ async function generateCopywriting(input) {
         {
           model: modelName,
           generationConfig: {
-            temperature: 0.65, // Lebih fokus dan konsisten
+            temperature: 0.65,
             responseMimeType: "application/json",
           },
         },
-        { timeout: 30000 }
+        { timeout: 35000 }
       );
 
       // ─── PERCOBAAN 1: Prompt Standar ─────────────────────────
-      console.log(`[AI Generation] Percobaan 1: Mengirim prompt standar ke ${modelName}...`);
+      console.log(`[AI Generation] Percobaan 1: Mengirim prompt ke ${modelName} (mode: ${layoutMode})...`);
       const prompt = buildMasterPrompt({
         title,
         description,
         outputLanguage,
         slideCount: effectiveSlideCount,
         retryContext: false,
+        layoutMode,
+        layoutSelections,
       });
 
       const result = await model.generateContent(prompt);
@@ -487,16 +515,17 @@ async function generateCopywriting(input) {
       let relevance = validateContentRelevance(parsed, title);
       console.log(`[AI Validation] Percobaan 1 Relevansi: ${relevance.relevanceScore}% (${relevance.relevantSlides}/${relevance.totalSlides} slide cocok)`);
 
-      // ─── PERCOBAAN 2: Jika skor < 60%, Lakukan Retry Tegas ─────
+      // ─── PERCOBAAN 2: Jika relevansi < 60%, Jalankan Retry Deck Penuh ─────
       if (!relevance.isRelevant) {
         console.warn(`[AI Validation] Relevansi rendah (${relevance.relevanceScore}% < 60%). Percobaan 2: Menjalankan retry dengan instruksi anti-drift tegas...`);
-        
         const retryPrompt = buildMasterPrompt({
           title,
           description,
           outputLanguage,
           slideCount: effectiveSlideCount,
           retryContext: true,
+          layoutMode,
+          layoutSelections,
         });
 
         try {
@@ -507,7 +536,6 @@ async function generateCopywriting(input) {
           if (retryParsed.slides && Array.isArray(retryParsed.slides) && retryParsed.slides.length > 0) {
             const retryRelevance = validateContentRelevance(retryParsed, title);
             console.log(`[AI Validation] Percobaan 2 Relevansi: ${retryRelevance.relevanceScore}% (${retryRelevance.relevantSlides}/${retryRelevance.totalSlides} slide cocok)`);
-
             if (retryRelevance.relevanceScore >= relevance.relevanceScore) {
               parsed = retryParsed;
               relevance = retryRelevance;
@@ -518,29 +546,87 @@ async function generateCopywriting(input) {
         }
       }
 
-      // ─── PERCOBAAN 3: Jika setelah retry tetap < 60%, aktifkan Fallback Dinamis ─
-      if (!relevance.isRelevant) {
-        console.warn(`[AI Validation] Hasil AI tetap tidak relevan (${relevance.relevanceScore}% < 60%). Percobaan 3: Beralih ke Fallback Rule-Based 100% Mengikuti Judul.`);
-        return getRuleBasedFallback({
-          title,
-          description,
-          outputLanguage,
-          slideCount: effectiveSlideCount,
-        });
-      }
-
       // Potong ke tepat effectiveSlideCount
       if (parsed.slides.length > effectiveSlideCount) {
         parsed.slides = parsed.slides.slice(0, effectiveSlideCount);
       }
 
       const slideCountResult = Math.min(parsed.slides.length, effectiveSlideCount);
-      parsed.slides = normalizeSlideDeckLayouts(parsed.slides, slideCountResult);
+      parsed.slides = normalizeSlideDeckLayouts(parsed.slides, slideCountResult, { layoutMode, layoutSelections });
+
+      // ─── VALIDASI KONTEN SLIDE & RETRY PER-SLIDE (BEBAS DUMMY TEXT) ─────
+      let slideValidation = validateSlideContent(parsed.slides, title, outputLanguage);
+      if (!slideValidation.isValid) {
+        console.warn(`[Slide Content Validator] Ditemukan ${slideValidation.invalidSlides.length} slide invalid/dummy. Menjalankan targeted single-slide retry...`);
+
+        for (const invalidInfo of slideValidation.invalidSlides) {
+          let fixedSlide = null;
+          const targetIndex = parsed.slides.findIndex((s) => s.slideNumber === invalidInfo.slideNumber);
+          if (targetIndex === -1) continue;
+
+          const currentSlide = parsed.slides[targetIndex];
+
+          // Lakukan retry hingga 2 kali untuk slide bermasalah
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              console.log(`[Slide Retry] Mencoba perbaiki Slide ${invalidInfo.slideNumber} (Percobaan ${attempt})...`);
+              const singlePrompt = buildSingleSlideRetryPrompt({
+                slideNumber: invalidInfo.slideNumber,
+                layoutId: currentSlide.layoutId || 'three-points',
+                currentTitle: currentSlide.title || '',
+                userTitle: title,
+                userDescription: description,
+                outputLanguage,
+                reasons: invalidInfo.reasons,
+              });
+
+              const singleRes = await model.generateContent(singlePrompt);
+              const singleText = (await singleRes.response).text();
+              const singleParsed = cleanAndParseJSON(singleText);
+
+              if (singleParsed && singleParsed.title && !isDummyText(singleParsed.title)) {
+                if (Array.isArray(singleParsed.content) && singleParsed.content.length > 0) {
+                  const hasDummy = singleParsed.content.some((c) => isDummyText(c));
+                  if (!hasDummy) {
+                    fixedSlide = {
+                      ...currentSlide,
+                      ...singleParsed,
+                      slideNumber: invalidInfo.slideNumber,
+                      layoutId: currentSlide.layoutId, // pertahankan layout
+                    };
+                    console.log(`✅ [Slide Retry] Slide ${invalidInfo.slideNumber} berhasil diperbaiki melalui AI retry!`);
+                    break;
+                  }
+                }
+              }
+            } catch (singleErr) {
+              console.warn(`[Slide Retry] Gagal pada percobaan ${attempt} untuk slide ${invalidInfo.slideNumber}:`, singleErr.message);
+            }
+          }
+
+          // Jika setelah 2 kali retry AI masih gagal, gantikan dengan slide substantif rule-based
+          if (!fixedSlide) {
+            console.log(`⚠️ [Slide Retry] Menggunakan dynamic substantive generator untuk Slide ${invalidInfo.slideNumber}.`);
+            fixedSlide = createDynamicSubstantiveSlide(
+              invalidInfo.slideNumber,
+              currentSlide.layoutId,
+              title,
+              description,
+              outputLanguage
+            );
+          }
+
+          parsed.slides[targetIndex] = fixedSlide;
+        }
+
+        // Re-normalisasi setelah perbaikan slide
+        parsed.slides = normalizeSlideDeckLayouts(parsed.slides, slideCountResult, { layoutMode, layoutSelections });
+      }
 
       // Validasi dan Sanitisasi Placeholder Text Toolkit (Canva Ipsum)
       const placeholderCheck = validatePlaceholders(parsed, outputLanguage);
       if (!placeholderCheck.isValid) {
-        console.log(`[Placeholder Sanitizer] Berhasil membersihkan dan mengganti ${placeholderCheck.violationsCount} placeholder acak dengan data resmi Canva Ipsum.`);
+        console.log(`[Placeholder Sanitizer] Berhasil membersihkan dan mengganti ${placeholderCheck.violationsCount} placeholder acak.`);
       }
       parsed = placeholderCheck.sanitizedResult;
 
@@ -560,7 +646,9 @@ async function generateCopywriting(input) {
         body: bodyFont,
         rationale:
           parsed.designRecommendation.fonts?.rationale ||
-          "Kombinasi font profesional dan elegan dari text toolkit untuk master hitam-putih.",
+          (isEn
+            ? "Curated professional font pairing for executive black-and-white master deck."
+            : "Kombinasi font profesional dan elegan dari text toolkit untuk master hitam-putih."),
       };
 
       delete parsed.designRecommendation.colors;
@@ -574,43 +662,33 @@ async function generateCopywriting(input) {
         layoutReason: s.layoutReason,
       }));
 
-      console.log(`✅ Berhasil menghasilkan ${parsed.slides.length} slide 100% relevan menggunakan Gemini (${modelName})`);
+      console.log(`✅ Berhasil menghasilkan ${parsed.slides.length} slide 100% bebas dummy text menggunakan Gemini (${modelName})`);
 
       return {
         success: true,
-        data: {
-          slides: parsed.slides,
-          designRecommendation: {
-            fonts: parsed.designRecommendation.fonts,
-            layouts: parsed.designRecommendation.layouts,
-          },
-        },
-        modelUsed: modelName,
-        isFallback: false,
+        data: parsed,
       };
-    } catch (error) {
-      lastError = error;
-      console.warn(`Gemini AI (${modelName}) gagal:`, error.message);
+    } catch (err) {
+      console.warn(`[AI Generation] Gagal menggunakan model ${modelName}:`, err.message);
     }
   }
 
-  console.error("Semua percobaan model Gemini AI gagal, beralih ke rule-based fallback:", lastError?.message);
-  const fallbackResult = getRuleBasedFallback({
+  // Jika seluruh model Gemini gagal, aktifkan rule-based fallback cerdas
+  console.warn("Semua model Gemini gagal. Mengaktifkan Rule-Based Fallback dinamis.");
+  return getRuleBasedFallback({
     title,
     description,
     outputLanguage,
     slideCount: effectiveSlideCount,
+    layoutMode,
+    layoutSelections,
   });
-
-  return {
-    ...fallbackResult,
-    fallbackReason: lastError?.message || "Layanan AI Gemini sedang tidak dapat dijangkau",
-  };
 }
 
 module.exports = {
   generateCopywriting,
-  cleanAndParseJSON,
   getRuleBasedFallback,
   normalizeSlideDeckLayouts,
+  validatePlaceholders,
+  createDynamicSubstantiveSlide,
 };

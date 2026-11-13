@@ -1,6 +1,6 @@
 # 🚀 Master PPT AI — Generator PowerPoint Cerdas Berbasis AI
 
-Web aplikasi cerdas untuk merancang dan memproduksi **Master PowerPoint (.pptx)** berstandar studio profesional dengan copywriting materi siap pakai, kurasi tipografi modern, kepatuhan data placeholder Canva Ipsum, dan pustaka **189 layout katalog asli** dari *Base Layout Presentasi (One Piece Design Studio)*.
+Web aplikasi cerdas untuk merancang dan memproduksi **Master PowerPoint (.pptx)** berstandar studio profesional dengan copywriting materi siap pakai, kurasi tipografi modern, kepatuhan data placeholder Canva Ipsum, pustaka **189 layout katalog asli** dari *Base Layout Presentasi (One Piece Design Studio)*, serta pilihan **Auto AI vs Manual Layout Mode**.
 
 **🌐 Production URL:** [https://master-ppt-ai.vercel.app](https://master-ppt-ai.vercel.app)  
 **📦 Repository GitHub:** [https://github.com/hizkiaa13/master-ppt-ai](https://github.com/hizkiaa13/master-ppt-ai)
@@ -9,8 +9,20 @@ Web aplikasi cerdas untuk merancang dan memproduksi **Master PowerPoint (.pptx)*
 
 ## 🌟 Fitur Utama & Pembaruan Terkini
 
-### 1. 📐 Bank Layout Lengkap (189 Layout Asli Tanpa Distandarisasi)
-Diadaptasi secara presisi dari katalog master 202 halaman *Base Layout Presentasi (One Piece Design Studio)*. Seluruh layout mempertahankan geometri persentase asli (0–100%), posisi badge, nomor kartu, dan rasio visualnya tanpa dipersempit menjadi 25 template:
+### 1. 🎛️ Dua Mode Penyusunan Layout (Auto AI vs Susun Layout Sendiri)
+Sebelum men-generate materi, pengguna dapat menentukan pendekatan pembuatan slide sesuai kebutuhan:
+- **Auto Generate AI (Default)**: AI secara otomatis memilih kombinasi layout yang paling proporsional dari katalog 189 layout berdasarkan topik, konteks narasi, dan jumlah poin.
+- **Susun Layout Sendiri (Manual Layout Mode)**: Pengguna memiliki kendali penuh untuk memilih tata letak per slide pada antarmuka visual (Cover Front, Table of Contents, 1–6 Poin, Perbandingan/Comparison, Roadmap Steps, Grafik/Chart, Testimoni, Gambar & Teks, Cover Back). AI **menghormati 100%** pilihan tata letak pengguna dan fokus memproduksi copywriting substantif yang pas dengan jumlah poin layout tersebut.
+
+### 2. 🛡️ Sistem Validasi Slide & Anti-Dummy Text Ketat
+Mencegah terjadinya slide kosong, dummy text bahasa asing, atau template generik pada output presentasi maupun berkas PPTX:
+- **Deteksi Pola Dummy Otomatis**: Mendeteksi dan memblokir frasa seperti *"Lorem ipsum"*, *"Your Title Here"*, *"Write a short description"*, *"Add a main point"*, *"Poin strategi X untuk implementasi berkelanjutan"*, dsb.
+- **Targeted Single-Slide Retry**: Jika terdapat slide yang kosong atau mengandung dummy text, sistem secara cerdas melakukan retry **hanya pada slide yang bermasalah** ke Google Gemini, tanpa merombak slide lain yang sudah valid.
+- **Dynamic Substantive Fallback**: Jika setelah retry AI belum memberikan luaran sempurna, sistem otomatis menyusun poin materi konkret yang relevan langsung dengan judul dan deskripsi pengguna.
+- **Peringatan Sebelum Ekspor**: Jika pengguna mencoba mengunduh deck yang memiliki slide kosong/dummy, sistem menampilkan modal peringatan dan menandai thumbnail slide terkait dengan badge peringatan merah.
+
+### 3. 📐 Bank Layout Lengkap (189 Layout Asli Tanpa Distandarisasi)
+Diadaptasi secara presisi dari katalog master 202 halaman *Base Layout Presentasi (One Piece Design Studio)*. Seluruh layout mempertahankan geometri persentase asli (0–100%), posisi badge, nomor kartu, dan rasio visualnya:
 - **Cover Depan (15 varian: `cover-p04` – `cover-p18`)**: Terpusat, editorial kiri, foto split, oval pill, badge perusahaan, majalah, dsb.
 - **Daftar Isi / Agenda (4 varian: `agenda-p20` – `agenda-p23`)**: Grid 2 kolom 01–06, daftar vertikal 01–08, foto kanan + 5 topik, list panah bertingkat.
 - **1 Poin (22 varian: `point1-p25` – `point1-p46`)**: Huge statement, split kiri, kolase foto, banner horizontal, pill badge, callout fakta, number highlight, dsb.
@@ -24,14 +36,14 @@ Diadaptasi secara presisi dari katalog master 202 halaman *Base Layout Presentas
 - **Cover Belakang (23 varian: `closing-p180` – `closing-p202`)**: Thank You sentral, statement + kontak, oval Thank You, icon grid kontak, social pills, minimal goodbye, dsb.
 - **Template Legacy (25 varian)**: Tetap didukung penuh sebagai alias untuk kompatibilitas draft sebelumnya.
 
-### 2. 🖤 Desain Base Master (Hitam & Putih / Black & White Studio Concept)
+### 4. 🖤 Desain Base Master (Hitam & Putih / Black & White Studio Concept)
 - **Latar Belakang**: Putih bersih (`#FFFFFF`) di seluruh slide untuk menjaga kejernihan visual presentasi eksekutif.
 - **Tipografi Utama (Heading)**: Hitam pekat (`#000000` / `#111827`) dengan bobot tebal dan kontras tinggi.
 - **Tipografi Sekunder (Body/Content)**: Abu-abu gelap elegan (`#1F2937` / `#374151`).
 - **Garis Aksen & Kartu**: Garis minimalis hitam pekat (`#000000`) dan border kartu netral (`#E5E7EB`).
 - **Bebas Warna Acak**: Menghilangkan warna-warna pastel/campuran yang tidak sesuai standar korporat.
 
-### 3. 📋 Kepatuhan Data Placeholder (Canva Ipsum Toolkit)
+### 5. 📋 Kepatuhan Data Placeholder (Canva Ipsum Toolkit)
 Seluruh materi demonstrasi, nama, kontak, dan alamat terintegrasi dengan toolkit resmi 18 halaman (*Copy of Toolkit Teks-Teks Placeholder Canva Ipsum*):
 - **Alamat Indonesia**: Wajib menggunakan `Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310`.
 - **Alamat Internasional**: Wajib menggunakan `123 Anywhere St., Any City`.
@@ -39,24 +51,23 @@ Seluruh materi demonstrasi, nama, kontak, dan alamat terintegrasi dengan toolkit
 - **Modal Sisipkan Placeholder**: Tombol modal *"📋 Sisipkan Placeholder"* pada toolbar editor memudahkan penyisipan nama orang, institusi, kontak, dan alamat resmi ke slide secara instan.
 - **Auto-Sanitizer Backend**: Otomatis mengganti nama/alamat fiktif liar dengan entitas resmi Canva Ipsum.
 
-### 4. 🎯 Relevansi Konten Ketat & Copywriting Siap Pakai
-- **Bebas Kalimat Template**: Melarang keras kalimat generik seperti *"Poin strategi X untuk implementasi berkelanjutan"*.
+### 6. 🎯 Copywriting Substantif & Relevansi Ketat
 - **Substansi Nyata**: Setiap poin berformat `[Nama Subtopik]: [Penjelasan konkret 1-2 kalimat informatif mengenai mekanisme/manfaatnya]`.
 - **Validasi Relevansi Dwibahasa**: Evaluasi keterkaitan judul dengan materi slide dengan kamus padanan lintas bahasa (ID ↔ EN). Jika relevansi rendah, sistem melakukan auto-retry terarah atau fallback cerdas.
 
-### 5. 🌐 Dukungan Penuh Multi-Bahasa (🇮🇩 ID & 🇬🇧 EN)
+### 7. 🌐 Dukungan Penuh Multi-Bahasa (🇮🇩 ID & 🇬🇧 EN)
 - **Pilihan Bahasa Fleksibel**: Tombol switcher *🇮🇩 Bahasa Indonesia* dan *🇬🇧 English* pada form awal generator.
 - **AI Prompt Khusus Bahasa Inggris**: Jika bahasa Inggris dipilih, instruksi prompt, aturan anti-drift, dan contoh *few-shot JSON* otomatis menggunakan 100% Bahasa Inggris murni.
 - **Renderer UI Dwibahasa**: Subjudul bawaan, info presenter, label kartu testimoni, chart, dan pesan penutup otomatis menyesuaikan bahasa yang dipilih.
 
-### 6. 🛠️ Preview & Editor Slide Interaktif
+### 8. 🛠️ Preview & Editor Slide Interaktif
 - **Kanvas Slide Berasio 16:9**: Representasi akurat sesuai output PowerPoint modern.
 - **Drag & Resize Bebas**: Didukung `react-rnd` dengan fitur *Snap to Grid* (grid 10px / 20px) dan panduan perataan (*Alignment Guidelines*).
 - **Text Formatting Toolbar**: Kontrol tebal (bold), miring (italic), garis bawah (underline), perataan teks (kiri, tengah, kanan), dan ukuran font.
-- **Dropdown Layout Dinamis**: Akses cepat ke seluruh 189 layout yang dikelompokkan rapi per kategori (Cover, Agenda, 1–6 Poin, Chart, Testimoni, Penutup).
+- **Dropdown Layout Dinamis**: Akses cepat ke seluruh 189 layout yang dikelompokkan rapi per kategori.
 - **Sistem Draft & Auto-Save**: Otomatis tersimpan secara periodik, shortcut `Ctrl+S` / `Cmd+S`, serta perlindungan *beforeunload*.
 
-### 7. 📥 Ekspor PPTX Native (PptxGenJS v4)
+### 9. 📥 Ekspor PPTX Native (PptxGenJS v4)
 - Menghasilkan file `.pptx` beresolusi 16:9 yang siap dipresentasikan di Microsoft PowerPoint, Google Slides, maupun Apple Keynote.
 - Mendukung ekspor langsung dari browser (client-side) maupun backend API dengan styling dan positioning presisi.
 
@@ -66,9 +77,9 @@ Seluruh materi demonstrasi, nama, kontak, dan alamat terintegrasi dengan toolkit
 
 ```mermaid
 flowchart LR
-    A["Step 1: Tema & Topik<br/>(Judul, Deskripsi, Bahasa, Jumlah Slide)"] --> B["Step 2: Generate AI<br/>(Proses Copywriting & Layouting Cerdas)"]
+    A["Step 1: Tema & Topik<br/>(Judul, Deskripsi, Bahasa, Jumlah Slide, Mode Layout)"] --> B["Step 2: Generate AI / Susun Layout<br/>(Pilih Layout Manual jika Mode Manual, lalu Generate)"]
     B --> C["Step 3: Preview & Edit<br/>(Ubah Teks, Ganti Layout, Drag & Resize)"]
-    C --> D["Step 4: Download PPTX<br/>(Unduh File Presentasi Siap Pakai)"]
+    C --> D["Step 4: Download PPTX<br/>(Validasi Bebas Dummy & Unduh Berkas Siap Pakai)"]
 ```
 
 ---
@@ -95,33 +106,36 @@ flowchart LR
 master-ppt-ai/
 ├── backend/
 │   ├── src/
-│   │   ├── controllers/          # Controller API (aiController, pptxController, dsb.)
-│   │   ├── prompts/              # Master prompt generator (Prompt ID & EN dwibahasa)
-│   │   ├── routes/               # Routing Express (ai.js, pptx.js, auth.js, dsb.)
-│   │   ├── services/             # Layanan AI (aiService) & database
-│   │   └── utils/                # Bank data & logika pembantu
-│   │       ├── layoutCatalog.js      # 189 Layout katalog lengkap dari PDF
-│   │       ├── layoutSelector.js     # Engine pemilihan layout dinamis
-│   │       ├── layoutTemplates.js    # Definisi template gabungan (214 layout)
-│   │       ├── placeholderToolkit.js # Kamus lengkap Canva Ipsum (ID & EN)
-│   │       ├── contentValidator.js   # Validator relevansi dwibahasa
-│   │       └── textToolkit.js        # Pasangan font pairing terkurasi
+│   │   ├── controllers/              # Controller API (aiController, pptxController, dsb.)
+│   │   ├── prompts/                  # Master prompt generator (Auto AI & Manual Layout prompts)
+│   │   ├── routes/                   # Routing Express (ai.js, pptx.js, auth.js, dsb.)
+│   │   ├── services/                 # Layanan AI (aiService dengan targeted retry per slide)
+│   │   └── utils/                    # Bank data & logika pembantu
+│   │       ├── slideContentValidator.js  # Validasi slide & deteksi dummy text
+│   │       ├── layoutCatalog.js          # 189 Layout katalog lengkap dari PDF
+│   │       ├── layoutSelector.js         # Engine pemilihan layout dinamis
+│   │       ├── layoutTemplates.js        # Definisi template gabungan (214 layout)
+│   │       ├── placeholderToolkit.js     # Kamus lengkap Canva Ipsum (ID & EN)
+│   │       ├── contentValidator.js       # Validator relevansi dwibahasa
+│   │       └── textToolkit.js            # Pasangan font pairing terkurasi
 │   ├── .env.example
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── components/           # Komponen UI (SlidePreview, Toolbar, Modal, dsb.)
-│   │   ├── pages/                # Halaman utama (Generator, Dashboard, History, dsb.)
-│   │   ├── services/             # Client API (ai.js, pptx.js, auth.js)
-│   │   └── utils/                # Utilitas frontend
-│   │       ├── layoutCatalog.js      # ES Module katalog 189 layout
-│   │       ├── layoutRenderer.js     # Engine render layout ke placeholder
-│   │       ├── aiMapper.js           # Mapper respons AI ke slide editor
-│   │       ├── placeholderToolkit.js # Kamus placeholder Canva Ipsum (Client)
-│   │       └── pptxGenerator.js      # Generator PPTX client-side
+│   │   ├── components/               # Komponen UI
+│   │   │   ├── Generator/            # ThemeSelector, ManualLayoutSelector, SlidePreview, dsb.
+│   │   ├── pages/                    # Halaman utama (Generator, Dashboard, History, dsb.)
+│   │   ├── services/                 # Client API (ai.js, pptx.js, auth.js)
+│   │   └── utils/                    # Utilitas frontend
+│   │       ├── slideContentValidator.js  # Validasi sebelum ekspor PPTX
+│   │       ├── layoutCatalog.js          # ES Module katalog 189 layout
+│   │       ├── layoutRenderer.js         # Engine render layout ke placeholder
+│   │       ├── aiMapper.js               # Mapper respons AI ke slide editor
+│   │       ├── placeholderToolkit.js     # Kamus placeholder Canva Ipsum (Client)
+│   │       └── pptxGenerator.js          # Generator PPTX client-side
 │   ├── vite.config.js
 │   └── package.json
-├── vercel.json                   # Konfigurasi deployment Vercel monorepo
+├── vercel.json                       # Konfigurasi deployment Vercel monorepo
 └── README.md
 ```
 
@@ -131,7 +145,7 @@ master-ppt-ai/
 
 | Metode | Endpoint | Deskripsi | Akses |
 |---|---|---|---|
-| `POST` | `/api/ai/generate` | Menghasilkan struktur slide, copywriting, dan rekomendasi layout AI | Publik (Rate-limited) |
+| `POST` | `/api/ai/generate` | Menghasilkan struktur slide, copywriting, dan rekomendasi layout AI (Mendukung Auto & Manual Layout) | Publik (Rate-limited) |
 | `POST` | `/api/pptx/generate` | Menyusun master deck PowerPoint dan menyimpan ke database | JWT |
 | `GET` | `/api/pptx/history` | Mengambil daftar riwayat master presentasi pengguna | JWT |
 | `POST` | `/api/pptx/finalize/:id` | Finalisasi dan produksi berkas PPTX siap unduh | JWT |

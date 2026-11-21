@@ -18,13 +18,13 @@ function ProtectedRoute({ children }) {
   
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-brand-gradient flex items-center justify-center glow-brand animate-pulse">
-            <span className="text-white font-bold text-lg">M</span>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-gray-900 flex items-center justify-center text-white shadow-xs">
+            <span className="font-bold text-base">M</span>
           </div>
-          <div className="w-6 h-6 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
-          <p className="text-dark-500 text-sm">Memuat...</p>
+          <div className="w-5 h-5 border-2 border-gray-200 border-t-gray-900 rounded-full animate-spin" />
+          <p className="text-gray-500 text-xs">Memuat aplikasi...</p>
         </div>
       </div>
     );

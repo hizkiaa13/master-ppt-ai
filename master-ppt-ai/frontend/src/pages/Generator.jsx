@@ -60,18 +60,18 @@ function SaveIndicator({ isSaving, lastSavedAt, draftId }) {
     <div
       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
         isSaving
-          ? 'bg-brand-500/10 border-brand-500/20 text-brand-400'
-          : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-sm'
+          ? 'bg-gray-100 border-gray-200 text-gray-700'
+          : 'bg-gray-100 border-gray-200 text-gray-800 shadow-2xs'
       }`}
     >
       {isSaving ? (
         <>
-          <span className="w-3 h-3 rounded-full border border-brand-400/40 border-t-brand-400 animate-spin" />
+          <span className="w-3 h-3 rounded-full border border-gray-400 border-t-gray-900 animate-spin" />
           Menyimpan draft...
         </>
       ) : (
         <>
-          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+          <CheckCircle className="w-3.5 h-3.5 text-gray-800" />
           <span>Draft tersimpan{timeStr ? ` (${timeStr})` : ''}</span>
         </>
       )}
@@ -656,16 +656,13 @@ export default function Generator() {
           )}
 
           {isGenerating ? (
-            <div className="glass-card p-12 rounded-3xl border border-white/10 text-center space-y-6 bg-dark-900/80 shadow-2xl max-w-2xl mx-auto">
-              <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border-4 border-brand-500/20 animate-ping" />
-                <div className="w-16 h-16 rounded-full bg-brand-gradient flex items-center justify-center shadow-lg shadow-brand-500/30">
-                  <Sparkles className="w-8 h-8 text-white animate-spin-slow" />
-                </div>
+            <div className="bg-white p-10 sm:p-12 rounded-2xl border border-gray-200 text-center space-y-6 shadow-sm max-w-xl mx-auto">
+              <div className="w-16 h-16 rounded-2xl bg-gray-900 mx-auto flex items-center justify-center text-white shadow-xs">
+                <Sparkles className="w-8 h-8 text-white animate-spin-slow" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">AI Sedang Menyusun Slide Master...</h3>
-                <p className="text-sm text-dark-400">
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-bold text-gray-900">AI Sedang Menyusun Slide Master...</h3>
+                <p className="text-xs text-gray-500 max-w-md mx-auto">
                   Menganalisis topik &ldquo;{formData.customTitle}&rdquo;,{' '}
                   {formData.layoutMode === 'manual'
                     ? 'menerapkan layout yang Anda tentukan,'
@@ -673,8 +670,8 @@ export default function Generator() {
                   dan memastikan copywriting bebas dummy text ({formData.outputLanguage === 'en' ? 'Bahasa Inggris' : 'Bahasa Indonesia'}).
                 </p>
               </div>
-              <div className="w-full bg-dark-800 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-brand-gradient h-2.5 rounded-full w-3/4 animate-pulse" />
+              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div className="bg-gray-900 h-2 rounded-full w-3/4 animate-pulse" />
               </div>
             </div>
           ) : formData.layoutMode === 'manual' && !generatedData ? (
@@ -692,14 +689,14 @@ export default function Generator() {
             />
           ) : generatedData && slides.length > 0 ? (
             <div className="space-y-6 max-w-2xl mx-auto">
-              <div className="glass-card p-6 rounded-2xl border border-white/10 bg-dark-900/70 space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-200 pb-4">
                   <div>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 mb-1">
-                      <CheckCircle className="w-3.5 h-3.5" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200 mb-1">
+                      <CheckCircle className="w-3.5 h-3.5 text-gray-900" />
                       Hasil AI Siap ({slides.length} Slide)
                     </span>
-                    <h2 className="text-xl font-bold text-white">Rekomendasi Master Telah Dibuat</h2>
+                    <h2 className="text-xl font-bold text-gray-900">Rekomendasi Master Telah Dibuat</h2>
                   </div>
                   <button
                     type="button"
@@ -714,27 +711,27 @@ export default function Generator() {
                 {/* Info Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Font Pairing */}
-                  <div className="p-4 rounded-xl bg-dark-800/80 border border-white/5 space-y-2">
-                    <div className="flex items-center gap-2 text-brand-400 font-semibold text-xs">
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                    <div className="flex items-center gap-2 text-gray-900 font-semibold text-xs">
                       <Type className="w-4 h-4" />
                       <span>Font Pairing AI (Text Toolkit)</span>
                     </div>
                     <div>
-                      <p className="text-base font-bold text-white">{recommendations?.fonts?.heading || 'Montserrat'}</p>
-                      <p className="text-xs text-dark-400">Heading Font</p>
+                      <p className="text-base font-bold text-gray-900">{recommendations?.fonts?.heading || 'Montserrat'}</p>
+                      <p className="text-xs text-gray-500">Heading Font</p>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-dark-200">{recommendations?.fonts?.body || 'Open Sans'}</p>
-                      <p className="text-xs text-dark-400">Body Font</p>
+                      <p className="text-sm font-semibold text-gray-700">{recommendations?.fonts?.body || 'Open Sans'}</p>
+                      <p className="text-xs text-gray-500">Body Font</p>
                     </div>
-                    <p className="text-[11px] text-dark-400 italic pt-1 border-t border-white/5">
+                    <p className="text-[11px] text-gray-500 italic pt-1 border-t border-gray-200">
                       &ldquo;{recommendations?.fonts?.rationale}&rdquo;
                     </p>
                   </div>
 
                   {/* Slide Structure */}
-                  <div className="p-4 rounded-xl bg-dark-800/80 border border-white/5 space-y-2">
-                    <div className="flex items-center gap-2 text-cyan-400 font-semibold text-xs">
+                  <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2">
+                    <div className="flex items-center gap-2 text-gray-900 font-semibold text-xs">
                       <Layers className="w-4 h-4" />
                       <span>Struktur Slide ({slides.length} Slide)</span>
                     </div>
@@ -742,19 +739,19 @@ export default function Generator() {
                       {slides.map((s, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between text-xs py-1 px-2 rounded bg-dark-900/60 border border-white/5"
+                          className="flex items-center justify-between text-xs py-1 px-2 rounded bg-white border border-gray-200"
                         >
-                          <span className="font-medium text-white truncate max-w-[170px]">
+                          <span className="font-medium text-gray-900 truncate max-w-[170px]">
                             #{idx + 1} {s.title || s.name || `Slide ${idx + 1}`}
                           </span>
-                          <span className="text-[10px] uppercase font-mono text-dark-400">{s.layoutId || s.layout}</span>
+                          <span className="text-[10px] uppercase font-mono text-gray-500">{s.layoutId || s.layout}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <button
                     type="button"
                     onClick={() => setStep(1)}

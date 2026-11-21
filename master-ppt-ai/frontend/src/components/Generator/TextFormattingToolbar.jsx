@@ -298,7 +298,7 @@ function TextFormattingToolbar({ selectedElement, onUpdate, onClose, onOpenPlace
           <button
             type="button"
             onClick={onOpenPlaceholderModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300 transition-colors shadow-xs"
             title="Buka Toolkit Teks Placeholder (Canva Ipsum)"
           >
             <span>📋 Sisipkan Placeholder</span>

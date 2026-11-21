@@ -310,16 +310,16 @@ function LayoutCatalogModal({
   });
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in">
-      <div className="bg-dark-900 border border-white/15 rounded-3xl max-w-4xl w-full h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-xs animate-fade-in">
+      <div className="bg-white border border-gray-200 rounded-2xl max-w-4xl w-full h-[88vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header Modal */}
-        <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between flex-shrink-0 bg-dark-950/60">
+        <div className="p-5 sm:p-6 border-b border-gray-200 flex items-center justify-between flex-shrink-0 bg-gray-50">
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-brand-500/20 text-brand-300 border border-brand-500/30">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-gray-200 text-gray-800">
                 {isCover ? 'Slide #1 (Cover)' : isClosing ? `Slide #${slideNumber} (Penutup)` : `Slide #${slideNumber} (Materi Isi)`}
               </span>
-              <h3 className="text-lg sm:text-xl font-bold text-white">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                 {isCover
                   ? 'Pilih Layout Cover Depan'
                   : isClosing
@@ -327,7 +327,7 @@ function LayoutCatalogModal({
                   : 'Pilih Layout Materi & Pembahasan'}
               </h3>
             </div>
-            <p className="text-xs text-dark-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               {isCover
                 ? 'Slide pertama khusus menampilkan judul utama dan identitas presentasi.'
                 : isClosing
@@ -338,14 +338,14 @@ function LayoutCatalogModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-white flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 flex items-center justify-center transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Filter Bar & Search */}
-        <div className="p-4 border-b border-white/10 bg-dark-900/90 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between flex-shrink-0">
+        <div className="p-4 border-b border-gray-200 bg-white flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between flex-shrink-0">
           {/* Category Tabs (hanya untuk slide tengah) */}
           {!isCover && !isClosing && (
             <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none flex-1">
@@ -354,10 +354,10 @@ function LayoutCatalogModal({
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                     activeTab === tab.id
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25'
-                      : 'bg-dark-800 text-dark-300 hover:text-white hover:bg-dark-700'
+                      ? 'bg-gray-900 text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   {tab.label}
@@ -368,21 +368,21 @@ function LayoutCatalogModal({
 
           {/* Search Box */}
           <div className="relative sm:w-64 flex-shrink-0">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-dark-400" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
             <input
               type="text"
               placeholder="Cari nama atau halaman (mis: p48)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-dark-800 border border-white/10 text-white text-xs placeholder-dark-400 focus:outline-none focus:border-brand-500"
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 text-xs placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-900 focus:bg-white"
             />
           </div>
         </div>
 
         {/* Layout Grid */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-dark-950/40">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50/50">
           {filteredList.length === 0 ? (
-            <div className="col-span-full text-center py-12 text-dark-400 text-sm">
+            <div className="col-span-full text-center py-12 text-gray-500 text-sm">
               Tidak ada layout yang cocok dengan pencarian &ldquo;{searchQuery}&rdquo;.
             </div>
           ) : (
@@ -396,43 +396,43 @@ function LayoutCatalogModal({
                     onSelectLayout(slideNumber, layout.id);
                     onClose();
                   }}
-                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between group ${
+                  className={`p-4 rounded-xl border text-left cursor-pointer flex flex-col justify-between group transition-all ${
                     isSelected
-                      ? 'bg-brand-500/10 border-brand-500 ring-2 ring-brand-500/30 shadow-lg'
-                      : 'bg-dark-900 border-white/10 hover:border-white/30 hover:bg-dark-850'
+                      ? 'bg-gray-50 border-2 border-gray-900 ring-1 ring-gray-900/10 shadow-xs'
+                      : 'bg-white border-gray-200 hover:border-gray-400 hover:shadow-xs'
                   }`}
                 >
                   <div>
                     {/* Header Card */}
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-dark-800 text-brand-300 border border-white/5">
+                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
                         {layout.pageRef}
                       </span>
-                      <span className="text-[10px] font-semibold text-dark-400">
+                      <span className="text-[10px] font-semibold text-gray-500">
                         {layout.points > 0 ? `${layout.points} Poin` : 'Cover / Kontak'}
                       </span>
                     </div>
 
                     {/* Judul Layout */}
-                    <h4 className="text-sm font-bold text-white group-hover:text-brand-300 transition-colors line-clamp-2">
+                    <h4 className="text-sm font-bold text-gray-900 transition-colors line-clamp-2">
                       {layout.name}
                     </h4>
-                    <p className="text-xs text-dark-400 mt-1 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-2 leading-relaxed">
                       {layout.desc}
                     </p>
                   </div>
 
                   {/* Footer Card */}
-                  <div className="pt-3 mt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                    <span className="font-mono text-[10px] text-dark-500 truncate max-w-[150px]">
+                  <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span className="font-mono text-[10px] text-gray-400 truncate max-w-[150px]">
                       {layout.id}
                     </span>
                     {isSelected ? (
-                      <span className="inline-flex items-center gap-1 text-green-400 font-bold text-[11px]">
+                      <span className="inline-flex items-center gap-1 text-gray-900 font-bold text-[11px]">
                         <Check className="w-3.5 h-3.5 stroke-[3]" /> Terpilih
                       </span>
                     ) : (
-                      <span className="text-brand-400 opacity-0 group-hover:opacity-100 font-semibold text-[11px] transition-opacity">
+                      <span className="text-gray-900 opacity-0 group-hover:opacity-100 font-semibold text-[11px] transition-opacity">
                         Pilih Layout →
                       </span>
                     )}
@@ -444,9 +444,9 @@ function LayoutCatalogModal({
         </div>
 
         {/* Footer Info */}
-        <div className="p-3.5 px-6 border-t border-white/10 bg-dark-950/80 flex items-center justify-between text-xs text-dark-400 flex-shrink-0">
+        <div className="p-3.5 px-6 border-t border-gray-200 bg-white flex items-center justify-between text-xs text-gray-500 flex-shrink-0">
           <span>
-            Menampilkan <strong className="text-white">{filteredList.length}</strong> pilihan layout berstandar studio.
+            Menampilkan <strong className="text-gray-900">{filteredList.length}</strong> pilihan layout berstandar studio.
           </span>
           <button
             type="button"
@@ -517,15 +517,15 @@ export default function ManualLayoutSelector({
 
       {/* Header Info */}
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 border border-gray-200 text-gray-800 text-xs font-semibold">
           <Sliders className="w-3.5 h-3.5" />
           <span>Mode Susun Layout Sendiri (189 Studio Catalog)</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
           Pilih Layout untuk {slideCount} Slide Anda
         </h2>
-        <p className="text-sm text-dark-400 max-w-xl mx-auto">
-          Tentukan tata letak setiap slide dengan rapi. Slide 1 khusus <strong className="text-white">Cover Depan</strong>, slide terakhir khusus <strong className="text-white">Cover Penutup</strong>, dan slide tengah untuk <strong className="text-white">Materi & Data</strong>.
+        <p className="text-sm text-gray-600 max-w-xl mx-auto">
+          Tentukan tata letak setiap slide dengan rapi. Slide 1 khusus <strong className="text-gray-900">Cover Depan</strong>, slide terakhir khusus <strong className="text-gray-900">Cover Penutup</strong>, dan slide tengah untuk <strong className="text-gray-900">Materi & Data</strong>.
         </p>
       </div>
 
@@ -540,26 +540,18 @@ export default function ManualLayoutSelector({
           return (
             <div
               key={slideNumber}
-              className={`p-5 rounded-2xl border transition-all ${
+              className={`p-5 rounded-xl border transition-all ${
                 isCover
-                  ? 'bg-dark-900/90 border-blue-500/40 shadow-lg'
+                  ? 'bg-white border-2 border-gray-900 shadow-xs'
                   : isClosing
-                  ? 'bg-dark-900/90 border-emerald-500/40 shadow-lg'
-                  : 'bg-dark-900/60 border-white/10 hover:border-white/20'
+                  ? 'bg-white border-2 border-gray-900 shadow-xs'
+                  : 'bg-white border border-gray-200 hover:border-gray-400 shadow-xs'
               }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 {/* Info Slide & Status */}
                 <div className="flex items-start sm:items-center gap-3.5">
-                  <div
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center font-mono font-bold text-base flex-shrink-0 shadow-inner ${
-                      isCover
-                        ? 'bg-blue-600 text-white shadow-blue-600/30'
-                        : isClosing
-                        ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                        : 'bg-dark-800 text-white border border-white/10'
-                    }`}
-                  >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0 bg-gray-900 text-white">
                     #{slideNumber}
                   </div>
                   <div>
@@ -567,10 +559,10 @@ export default function ManualLayoutSelector({
                       <span
                         className={`text-xs uppercase font-mono tracking-wider font-bold ${
                           isCover
-                            ? 'text-blue-400'
+                            ? 'text-gray-900'
                             : isClosing
-                            ? 'text-emerald-400'
-                            : 'text-dark-400'
+                            ? 'text-gray-900'
+                            : 'text-gray-600'
                         }`}
                       >
                         {isCover
@@ -579,18 +571,18 @@ export default function ManualLayoutSelector({
                           ? (isEn ? `Slide #${slideNumber} (Closing Only)` : `Slide #${slideNumber} (Khusus Cover Penutup)`)
                           : (isEn ? `Slide #${slideNumber} (Content)` : `Slide #${slideNumber} (Materi & Pembahasan)`)}
                       </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-dark-800 border border-white/10 text-dark-300">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-100 border border-gray-200 text-gray-700">
                         {layoutDetail.pageRef}
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-dark-800 border border-white/10 text-dark-300">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-700">
                         {layoutDetail.points > 0 ? `${layoutDetail.points} Poin` : 'Cover / Kontak'}
                       </span>
                     </div>
 
-                    <p className="text-sm font-bold text-white mt-0.5">
+                    <p className="text-sm font-bold text-gray-900 mt-0.5">
                       {layoutDetail.name}
                     </p>
-                    <p className="text-xs text-dark-400 mt-0.5 hidden sm:block">
+                    <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">
                       {layoutDetail.desc}
                     </p>
                   </div>
@@ -602,7 +594,7 @@ export default function ManualLayoutSelector({
                   <select
                     value={item.layoutId}
                     onChange={(e) => handleSelectLayout(slideNumber, e.target.value)}
-                    className="px-3.5 py-2.5 rounded-xl bg-dark-800 border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-inner sm:w-64"
+                    className="px-3.5 py-2 rounded-lg bg-white border border-gray-300 text-gray-900 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-gray-900 cursor-pointer shadow-xs sm:w-64"
                   >
                     {isCover ? (
                       /* KHUSUS SLIDE 1 (HANYA COVER) */
@@ -748,9 +740,9 @@ export default function ManualLayoutSelector({
                     type="button"
                     onClick={() => setModalSlideNumber(slideNumber)}
                     title="Buka Penjelajah Katalog Visual Lengkap"
-                    className="px-3 py-2 rounded-xl bg-dark-800 hover:bg-dark-700 border border-white/10 text-dark-200 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap shadow-sm"
+                    className="btn-secondary px-3 py-2 text-xs flex items-center justify-center gap-1.5 whitespace-nowrap"
                   >
-                    <Search className="w-3.5 h-3.5 text-brand-400" />
+                    <Search className="w-3.5 h-3.5 text-gray-500" />
                     <span>Katalog Visual</span>
                   </button>
                 </div>
@@ -761,11 +753,11 @@ export default function ManualLayoutSelector({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/10">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200">
         <button
           type="button"
           onClick={onBack}
-          className="btn-secondary w-full sm:w-auto flex items-center justify-center gap-2 py-3 px-6 text-sm"
+          className="btn-secondary w-full sm:w-auto flex items-center justify-center gap-2 py-2.5 px-5 text-sm font-medium"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali ke Tema & Topik</span>
@@ -774,9 +766,9 @@ export default function ManualLayoutSelector({
         <button
           type="button"
           onClick={onGenerate}
-          className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 py-3.5 px-8 text-sm font-bold shadow-xl shadow-brand-500/30"
+          className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 py-3 px-6 text-sm font-semibold"
         >
-          <Sparkles className="w-4 h-4 text-white" />
+          <Sparkles className="w-4 h-4" />
           <span>Generate Konten dengan Layout Ini</span>
           <ArrowRight className="w-4 h-4" />
         </button>

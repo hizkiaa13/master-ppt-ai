@@ -472,26 +472,26 @@ export default function Generator() {
 
       {/* Validation Warning Modal Sebelum Ekspor PPTX */}
       {showWarningModal && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-dark-900 border border-amber-500/30 rounded-2xl p-6 sm:p-7 max-w-lg w-full text-left shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 max-w-lg w-full text-left shadow-xl space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Peringatan Kualitas Slide</h3>
-                <p className="text-xs text-dark-300">
+                <h3 className="text-lg font-bold text-gray-900">Peringatan Kualitas Slide</h3>
+                <p className="text-xs text-gray-500">
                   Ditemukan {validationWarnings.length} slide yang masih kosong atau berupa dummy text.
                 </p>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-dark-950/80 border border-white/10 max-h-48 overflow-y-auto space-y-2 text-xs">
+            <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 max-h-48 overflow-y-auto space-y-2 text-xs">
               {validationWarnings.map((item, idx) => (
-                <div key={idx} className="border-b border-white/5 pb-2 last:border-b-0 last:pb-0">
-                  <span className="font-semibold text-amber-300">Slide #{item.slideNumber}:</span>{' '}
-                  <span className="text-white font-medium">{item.slideTitle}</span>
-                  <ul className="list-disc list-inside text-dark-400 mt-1 space-y-0.5">
+                <div key={idx} className="border-b border-gray-200 pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-semibold text-gray-900">Slide #{item.slideNumber}:</span>{' '}
+                  <span className="text-gray-800 font-medium">{item.slideTitle}</span>
+                  <ul className="list-disc list-inside text-gray-600 mt-1 space-y-0.5">
                     {item.reasons.map((r, rIdx) => (
                       <li key={rIdx}>{r}</li>
                     ))}
@@ -500,11 +500,11 @@ export default function Generator() {
               ))}
             </div>
 
-            <p className="text-xs text-dark-400">
+            <p className="text-xs text-gray-500">
               Anda disarankan mengedit slide tersebut terlebih dahulu agar hasil presentasi 100% siap pakai.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2 border-t border-white/10">
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => {
@@ -518,7 +518,7 @@ export default function Generator() {
               <button
                 type="button"
                 onClick={() => handleFinalizeAndDownload(true)}
-                className="w-full sm:w-auto btn-secondary py-2.5 px-4 text-xs text-dark-300 hover:text-white"
+                className="w-full sm:w-auto btn-secondary py-2.5 px-4 text-xs text-gray-600 hover:text-gray-900"
               >
                 Tetap Unduh dengan Peringatan
               </button>
@@ -547,10 +547,10 @@ export default function Generator() {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="text-center sm:text-left space-y-1 flex-1">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Base Master <span className="gradient-text">PowerPoint Cerdas</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+            Base Master PowerPoint Cerdas
           </h1>
-          <p className="text-dark-400 text-sm sm:text-base">
+          <p className="text-gray-600 text-xs sm:text-sm">
             Hasilkan master PowerPoint hitam-putih berkelas studio dengan copywriting AI bebas dummy text dan pilihan mode layout.
           </p>
         </div>
@@ -575,7 +575,7 @@ export default function Generator() {
           <button
             type="button"
             onClick={() => triggerExit('/dashboard')}
-            className="btn-ghost text-xs py-2 px-2.5 flex items-center gap-1 text-dark-400"
+            className="btn-ghost text-xs py-2 px-2.5 flex items-center gap-1 text-gray-500 hover:text-gray-900"
             title="Kembali ke Dashboard"
           >
             <X className="w-3.5 h-3.5" />
@@ -584,8 +584,8 @@ export default function Generator() {
       </div>
 
       {/* Stepper Progress Bar (4 STEPS) */}
-      <div className="glass-card p-4 rounded-2xl border border-white/10 bg-dark-900/60 shadow-xl">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {STEPS.map((s) => {
             const isCompleted = step > s.id;
             const isCurrent = step === s.id;
@@ -597,30 +597,30 @@ export default function Generator() {
             return (
               <div
                 key={s.id}
-                className={`flex items-center gap-2.5 p-2.5 rounded-xl transition-all ${
+                className={`flex items-center gap-2.5 p-2 rounded-lg transition-all ${
                   isCurrent
-                    ? 'bg-brand-500/15 border border-brand-500/40 text-brand-300'
+                    ? 'bg-gray-900 text-white shadow-xs'
                     : isCompleted
-                    ? 'text-green-400 bg-green-500/10 border border-green-500/20'
-                    : 'text-dark-500 opacity-60'
+                    ? 'bg-gray-100 text-gray-900 border border-gray-200'
+                    : 'text-gray-400 bg-gray-50 border border-gray-100'
                 }`}
               >
                 <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                  className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
                     isCurrent
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30'
+                      ? 'bg-white text-gray-900'
                       : isCompleted
-                      ? 'bg-green-500 text-white'
-                      : 'bg-dark-800 text-dark-400'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-200 text-gray-500'
                   }`}
                 >
-                  {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : s.id}
+                  {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : s.id}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] uppercase font-mono tracking-wider opacity-60">
+                  <span className={`text-[9px] uppercase font-mono tracking-wider ${isCurrent ? 'text-gray-300' : 'text-gray-400'}`}>
                     Step {s.id}
                   </span>
-                  <span className="text-xs font-semibold truncate text-white">
+                  <span className={`text-xs font-semibold truncate ${isCurrent ? 'text-white' : isCompleted ? 'text-gray-900' : 'text-gray-400'}`}>
                     {labelText}
                   </span>
                 </div>
@@ -777,41 +777,41 @@ export default function Generator() {
             </div>
           ) : (
             /* Mode Auto: Tampilkan Konfirmasi Generate */
-            <div className="glass-card p-8 rounded-3xl border border-white/10 text-center space-y-6 bg-dark-900/60 shadow-xl max-w-2xl mx-auto">
-              <div className="w-16 h-16 rounded-2xl bg-brand-gradient mx-auto flex items-center justify-center shadow-lg shadow-brand-500/30">
-                <Sparkles className="w-8 h-8 text-white" />
+            <div className="bg-white p-8 rounded-2xl border border-gray-200 text-center space-y-6 shadow-xs max-w-xl mx-auto">
+              <div className="w-14 h-14 rounded-xl bg-gray-900 mx-auto flex items-center justify-center text-white shadow-xs">
+                <Sparkles className="w-7 h-7 text-white" />
               </div>
 
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-white">Siap Generate Master AI</h3>
-                <p className="text-sm text-dark-400">
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-bold text-gray-900">Siap Generate Master AI</h3>
+                <p className="text-xs text-gray-500 max-w-md mx-auto">
                   AI akan menentukan variasi layout paling pas, menyusun copywriting materi nyata bebas dummy text, dan menerapkan tipografi Base Master.
                 </p>
               </div>
 
               {/* Summary box */}
-              <div className="p-4 rounded-xl bg-dark-800/80 border border-white/10 text-left text-xs space-y-2.5">
+              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-left text-xs space-y-2.5">
                 <div className="flex justify-between">
-                  <span className="text-dark-400">Judul Presentasi:</span>
-                  <span className="text-white font-semibold truncate max-w-[280px]">{formData.customTitle}</span>
+                  <span className="text-gray-500">Judul Presentasi:</span>
+                  <span className="text-gray-900 font-semibold truncate max-w-[280px]">{formData.customTitle}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-dark-400">Mode Layout:</span>
-                  <span className="text-blue-400 font-semibold">Auto Generate AI</span>
+                  <span className="text-gray-500">Mode Layout:</span>
+                  <span className="text-gray-900 font-semibold">Auto Generate AI</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-dark-400">Desain:</span>
-                  <span className="text-white font-medium">Base Master (Hitam & Putih)</span>
+                  <span className="text-gray-500">Desain:</span>
+                  <span className="text-gray-900 font-medium">Base Master (Hitam & Putih)</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-dark-400">Bahasa Output:</span>
-                  <span className="text-brand-300 font-semibold">
+                  <span className="text-gray-500">Bahasa Output:</span>
+                  <span className="text-gray-900 font-semibold">
                     {formData.outputLanguage === 'en' ? '🇬🇧 Bahasa Inggris (English)' : '🇮🇩 Bahasa Indonesia'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-dark-300">Jumlah Slide:</span>
-                  <span className="text-white font-semibold">{formData.slideCount || 5} Slide</span>
+                  <span className="text-gray-500">Jumlah Slide:</span>
+                  <span className="text-gray-900 font-semibold">{formData.slideCount || 5} Slide</span>
                 </div>
               </div>
 
@@ -819,9 +819,9 @@ export default function Generator() {
                 <button
                   type="button"
                   onClick={handleGenerateAI}
-                  className="w-full btn-primary py-3.5 text-base flex items-center justify-center gap-2 shadow-lg shadow-brand-500/30 font-semibold"
+                  className="w-full btn-primary py-3 text-sm font-semibold flex items-center justify-center gap-2"
                 >
-                  <Sparkles className="w-5 h-5" />
+                  <Sparkles className="w-4 h-4 text-white" />
                   <span>Mulai Generate dengan AI</span>
                 </button>
               </div>
@@ -830,7 +830,7 @@ export default function Generator() {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="text-xs text-dark-400 hover:text-white inline-flex items-center gap-1"
+                  className="text-xs text-gray-500 hover:text-gray-900 inline-flex items-center gap-1 font-medium"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Kembali ke Detail Topik</span>
@@ -860,110 +860,123 @@ export default function Generator() {
 
       {/* ─── STEP 4: Download PPTX ─── */}
       {step === 4 && (
-        <div className="space-y-8 animate-fade-in max-w-2xl mx-auto">
-          <div className="glass-card p-8 rounded-3xl border border-white/15 bg-dark-900/60 shadow-2xl text-center space-y-6">
-            <div className="w-16 h-16 rounded-2xl bg-brand-gradient mx-auto flex items-center justify-center shadow-xl shadow-brand-500/30">
-              <Download className="w-8 h-8 text-white" />
+        <div className="space-y-6 animate-fade-in max-w-[500px] mx-auto">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm text-center space-y-5">
+            {/* Thumbnail Preview Slide 1 */}
+            <div className="w-full aspect-[16/9] bg-gray-50 rounded-xl border border-gray-200 p-4 flex flex-col justify-center items-center text-center shadow-xs">
+              <span className="text-[10px] uppercase font-mono tracking-wider text-gray-400 font-bold mb-1">
+                Slide 1 (Cover Depan)
+              </span>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900 line-clamp-2 px-2">
+                {formData.customTitle || slides[0]?.title || 'Judul Presentasi'}
+              </h3>
+              {slides[0]?.subtitle && (
+                <p className="text-[11px] text-gray-500 mt-1 line-clamp-1 px-4">
+                  {slides[0]?.subtitle}
+                </p>
+              )}
+              <span className="text-[10px] text-gray-400 mt-2 font-medium">
+                ⚪ Base Master (Hitam & Putih)
+              </span>
             </div>
 
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-white">Presentasi Siap Diunduh!</h2>
-              <p className="text-sm text-dark-300">
-                Master slide <span className="text-white font-semibold">&ldquo;{formData.customTitle}&rdquo;</span> telah siap dalam format Base Master (Hitam & Putih).
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-gray-900">Presentasi Siap Diunduh!</h2>
+              <p className="text-xs text-gray-500">
+                Master slide <span className="text-gray-900 font-semibold">&ldquo;{formData.customTitle}&rdquo;</span> telah selesai diproses.
               </p>
             </div>
 
-            <div className="p-4 rounded-xl bg-dark-950/60 border border-white/10 text-left space-y-2.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-dark-400">Judul:</span>
-                <span className="text-white font-semibold truncate max-w-[280px]">{formData.customTitle}</span>
+            {/* Ringkasan Presentasi */}
+            <div className="p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-left space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Judul:</span>
+                <span className="text-gray-900 font-semibold truncate max-w-[220px]">{formData.customTitle}</span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-dark-400">Desain:</span>
-                <span className="text-brand-300 font-medium">Base Master (Hitam & Putih)</span>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Jumlah Slide:</span>
+                <span className="text-gray-900 font-semibold">{slides.length} Slide Deck</span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-dark-400">Mode Penyusunan:</span>
-                <span className="text-white font-medium capitalize">{formData.layoutMode || 'auto'}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-dark-400">Bahasa Output:</span>
-                <span className="text-white font-medium">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Bahasa Output:</span>
+                <span className="text-gray-900 font-medium">
                   {formData.outputLanguage === 'en' ? 'Bahasa Inggris (English)' : 'Bahasa Indonesia'}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-dark-400">Total Slide:</span>
-                <span className="text-white font-bold">{slides.length} Slide Deck</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-dark-400">Tipografi:</span>
-                <span className="text-dark-300">
-                  {recommendations?.fonts?.heading || 'Montserrat'} & {recommendations?.fonts?.body || 'Open Sans'}
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Tanggal Dibuat:</span>
+                <span className="text-gray-900 font-medium">
+                  {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
               </div>
             </div>
 
-            <div className="space-y-3 pt-2">
+            {/* Keterangan Otomatis Tersimpan ke Riwayat */}
+            <p className="text-[11px] text-gray-500 flex items-center justify-center gap-1.5 bg-gray-50 py-1.5 px-3 rounded-lg border border-gray-200">
+              <span>ℹ</span>
+              <span>File akan otomatis tersimpan ke Riwayat Master saat diunduh</span>
+            </p>
+
+            <div className="space-y-2.5 pt-1">
               <button
                 type="button"
                 disabled={isFinalizing}
                 onClick={() => handleFinalizeAndDownload(false)}
-                className="w-full btn-primary py-3.5 text-base flex items-center justify-center gap-2 shadow-xl shadow-brand-500/30 disabled:opacity-50"
+                className="w-full btn-primary py-3 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isFinalizing ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
                     <span>Mengekspor Dokumen PPTX...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="w-5 h-5" />
-                    <span>Download Master PPTX (.pptx)</span>
+                    <Download className="w-4 h-4 text-white" />
+                    <span>Download PPTX</span>
                   </>
                 )}
               </button>
               <button
                 type="button"
                 onClick={() => setStep(3)}
-                className="btn-secondary w-full py-2.5 text-xs text-dark-300 hover:text-white"
+                className="btn-secondary w-full py-2.5 text-xs text-gray-700 font-medium"
               >
                 ← Kembali ke Editor Slide
               </button>
             </div>
 
             {downloadSuccess && (
-              <div className="space-y-3">
-                <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs flex items-center justify-center gap-2">
+              <div className="space-y-2 pt-2">
+                <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs flex items-center justify-center gap-2">
                   <CheckCircle className="w-4 h-4 flex-shrink-0" />
                   <span>File PPTX berhasil diunduh dan tersimpan ke Riwayat Master!</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigate('/history')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                  className="w-full btn-secondary py-2 text-xs flex items-center justify-center gap-2"
                 >
-                  <Layers className="w-4 h-4 text-brand-400" />
-                  <span>Lihat di Riwayat Master</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  <Layers className="w-3.5 h-3.5 text-gray-700" />
+                  <span>Buka Riwayat Master</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
           </div>
 
-          <div className="flex justify-center gap-4 pt-2">
+          <div className="flex justify-center gap-4 pt-1">
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs text-brand-400 hover:text-brand-300 underline"
+              className="text-xs text-gray-900 hover:text-gray-600 underline font-semibold"
             >
-              + Buat Master Presentasi Baru
+              + Buat Presentasi Baru
             </button>
-            <span className="text-dark-600">•</span>
+            <span className="text-gray-300">•</span>
             <button
               type="button"
               onClick={() => triggerExit('/dashboard')}
-              className="text-xs text-dark-400 hover:text-white underline"
+              className="text-xs text-gray-500 hover:text-gray-900 underline"
             >
               Kembali ke Dashboard
             </button>

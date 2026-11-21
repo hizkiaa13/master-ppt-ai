@@ -143,7 +143,7 @@ export default function PlaceholderModal({ isOpen, onClose, onInsert }) {
         <div className="p-4 md:p-5 border-b border-gray-200 flex items-center justify-between bg-gray-50">
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
+              <span className="w-2.5 h-2.5 rounded-full bg-gray-900" />
               <h2 className="text-lg font-bold text-gray-900">
                 Placeholder Text Toolkit (Canva Ipsum)
               </h2>
@@ -197,7 +197,7 @@ export default function PlaceholderModal({ isOpen, onClose, onInsert }) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari nama, alamat, nomor rekening, institusi..."
-              className="w-full pl-9 pr-8 py-2 text-xs md:text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-8 py-2 text-xs md:text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
             />
             {searchTerm && (
               <button
@@ -247,7 +247,7 @@ export default function PlaceholderModal({ isOpen, onClose, onInsert }) {
                 <div
                   key={`${item.category}-${item.value}-${idx}`}
                   onClick={() => handleSelect(item.value)}
-                  className="py-2.5 px-3 rounded-xl hover:bg-blue-50 cursor-pointer flex items-center justify-between group transition-colors"
+                  className="py-2.5 px-3 rounded-xl hover:bg-gray-100 cursor-pointer flex items-center justify-between group transition-colors"
                 >
                   <div className="pr-3 flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -276,7 +276,7 @@ export default function PlaceholderModal({ isOpen, onClose, onInsert }) {
                         <Copy className="w-4 h-4" />
                       )}
                     </button>
-                    <span className="text-xs font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs font-semibold text-gray-900 opacity-0 group-hover:opacity-100 transition-opacity">
                       Sisipkan →
                     </span>
                   </div>

@@ -1,82 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Download, Trash2, FileText, Plus, ArrowLeft } from 'lucide-react';
+import Sidebar from '../components/Layout/Sidebar';
+import { pptxService } from '../services/pptx';
+import toast from 'react-hot-toast';
+import {
+  Search,
+  Download,
+  Trash2,
+  FileText,
+  Plus,
+  Clock,
+  Layers,
+} from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
-
-const History = () => {
+export default function HistoryPage() {
   const navigate = useNavigate();
   const [masters, setMasters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    fetchHistory(token);
-  }, [navigate]);
+    fetchHistory();
+  }, []);
 
-  const fetchHistory = async (token) => {
+  const fetchHistory = async () => {
     try {
       setLoading(true);
-      setError(null);
-
-      // Try /api/history first, fallback to /api/pptx/history
-      let response = await fetch(`${API_BASE}/api/history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        response = await fetch(`${API_BASE}/api/pptx/history`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+      const res = await pptxService.getHistory();
+      if (res?.success) {
+        setMasters(res.data || []);
       }
-
-      if (!response.ok) throw new Error('Failed to fetch history');
-
-      const data = await response.json();
-      setMasters(data.data || data.history || data.masters || []);
     } catch (err) {
       console.error('Failed to fetch history:', err);
-      setError('Gagal memuat riwayat');
+      toast.error('Gagal memuat riwayat');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Hapus riwayat ini?')) return;
-
+    if (!window.confirm('Hapus riwayat master ini? Tindakan tidak dapat dibatalkan.')) return;
     setDeletingId(id);
     try {
-      const token = localStorage.getItem('token');
-
-      let response = await fetch(`${API_BASE}/api/history/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        response = await fetch(`${API_BASE}/api/pptx/history/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      }
-
-      if (response.ok) {
-        setMasters(masters.filter(m => m.id !== id));
-      } else {
-        alert('Gagal menghapus');
+      const res = await pptxService.deleteHistory(id);
+      if (res?.success) {
+        setMasters(prev => prev.filter(m => m.id !== id));
+        toast.success('Riwayat berhasil dihapus.');
       }
     } catch (err) {
-      console.error('Delete failed:', err);
-      alert('Gagal menghapus');
+      toast.error('Gagal menghapus riwayat.');
     } finally {
       setDeletingId(null);
     }
@@ -85,38 +59,17 @@ const History = () => {
   const handleDownload = async (id, title) => {
     setDownloadingId(id);
     try {
-      const token = localStorage.getItem('token');
-
-      let response = await fetch(`${API_BASE}/api/history/${id}/download`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) {
-        response = await fetch(`${API_BASE}/api/pptx/download/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      }
-
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title || 'presentasi'}-master.pptx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const fileName = `${(title || 'presentasi').replace(/[^a-zA-Z0-9_-]/g, '_')}-master.pptx`;
+      await pptxService.download(id, fileName, true);
+      toast.success('File berhasil diunduh!');
     } catch (err) {
       console.error('Download failed:', err);
-      alert('Gagal mengunduh file. Silakan coba lagi.');
+      toast.error('Gagal mengunduh file.');
     } finally {
       setDownloadingId(null);
     }
   };
 
-  // Filter masters by search query
   const filteredMasters = masters.filter(m => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -124,167 +77,145 @@ const History = () => {
     return title.includes(query);
   });
 
-  // Parse slide count from data
-  const getSlideCount = (master) => {
-    if (master.slide_count) return master.slide_count;
-    if (master.edited_slides) {
-      try {
-        const slides = typeof master.edited_slides === 'string' ? JSON.parse(master.edited_slides) : master.edited_slides;
-        return Array.isArray(slides) ? slides.length : 0;
-      } catch { return 0; }
-    }
-    return 0;
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/dashboard" className="flex items-center gap-2 text-xl font-bold text-gray-900">
-            <FileText className="w-6 h-6" />
-            Master PPT AI
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link to="/generator" className="text-sm text-gray-600 hover:text-gray-900">
-              Generator
-            </Link>
-            <Link to="/history" className="text-sm text-gray-900 font-semibold">
-              Riwayat
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-white flex flex-col md:flex-row">
+      {/* Sidebar Kiri */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Konten Utama */}
+      <main className="flex-1 p-6 md:p-10 max-w-6xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Riwayat Master</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {masters.length} presentasi telah dibuat
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+              Riwayat Master
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">
+              Daftar seluruh Master PowerPoint yang pernah Anda selesaikan dan unduh.
             </p>
           </div>
-          <button
-            onClick={() => navigate('/generator')}
-            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-all"
+
+          <Link
+            to="/generator"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm shrink-0"
           >
             <Plus className="w-4 h-4" />
-            Buat Baru
-          </button>
+            <span>Buat Master Baru</span>
+          </Link>
         </div>
 
-        {/* Search */}
+        {/* Search Bar */}
         {masters.length > 0 && (
-          <div className="relative mb-6">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <div className="relative max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari berdasarkan judul..."
-              className="w-full pl-10 pr-4 py-3 bg-white text-gray-900 placeholder-gray-400 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+              placeholder="Cari berdasarkan judul presentasi..."
+              className="w-full pl-10 pr-4 py-2 text-xs bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
             />
           </div>
         )}
 
-        {/* Content */}
+        {/* Content Section */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-gray-200 border-t-black rounded-full animate-spin" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-[#F9FAFB] border border-gray-200 rounded-xl p-5 h-44 animate-pulse" />
+            ))}
           </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-            <p className="text-red-700 font-medium">{error}</p>
-            <button
-              onClick={() => fetchHistory(localStorage.getItem('token'))}
-              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700"
-            >
-              Coba Lagi
-            </button>
+        ) : filteredMasters.length === 0 ? (
+          <div className="bg-[#F9FAFB] border border-dashed border-gray-300 rounded-xl p-12 text-center space-y-3">
+            <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mx-auto text-gray-500">
+              <FileText className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-gray-900">
+                {searchQuery ? 'Tidak Ada Riwayat yang Cocok' : 'Belum Ada Riwayat Master'}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                {searchQuery
+                  ? `Tidak ditemukan master dengan kata kunci "${searchQuery}".`
+                  : 'Presentasi yang telah diunduh akan otomatis tersimpan di halaman ini.'}
+              </p>
+            </div>
+            {!searchQuery && (
+              <Link
+                to="/generator"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white font-medium text-xs rounded-lg transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Mulai Buat Presentasi</span>
+              </Link>
+            )}
           </div>
-        ) : filteredMasters.length > 0 ? (
-          <div className="space-y-3">
-            {filteredMasters.map((master) => (
-              <div key={master.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-all">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 text-lg truncate">
-                      {master.title || master.custom_title || master.theme_name || 'Untitled'}
-                    </h3>
-                    <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
-                        📊 {getSlideCount(master)} slide
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
-                        {master.output_language === 'en' ? '🇬🇧 English' : '🇮🇩 Indonesia'}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
-                        🎨 Base Master B&W
-                      </span>
-                      <span className="text-sm text-gray-600">
-                        📅 {new Date(master.created_at).toLocaleDateString('id-ID', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredMasters.map((master) => {
+              const displayTitle = master.title || master.theme_name || master.custom_title || 'Base Master PowerPoint';
+              return (
+                <div
+                  key={master.id}
+                  className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-gray-400 transition-all flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2">
+                        {displayTitle}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(master.id)}
+                        disabled={deletingId === master.id}
+                        className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 disabled:opacity-50"
+                        title="Hapus Riwayat"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
+
+                    <p className="text-xs text-gray-500 flex items-center gap-2">
+                      <span>{master.slide_count || 5} slide</span>
+                      <span>•</span>
+                      <span>{master.output_language === 'en' ? 'English' : 'Indonesia'}</span>
+                    </p>
+
+                    <p className="text-[11px] text-gray-400 flex items-center gap-1.5 pt-1">
+                      <Clock className="w-3 h-3 text-gray-400" />
+                      {new Date(master.created_at).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+
+                  <div className="pt-4 mt-3 border-t border-gray-100 flex items-center gap-2">
                     <button
-                      onClick={() => handleDownload(master.id, master.title || master.custom_title)}
+                      type="button"
+                      onClick={() => handleDownload(master.id, displayTitle)}
                       disabled={downloadingId === master.id}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-all disabled:opacity-50"
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white font-medium rounded-lg text-xs transition-colors"
                     >
                       {downloadingId === master.id ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
-                        <Download className="w-4 h-4" />
+                        <Download className="w-3.5 h-3.5" />
                       )}
-                      Download
-                    </button>
-                    <button
-                      onClick={() => handleDelete(master.id)}
-                      disabled={deletingId === master.id}
-                      className="p-2 text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-all"
-                      title="Hapus"
-                    >
-                      {deletingId === master.id ? (
-                        <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
+                      <span>Download Ulang</span>
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : searchQuery ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Tidak Ditemukan</h3>
-            <p className="text-gray-500">Tidak ada riwayat yang cocok dengan "{searchQuery}"</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <div className="text-5xl mb-4">📄</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum Ada Riwayat</h3>
-            <p className="text-gray-500 mb-6">Buat presentasi pertama Anda dengan AI</p>
-            <button
-              onClick={() => navigate('/generator')}
-              className="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800"
-            >
-              Mulai Buat Presentasi
-            </button>
+              );
+            })}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
-};
-
-export default History;
+}

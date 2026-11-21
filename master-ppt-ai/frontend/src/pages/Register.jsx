@@ -2,26 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Mail, Lock, User, Presentation, ArrowRight, CheckCircle } from 'lucide-react';
-
-const passwordStrength = (pass) => {
-  if (!pass) return { score: 0, label: '', color: '' };
-  let score = 0;
-  if (pass.length >= 8) score++;
-  if (/[A-Z]/.test(pass)) score++;
-  if (/[a-z]/.test(pass)) score++;
-  if (/\d/.test(pass)) score++;
-  if (/[^A-Za-z\d]/.test(pass)) score++;
-  const levels = [
-    { score: 0, label: '', color: '' },
-    { score: 1, label: 'Sangat Lemah', color: 'bg-red-500' },
-    { score: 2, label: 'Lemah', color: 'bg-orange-500' },
-    { score: 3, label: 'Cukup', color: 'bg-yellow-500' },
-    { score: 4, label: 'Kuat', color: 'bg-emerald-500' },
-    { score: 5, label: 'Sangat Kuat', color: 'bg-emerald-400' },
-  ];
-  return { ...levels[score], score };
-};
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -32,8 +13,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const strength = passwordStrength(form.password);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -43,10 +22,9 @@ export default function RegisterPage() {
   const validate = () => {
     const newErrors = {};
     if (!form.name?.trim() || form.name.length < 2) newErrors.name = 'Nama minimal 2 karakter';
-    if (!form.email) newErrors.email = 'Email diperlukan';
+    if (!form.email) newErrors.email = 'Email wajib diisi';
     else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = 'Format email tidak valid';
     if (!form.password || form.password.length < 8) newErrors.password = 'Password minimal 8 karakter';
-    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(form.password)) newErrors.password = 'Harus ada huruf besar, kecil, dan angka';
     if (form.password !== form.confirmPassword) newErrors.confirmPassword = 'Konfirmasi password tidak cocok';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -60,160 +38,153 @@ export default function RegisterPage() {
     try {
       const res = await register({ name: form.name, email: form.email, password: form.password });
       if (res.success) {
-        toast.success('Akun berhasil dibuat! Selamat datang di Master PPT AI 🎉');
+        toast.success('Pendaftaran akun berhasil!');
         navigate('/dashboard');
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Terjadi kesalahan. Coba lagi.';
+      const message = err.response?.data?.message || 'Gagal mendaftar. Silakan coba lagi.';
       toast.error(message);
-      if (err.response?.data?.errors) {
-        const fieldErrors = {};
-        err.response.data.errors.forEach(e => { fieldErrors[e.field] = e.message; });
-        setErrors(fieldErrors);
-      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 -right-20 w-72 h-72 rounded-full bg-brand-600/15 blur-3xl" />
-        <div className="absolute bottom-1/4 -left-20 w-72 h-72 rounded-full bg-purple-600/10 blur-3xl" />
-      </div>
-
-      <div className="relative w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-brand-gradient flex items-center justify-center mx-auto mb-5 glow-brand">
-            <Presentation className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-black text-white">Buat Akun Gratis</h1>
-          <p className="text-dark-400 mt-2">Mulai perjalanan presentasi luar biasa Anda</p>
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-[#F9FAFB] px-4 py-12">
+      <div className="w-full max-w-[400px]">
+        {/* Judul di atas card */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            Buat Akun Baru
+          </h1>
+          <p className="text-xs text-gray-600 mt-1">
+            Daftar gratis untuk mulai merancang Master PowerPoint
+          </p>
         </div>
 
-        <div className="glass-card p-8">
+        {/* Card Formulir */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name */}
+            {/* Nama Lengkap */}
             <div>
-              <label className="form-label">Nama Lengkap</label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  placeholder="Nama lengkap Anda"
-                  className={`form-input pl-11 ${errors.name ? 'border-red-500/50' : ''}`}
-                  disabled={loading}
-                />
-              </div>
-              {errors.name && <p className="text-xs text-red-400 mt-1.5">{errors.name}</p>}
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Nama Lengkap
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Nama lengkap Anda"
+                className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                  errors.name ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-gray-300'
+                } rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`}
+                disabled={loading}
+              />
+              {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
             </div>
 
             {/* Email */}
             <div>
-              <label className="form-label">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="nama@email.com"
-                  className={`form-input pl-11 ${errors.email ? 'border-red-500/50' : ''}`}
-                  disabled={loading}
-                />
-              </div>
-              {errors.email && <p className="text-xs text-red-400 mt-1.5">{errors.email}</p>}
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Alamat Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="nama@email.com"
+                className={`w-full px-3.5 py-2.5 text-sm bg-white border ${
+                  errors.email ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-gray-300'
+                } rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`}
+                disabled={loading}
+              />
+              {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
             </div>
 
             {/* Password */}
             <div>
-              <label className="form-label">Password</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Password (Min. 8 karakter)
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={form.password}
                   onChange={handleChange}
-                  placeholder="Min. 8 karakter"
-                  className={`form-input pl-11 pr-12 ${errors.password ? 'border-red-500/50' : ''}`}
+                  placeholder="Buat password baru"
+                  className={`w-full px-3.5 py-2.5 pr-10 text-sm bg-white border ${
+                    errors.password ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-gray-300'
+                  } rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`}
                   disabled={loading}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-dark-500 hover:text-dark-300 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {form.password && (
-                <div className="mt-2">
-                  <div className="flex gap-1 mb-1">
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength.score ? strength.color : 'bg-dark-700'}`} />
-                    ))}
-                  </div>
-                  <p className={`text-xs ${strength.score >= 4 ? 'text-emerald-400' : strength.score >= 3 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {strength.label}
-                  </p>
-                </div>
-              )}
-              {errors.password && <p className="text-xs text-red-400 mt-1.5">{errors.password}</p>}
+              {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password}</p>}
             </div>
 
-            {/* Confirm Password */}
+            {/* Konfirmasi Password */}
             <div>
-              <label className="form-label">Konfirmasi Password</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Konfirmasi Password
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
                 <input
                   type={showConfirm ? 'text' : 'password'}
                   name="confirmPassword"
                   value={form.confirmPassword}
                   onChange={handleChange}
                   placeholder="Ulangi password"
-                  className={`form-input pl-11 pr-12 ${errors.confirmPassword ? 'border-red-500/50' : form.confirmPassword && form.password === form.confirmPassword ? 'border-emerald-500/50' : ''}`}
+                  className={`w-full px-3.5 py-2.5 pr-10 text-sm bg-white border ${
+                    errors.confirmPassword ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-gray-300'
+                  } rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all`}
                   disabled={loading}
                 />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-4 top-1/2 -translate-y-1/2 text-dark-500 hover:text-dark-300 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                >
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-                {form.confirmPassword && form.password === form.confirmPassword && (
-                  <CheckCircle className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
-                )}
               </div>
-              {errors.confirmPassword && <p className="text-xs text-red-400 mt-1.5">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && <p className="text-xs text-red-600 mt-1">{errors.confirmPassword}</p>}
             </div>
 
+            {/* Tombol Submit Hitam Solid Full-Width */}
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-3.5 text-base mt-2"
+              className="w-full py-2.5 px-4 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white font-semibold text-sm rounded-lg transition-all shadow-sm flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
-                <span className="flex items-center gap-2">
+                <>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Membuat Akun...
-                </span>
+                  <span>Mendaftarkan...</span>
+                </>
               ) : (
-                <span className="flex items-center gap-2">
-                  Buat Akun Gratis
-                  <ArrowRight className="w-4 h-4" />
-                </span>
+                <span>Daftar Sekarang</span>
               )}
             </button>
           </form>
 
-          <div className="separator" />
+          <div className="my-5 border-t border-gray-100" />
 
-          <p className="text-center text-sm text-dark-400">
-            Sudah punya akun?{' '}
-            <Link to="/login" className="text-brand-400 hover:text-brand-300 font-semibold transition-colors">
+          {/* Link ke login */}
+          <div className="text-center text-xs text-gray-600">
+            <span>Sudah memiliki akun? </span>
+            <Link to="/login" className="font-semibold text-gray-900 underline hover:text-gray-700">
               Masuk di sini
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>

@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { pptxService } from '../services/pptx';
 import { draftService } from '../services/draft';
+import Sidebar from '../components/Layout/Sidebar';
 import DraftCard from '../components/Dashboard/DraftCard';
 import toast from 'react-hot-toast';
 import {
-  Sparkles, Plus, History, Clock, Download,
-  BookOpen, FileText, Zap, Globe, Layers,
+  Plus,
+  Clock,
+  Download,
+  Trash2,
+  FileText,
+  BookOpen,
+  Layers,
+  ChevronRight,
 } from 'lucide-react';
 
-function HistoryCard({ item }) {
+function HistoryCardItem({ item, onDelete }) {
   const [downloading, setDownloading] = useState(false);
   const displayTitle = item.title || item.theme_name || item.custom_title || 'Base Master PowerPoint';
 
@@ -28,43 +35,55 @@ function HistoryCard({ item }) {
   };
 
   return (
-    <div className="glass-card p-4 flex items-center justify-between gap-4 hover:border-white/20 transition-colors">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 bg-white/10 text-white border border-white/20">
-          B&W
-        </div>
-        <div className="min-w-0">
-          <p className="font-semibold text-white text-sm truncate">
+    <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-gray-400 transition-all flex flex-col justify-between">
+      <div className="space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2">
             {displayTitle}
-          </p>
-          <p className="text-xs text-gray-300 flex items-center gap-2 mt-0.5">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3 text-gray-400" />
-              {new Date(item.created_at).toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
-            <span>•</span>
-            <span>{item.output_language === 'en' ? '🇬🇧 English' : '🇮🇩 Indonesia'}</span>
-          </p>
+          </h3>
+          <button
+            type="button"
+            onClick={() => onDelete(item.id)}
+            className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+            title="Hapus Riwayat"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
+
+        <p className="text-xs text-gray-500 flex items-center gap-2">
+          <span>{item.slide_count || 5} slide</span>
+          <span>•</span>
+          <span>{item.output_language === 'en' ? 'English' : 'Indonesia'}</span>
+        </p>
+
+        <p className="text-[11px] text-gray-400 flex items-center gap-1.5 pt-1">
+          <Clock className="w-3 h-3 text-gray-400" />
+          {new Date(item.created_at).toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </p>
       </div>
-      <button
-        onClick={handleDownload}
-        disabled={downloading}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-medium hover:bg-brand-500/20 transition-colors flex-shrink-0 disabled:opacity-50"
-      >
-        {downloading ? (
-          <span className="w-3.5 h-3.5 border border-brand-400/30 border-t-brand-400 rounded-full animate-spin" />
-        ) : (
-          <Download className="w-3.5 h-3.5" />
-        )}
-        Unduh
-      </button>
+
+      <div className="pt-4 mt-3 border-t border-gray-100 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white font-medium rounded-lg text-xs transition-colors"
+        >
+          {downloading ? (
+            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Download className="w-3.5 h-3.5" />
+          )}
+          <span>Download Ulang</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -72,6 +91,7 @@ function HistoryCard({ item }) {
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [history, setHistory] = useState([]);
   const [drafts, setDrafts] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -81,7 +101,7 @@ export default function DashboardPage() {
     pptxService
       .getHistory()
       .then((r) => {
-        if (r.success) setHistory(r.data);
+        if (r.success) setHistory(r.data || []);
       })
       .finally(() => setLoadingHistory(false));
 
@@ -103,94 +123,87 @@ export default function DashboardPage() {
       const res = await draftService.delete(draftId);
       if (res.success) {
         setDrafts((prev) => prev.filter((d) => d.id !== draftId));
-        toast.success('Draft dihapus.');
+        toast.success('Draft berhasil dihapus.');
       }
     } catch {
       toast.error('Gagal menghapus draft.');
     }
   };
 
+  const handleDeleteHistory = async (historyId) => {
+    const confirmed = window.confirm('Hapus riwayat master ini? Tindakan tidak dapat dibatalkan.');
+    if (!confirmed) return;
+    try {
+      const res = await pptxService.deleteHistory(historyId);
+      if (res?.success) {
+        setHistory((prev) => prev.filter((h) => h.id !== historyId));
+        toast.success('Riwayat berhasil dihapus.');
+      }
+    } catch {
+      toast.error('Gagal menghapus riwayat.');
+    }
+  };
+
   const inProgressDrafts = drafts.filter((d) => d.status === 'in_progress');
 
-  const stats = [
-    { label: 'Total Master Dibuat', value: history.length, icon: FileText, color: 'text-brand-400', bg: 'bg-brand-500/10' },
-    { label: 'Draft Tersimpan', value: inProgressDrafts.length, icon: BookOpen, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { label: 'Format Desain', value: 'B&W', icon: Layers, color: 'text-white', bg: 'bg-white/10' },
-    { label: 'Bahasa Output', value: 'ID / EN', icon: Globe, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-  ];
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10 animate-fade-in">
-      {/* Welcome Banner */}
-      <div className="glass-card p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 overflow-hidden relative">
-        <div className="absolute -right-8 -top-8 w-48 h-48 rounded-full bg-brand-500/10 blur-2xl pointer-events-none" />
-        <div>
-          <p className="text-sm text-brand-400 font-medium mb-1">Selamat datang kembali 👋</p>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">{user?.name || 'Pengguna'}</h1>
-          <p className="text-gray-300 mt-1 text-sm">
-            Siap menghasilkan Base Master PowerPoint hitam & putih berkelas studio hari ini?
-          </p>
-        </div>
-        <Link to="/generator" className="btn-primary flex-shrink-0">
-          <Plus className="w-4 h-4" />
-          Buat Base Master Baru
-        </Link>
+    <div className="min-h-screen bg-white flex flex-col md:flex-row">
+      {/* Sidebar Kiri Fixed 240px di Desktop */}
+      <div className="hidden md:block">
+        <Sidebar />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="stat-card">
-            <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center mb-2`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
-            </div>
-            <div className="text-2xl font-black text-white">{stat.value}</div>
-            <div className="text-xs text-gray-300">{stat.label}</div>
+      {/* Konten Utama Kanan */}
+      <main className="flex-1 p-6 md:p-10 max-w-6xl space-y-10">
+        {/* Header Dashboard */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+              Selamat datang, {user?.name || 'Pengguna'}
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">
+              Rancang dan kelola master presentasi PowerPoint berstandar studio minimalis.
+            </p>
           </div>
-        ))}
-      </div>
 
-      {/* ─── DRAFTS SECTION ─── */}
-      {(loadingDrafts || inProgressDrafts.length > 0) && (
-        <div>
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-amber-400" />
+          <Link
+            to="/generator"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg text-xs transition-colors shadow-sm shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Buat Master Baru</span>
+          </Link>
+        </div>
+
+        {/* ─── SECTION: DRAFT TERSIMPAN ─── */}
+        <section id="drafts" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-gray-700" />
+              <h2 className="text-base font-bold text-gray-900">
                 Draft Tersimpan
-                {inProgressDrafts.length > 0 && (
-                  <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                    {inProgressDrafts.length}
-                  </span>
-                )}
               </h2>
-              <p className="text-sm text-gray-300 mt-0.5">Lanjutkan pembuatan master yang belum selesai</p>
+              {inProgressDrafts.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                  {inProgressDrafts.length}
+                </span>
+              )}
             </div>
           </div>
 
           {loadingDrafts ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="glass-card p-4 space-y-3 rounded-2xl">
-                  <div className="h-1 rounded w-full shimmer" />
-                  <div className="flex items-center gap-3">
-                    <div className="shimmer w-9 h-9 rounded-xl flex-shrink-0" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="shimmer h-4 rounded w-3/4" />
-                      <div className="shimmer h-3 rounded w-1/2" />
-                    </div>
-                  </div>
-                  <div className="shimmer h-1.5 rounded-full" />
-                  <div className="shimmer h-8 rounded-xl" />
-                </div>
+                <div key={i} className="bg-[#F9FAFB] border border-gray-200 rounded-xl p-5 h-36 animate-pulse" />
               ))}
             </div>
           ) : inProgressDrafts.length === 0 ? (
-            <div className="glass-card p-8 rounded-2xl text-center border border-white/5">
-              <p className="text-dark-400 text-sm">Tidak ada draft yang sedang dikerjakan.</p>
+            <div className="bg-[#F9FAFB] border border-dashed border-gray-300 rounded-xl p-8 text-center">
+              <BookOpen className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-xs font-medium text-gray-600">Belum ada draft yang sedang dikerjakan.</p>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {inProgressDrafts.map((draft) => (
                 <DraftCard
                   key={draft.id}
@@ -201,58 +214,68 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
-        </div>
-      )}
+        </section>
 
-      {/* Recent History */}
-      <div>
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <History className="w-5 h-5 text-brand-400" />
-              Riwayat Master
-            </h2>
-            <p className="text-sm text-dark-500 mt-0.5">Master PowerPoint yang telah Anda buat</p>
-          </div>
-          {history.length > 5 && (
-            <Link to="/history" className="btn-ghost text-sm">
-              Lihat Semua →
-            </Link>
-          )}
-        </div>
-        {loadingHistory ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="glass-card p-4 flex items-center gap-3">
-                <div className="shimmer w-10 h-10 rounded-xl flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="shimmer h-4 rounded w-1/3" />
-                  <div className="shimmer h-3 rounded w-1/4" />
-                </div>
-                <div className="shimmer w-20 h-8 rounded-lg flex-shrink-0" />
-              </div>
-            ))}
-          </div>
-        ) : history.length === 0 ? (
-          <div className="glass-card p-10 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-dark-600" />
+        {/* ─── SECTION: RIWAYAT MASTER ─── */}
+        <section className="space-y-4 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-700" />
+              <h2 className="text-base font-bold text-gray-900">
+                Riwayat Master
+              </h2>
+              {history.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                  {history.length}
+                </span>
+              )}
             </div>
-            <h3 className="font-bold text-dark-300 mb-2">Belum Ada Master</h3>
-            <p className="text-dark-500 text-sm mb-5">Buat Base Master PowerPoint pertama Anda sekarang!</p>
-            <Link to="/generator" className="btn-primary">
-              <Sparkles className="w-4 h-4" />
-              Buat Master Pertama
-            </Link>
+
+            {history.length > 6 && (
+              <Link to="/history" className="text-xs font-semibold text-gray-900 hover:underline">
+                Lihat Semua →
+              </Link>
+            )}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {history.slice(0, 5).map((item) => (
-              <HistoryCard key={item.id} item={item} />
-            ))}
-          </div>
-        )}
-      </div>
+
+          {loadingHistory ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-[#F9FAFB] border border-gray-200 rounded-xl p-5 h-40 animate-pulse" />
+              ))}
+            </div>
+          ) : history.length === 0 ? (
+            <div className="bg-[#F9FAFB] border border-dashed border-gray-300 rounded-xl p-10 text-center space-y-3">
+              <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center mx-auto text-gray-500">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Belum Ada Riwayat</h3>
+                <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                  Master PowerPoint yang telah Anda unduh akan otomatis tersimpan di sini.
+                </p>
+              </div>
+              <Link
+                to="/generator"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white font-medium text-xs rounded-lg transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Buat Master Pertama</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {history.slice(0, 6).map((item) => (
+                <HistoryCardItem
+                  key={item.id}
+                  item={item}
+                  onDelete={handleDeleteHistory}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }

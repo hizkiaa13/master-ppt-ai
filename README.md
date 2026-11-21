@@ -36,12 +36,28 @@ Diadaptasi secara presisi dari katalog master 202 halaman *Base Layout Presentas
 - **Cover Belakang (23 varian: `closing-p180` – `closing-p202`)**: Thank You sentral, statement + kontak, oval Thank You, icon grid kontak, social pills, minimal goodbye, dsb.
 - **Template Legacy (25 varian)**: Tetap didukung penuh sebagai alias untuk kompatibilitas draft sebelumnya.
 
-### 4. 🖤 Desain Base Master (Hitam & Putih / Black & White Studio Concept)
-- **Latar Belakang**: Putih bersih (`#FFFFFF`) di seluruh slide untuk menjaga kejernihan visual presentasi eksekutif.
-- **Tipografi Utama (Heading)**: Hitam pekat (`#000000` / `#111827`) dengan bobot tebal dan kontras tinggi.
-- **Tipografi Sekunder (Body/Content)**: Abu-abu gelap elegan (`#1F2937` / `#374151`).
-- **Garis Aksen & Kartu**: Garis minimalis hitam pekat (`#000000`) dan border kartu netral (`#E5E7EB`).
-- **Bebas Warna Acak**: Menghilangkan warna-warna pastel/campuran yang tidak sesuai standar korporat.
+### 4. 🖤 Tema "Minimal Light Monochrome" & Desain Base Master
+Aplikasi menerapkan desain eksekutif **Minimal Light Monochrome** secara konsisten di seluruh halaman:
+- **Palet Warna Global**: Background utama putih bersih (`#FFFFFF`), background sekunder/panel (`#F9FAFB`), teks judul (`#111827`), teks body (`#4B5563`), teks muted (`#9CA3AF`), dan border halus (`#E5E7EB`).
+- **Tombol Primer Solid Black**: Seluruh tombol aksi utama menggunakan warna hitam solid (`#111827`) dengan teks putih (`#FFFFFF`) dan efek hover abu gelap (`#374151`). Tidak ada tombol biru, ungu, atau gradien acak.
+- **Kanvas Slide Bersih**: Latar belakang putih bersih (`#FFFFFF`) bebas dari container gelap maupun garis header hitam dekoratif yang tidak diinginkan.
+
+### 5. 🖥️ Restrukturisasi Tata Letak Halaman Sesuai Fungsi
+- **Landing Page (Home)**: Tampilan hero bersih dengan judul besar di tengah, tombol CTA *"Mulai Sekarang"* (hitam solid), dan 4 kartu fitur utama berjejer horizontal.
+- **Autentikasi (Login & Register)**: Form kartu terpusat (`max-w-[400px]`) di atas latar abu terang (`#F9FAFB`) dengan kontras tinggi dan tombol submit full-width solid black.
+- **Sidebar Terpadu**: Navigasi vertikal konsisten (240px) pada Dashboard, Riwayat Master, dan Profil dengan indikator aktif border hitam pekat.
+- **Dashboard**: Sambutan pengguna, tombol cepat *"Buat Master Baru"*, grid 3-kolom *"Draft Tersimpan"* dan *"Riwayat Master"* dengan empty state informatif.
+- **Generator Wizard 4-Langkah**:
+  - **Step 1 (Tema Selector)**: Form kartu terpusat (`max-w-[600px]`), judul wajib, slider 1–15 slide, dan pemilih mode *Auto AI* vs *Susun Layout Sendiri*.
+  - **Step 2 (Pilih Layout & Generate)**:
+    - *Auto AI*: Card konfirmasi ringkas dengan ringkasan setting dan tombol *"Mulai Generate dengan AI"*.
+    - *Manual*: Daftar slide vertikal/grid dengan tombol *"Ganti Layout"* dan modal visual katalog 189 layout studio (Slide 1 terkunci ke Cover Depan, Slide N ke Penutup).
+  - **Step 3 (Preview & Edit Slide - 2 Kolom Desktop)**:
+    - **Kolom Kiri (60%)**: Area preview slide 16:9 berlatar putih dengan border halus, toolbar formatting floating/sticky yang hanya muncul saat teks dipilih, dan tombol navigasi prev/next.
+    - **Kolom Kanan (40%)**: Panel kontrol layout aktif, dropdown ganti layout, toggle drag & resize + snap grid, daftar thumbnail vertikal scrollable dengan highlight border hitam pekat, dan tombol aksi (*"Simpan Perubahan"*, *"Reset Layout"*, *"Lanjut ke Download"*).
+  - **Step 4 (Download Card)**: Card terpusat (`max-w-[500px]`), thumbnail preview slide 1, ringkasan metadata presentasi, tombol *"Download PPTX"* full-width solid black, dan pemberitahuan otomatis tersimpan ke Riwayat Master.
+- **Riwayat Master (History)**: Pencarian cepat dan grid 3-kolom deck yang tersimpan dengan tombol *"Download Ulang"* (hitam solid) dan *"Hapus"*.
+- **Profil Pengguna**: Manajemen informasi akun dan ubah password dalam kartu terpusat.
 
 ### 5. 📋 Kepatuhan Data Placeholder (Canva Ipsum Toolkit)
 Seluruh materi demonstrasi, nama, kontak, dan alamat terintegrasi dengan toolkit resmi 18 halaman (*Copy of Toolkit Teks-Teks Placeholder Canva Ipsum*):

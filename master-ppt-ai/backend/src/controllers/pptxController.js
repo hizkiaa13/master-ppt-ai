@@ -29,22 +29,7 @@ async function generatePPTXBuffer(slides, title) {
     // 1. Background selalu putih murni (#FFFFFF)
     slide.background = { color: 'FFFFFF' };
 
-    // 2. Garis aksen minimalis hitam/abu terang jika bukan slide cover/closing
-    const isCover = slideData.slideType === 'cover' || (slideData.layoutId && (slideData.layoutId.startsWith('cover-') || slideData.layoutId.startsWith('cover-p')));
-    const isClosing = slideData.slideType === 'closing' || (slideData.layoutId && (slideData.layoutId.startsWith('cover-back') || slideData.layoutId.startsWith('closing-')));
-
-    if (!isCover && !isClosing) {
-      slide.addShape(pres.ShapeType.rect, {
-        x: 0.8,
-        y: 1.1,
-        w: 1.2,
-        h: 0.03,
-        fill: { color: '000000' },
-        line: { color: '000000' },
-      });
-    }
-
-    // 3. Render Placeholders
+    // 2. Render Placeholders
     (slideData.placeholders || []).forEach((placeholder) => {
       const rawX = parseFloat(placeholder.position?.x) || 1;
       const rawY = parseFloat(placeholder.position?.y) || 1;

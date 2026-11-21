@@ -47,19 +47,7 @@ export async function generateFinalPPTX(slides, recommendations, title, options 
     // 1. Background Selalu Putih Murni (#FFFFFF)
     slide.background = { color: 'FFFFFF' };
 
-    // 2. Garis Aksen Minimalis Hitam untuk Slide Konten
-    if (!isCover && !isClosing) {
-      slide.addShape(pres.ShapeType.rect, {
-        x: 0.6,
-        y: 1.15,
-        w: 1.2,
-        h: 0.03,
-        fill: { color: '000000' },
-        line: { color: '000000' },
-      });
-    }
-
-    // 3. Render Setiap Placeholder
+    // 2. Render Setiap Placeholder
     (slideData.placeholders || []).forEach((placeholder) => {
       const rawX = parseFloat(placeholder.position?.x) || 0;
       const rawY = parseFloat(placeholder.position?.y) || 0;

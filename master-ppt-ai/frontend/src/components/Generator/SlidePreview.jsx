@@ -671,14 +671,6 @@ export default function SlidePreview({
             }
           }}
         >
-          {/* Subtle Decorative Accent for non-title/closing slides */}
-          {currentSlide.slideType !== 'title' && currentSlide.slideType !== 'closing' && (
-            <div
-              className="absolute left-[10%] top-[22%] w-[12%] h-[3px] rounded-full z-0 opacity-80 pointer-events-none"
-              style={{ backgroundColor: '#000000' }}
-            />
-          )}
-
           {/* Visual Alignment Guidelines when dragging/editing */}
           {isEditMode && selectedElementId && (
             <AlignmentGuidelines

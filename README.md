@@ -40,7 +40,7 @@ Diadaptasi secara presisi dari katalog master 202 halaman *Base Layout Presentas
 Aplikasi menerapkan desain eksekutif **Minimal Light Monochrome** secara konsisten di seluruh halaman:
 - **Palet Warna Global**: Background utama putih bersih (`#FFFFFF`), background sekunder/panel (`#F9FAFB`), teks judul (`#111827`), teks body (`#4B5563`), teks muted (`#9CA3AF`), dan border halus (`#E5E7EB`).
 - **Tombol Primer Solid Black**: Seluruh tombol aksi utama menggunakan warna hitam solid (`#111827`) dengan teks putih (`#FFFFFF`) dan efek hover abu gelap (`#374151`). Tidak ada tombol biru, ungu, atau gradien acak.
-- **Kanvas Slide Bersih**: Latar belakang putih bersih (`#FFFFFF`) bebas dari container gelap maupun garis header hitam dekoratif yang tidak diinginkan.
+- **Kanvas Slide Bersih**: Latar belakang putih bersih (`#FFFFFF`) bebas dari container gelap maupun garis header hitam dekoratif yang tidak diinginkan, baik pada live preview canvas maupun berkas output PPTX.
 
 ### 5. 🖥️ Restrukturisasi Tata Letak Halaman Sesuai Fungsi
 - **Landing Page (Home)**: Tampilan hero bersih dengan judul besar di tengah, tombol CTA *"Mulai Sekarang"* (hitam solid), dan 4 kartu fitur utama berjejer horizontal.
@@ -59,7 +59,7 @@ Aplikasi menerapkan desain eksekutif **Minimal Light Monochrome** secara konsist
 - **Riwayat Master (History)**: Pencarian cepat dan grid 3-kolom deck yang tersimpan dengan tombol *"Download Ulang"* (hitam solid) dan *"Hapus"*.
 - **Profil Pengguna**: Manajemen informasi akun dan ubah password dalam kartu terpusat.
 
-### 5. 📋 Kepatuhan Data Placeholder (Canva Ipsum Toolkit)
+### 6. 📋 Kepatuhan Data Placeholder (Canva Ipsum Toolkit)
 Seluruh materi demonstrasi, nama, kontak, dan alamat terintegrasi dengan toolkit resmi 18 halaman (*Copy of Toolkit Teks-Teks Placeholder Canva Ipsum*):
 - **Alamat Indonesia**: Wajib menggunakan `Jl. Mangga Muda 17A, Cilandak, Jakarta Selatan 12310`.
 - **Alamat Internasional**: Wajib menggunakan `123 Anywhere St., Any City`.
@@ -67,25 +67,25 @@ Seluruh materi demonstrasi, nama, kontak, dan alamat terintegrasi dengan toolkit
 - **Modal Sisipkan Placeholder**: Tombol modal *"📋 Sisipkan Placeholder"* pada toolbar editor memudahkan penyisipan nama orang, institusi, kontak, dan alamat resmi ke slide secara instan.
 - **Auto-Sanitizer Backend**: Otomatis mengganti nama/alamat fiktif liar dengan entitas resmi Canva Ipsum.
 
-### 6. 🎯 Copywriting Substantif & Relevansi Ketat
+### 7. 🎯 Copywriting Substantif & Relevansi Ketat
 - **Substansi Nyata**: Setiap poin berformat `[Nama Subtopik]: [Penjelasan konkret 1-2 kalimat informatif mengenai mekanisme/manfaatnya]`.
 - **Validasi Relevansi Dwibahasa**: Evaluasi keterkaitan judul dengan materi slide dengan kamus padanan lintas bahasa (ID ↔ EN). Jika relevansi rendah, sistem melakukan auto-retry terarah atau fallback cerdas.
 
-### 7. 🌐 Dukungan Penuh Multi-Bahasa (🇮🇩 ID & 🇬🇧 EN)
+### 8. 🌐 Dukungan Penuh Multi-Bahasa (🇮🇩 ID & 🇬🇧 EN)
 - **Pilihan Bahasa Fleksibel**: Tombol switcher *🇮🇩 Bahasa Indonesia* dan *🇬🇧 English* pada form awal generator.
 - **AI Prompt Khusus Bahasa Inggris**: Jika bahasa Inggris dipilih, instruksi prompt, aturan anti-drift, dan contoh *few-shot JSON* otomatis menggunakan 100% Bahasa Inggris murni.
 - **Renderer UI Dwibahasa**: Subjudul bawaan, info presenter, label kartu testimoni, chart, dan pesan penutup otomatis menyesuaikan bahasa yang dipilih.
 
-### 8. 🛠️ Preview & Editor Slide Interaktif
+### 9. 🛠️ Preview & Editor Slide Interaktif
 - **Kanvas Slide Berasio 16:9**: Representasi akurat sesuai output PowerPoint modern.
 - **Drag & Resize Bebas**: Didukung `react-rnd` dengan fitur *Snap to Grid* (grid 10px / 20px) dan panduan perataan (*Alignment Guidelines*).
 - **Text Formatting Toolbar**: Kontrol tebal (bold), miring (italic), garis bawah (underline), perataan teks (kiri, tengah, kanan), dan ukuran font.
 - **Dropdown Layout Dinamis**: Akses cepat ke seluruh 189 layout yang dikelompokkan rapi per kategori.
 - **Sistem Draft & Auto-Save**: Otomatis tersimpan secara periodik, shortcut `Ctrl+S` / `Cmd+S`, serta perlindungan *beforeunload*.
 
-### 9. 📥 Ekspor PPTX Native (PptxGenJS v4)
+### 10. 📥 Ekspor PPTX Native (PptxGenJS v4)
 - Menghasilkan file `.pptx` beresolusi 16:9 yang siap dipresentasikan di Microsoft PowerPoint, Google Slides, maupun Apple Keynote.
-- Mendukung ekspor langsung dari browser (client-side) maupun backend API dengan styling dan positioning presisi.
+- Mendukung ekspor langsung dari browser (client-side) maupun backend API dengan styling dan positioning presisi tanpa garis dekoratif header.
 
 ---
 

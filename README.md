@@ -45,7 +45,7 @@ Aplikasi menerapkan desain eksekutif **Minimal Light Monochrome** secara konsist
 ### 5. 🖥️ Restrukturisasi Tata Letak Halaman Sesuai Fungsi
 - **Landing Page (Home)**: Tampilan hero bersih dengan judul besar di tengah, tombol CTA *"Mulai Sekarang"* (hitam solid), dan 4 kartu fitur utama berjejer horizontal.
 - **Autentikasi (Login & Register)**: Form kartu terpusat (`max-w-[400px]`) di atas latar abu terang (`#F9FAFB`) dengan kontras tinggi dan tombol submit full-width solid black.
-- **Sidebar Terpadu**: Navigasi vertikal konsisten (240px) pada Dashboard, Riwayat Master, dan Profil dengan indikator aktif border hitam pekat.
+- **Navigasi Headbar Terpadu**: Navigasi atas yang ringkas dan konsisten (Dashboard, Buat Master, Riwayat, Profil, dan Menu Pengguna) dengan tata letak halaman yang luas, proporsional, dan bersih tanpa sidebar ganda.
 - **Dashboard**: Sambutan pengguna, tombol cepat *"Buat Master Baru"*, grid 3-kolom *"Draft Tersimpan"* dan *"Riwayat Master"* dengan empty state informatif.
 - **Generator Wizard 4-Langkah**:
   - **Step 1 (Tema Selector)**: Form kartu terpusat (`max-w-[600px]`), judul wajib, slider 1–15 slide, dan pemilih mode *Auto AI* vs *Susun Layout Sendiri*.

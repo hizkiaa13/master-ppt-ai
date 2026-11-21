@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { userService } from '../services/pptx';
-import Sidebar from '../components/Layout/Sidebar';
 import toast from 'react-hot-toast';
 import { User, Mail, Lock, Eye, EyeOff, Calendar } from 'lucide-react';
 
@@ -83,14 +82,9 @@ export default function ProfilePage() {
   const initials = user?.name?.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase() || 'U';
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row">
-      {/* Sidebar Kiri */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
+    <div className="min-h-screen bg-white">
       {/* Konten Utama */}
-      <main className="flex-1 p-6 md:p-10 max-w-4xl space-y-6">
+      <main className="max-w-4xl mx-auto p-6 md:p-10 space-y-6">
         <div className="pb-6 border-b border-gray-200">
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
             Pengaturan Profil

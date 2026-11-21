@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { pptxService } from '../services/pptx';
 import { draftService } from '../services/draft';
-import Sidebar from '../components/Layout/Sidebar';
 import DraftCard from '../components/Dashboard/DraftCard';
 import toast from 'react-hot-toast';
 import {
@@ -147,14 +146,9 @@ export default function DashboardPage() {
   const inProgressDrafts = drafts.filter((d) => d.status === 'in_progress');
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row">
-      {/* Sidebar Kiri Fixed 240px di Desktop */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
-      {/* Konten Utama Kanan */}
-      <main className="flex-1 p-6 md:p-10 max-w-6xl space-y-10">
+    <div className="min-h-screen bg-white">
+      {/* Konten Utama */}
+      <main className="max-w-6xl mx-auto p-6 md:p-10 space-y-10">
         {/* Header Dashboard */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
           <div>

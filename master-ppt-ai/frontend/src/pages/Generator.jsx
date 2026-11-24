@@ -26,6 +26,12 @@ const STEPS = [
 
 /** Build the draft payload from current generator state */
 function buildDraftPayload({ formData, step, slides, recommendations, generatedData }) {
+  // Strip dataUri from logoConfig for draft payload to keep it reasonable
+  // (dataUri is stored separately in formData)
+  const logoConfigForDraft = formData.logoConfig?.enabled
+    ? { ...formData.logoConfig }
+    : null;
+
   return {
     customTitle: formData.customTitle,
     customDescription: formData.customDescription,
@@ -42,6 +48,7 @@ function buildDraftPayload({ formData, step, slides, recommendations, generatedD
       slideCount: formData.slideCount,
       layoutMode: formData.layoutMode || 'auto',
       layoutSelections: formData.layoutSelections || [],
+      logoConfig: logoConfigForDraft,
     },
     generatedSlides: slides.length > 0 ? slides : null,
     editedSlides: slides.length > 0 ? slides : null,
@@ -95,6 +102,7 @@ export default function Generator() {
     slideCount: 5,
     layoutMode: 'auto', // 'auto' | 'manual'
     layoutSelections: getDefaultLayoutSelections(5),
+    logoConfig: null, // { enabled, dataUri, position, size, originalName, mimeType, naturalWidth, naturalHeight }
   });
 
   // Generation & AI state
@@ -164,6 +172,7 @@ export default function Generator() {
           layoutMode: data.formData.layoutMode || data.layoutMode || 'auto',
           layoutSelections:
             data.formData.layoutSelections || data.layoutSelections || getDefaultLayoutSelections(restoredSlideCount),
+          logoConfig: data.formData.logoConfig || prev.logoConfig || null,
         }));
       }
 
@@ -396,6 +405,7 @@ export default function Generator() {
           layoutSelections: formData.layoutSelections || [],
           finalData: slides,
           slides,
+          logoConfig: formData.logoConfig,
         });
 
         if (saveRes?.success && saveRes?.data?.historyId) {
@@ -409,13 +419,13 @@ export default function Generator() {
       // STEP 2: Unduh file PPTX
       if (savedHistoryId) {
         try {
-          await pptxService.finalize(savedHistoryId, { slides, title: formData.customTitle });
+          await pptxService.finalize(savedHistoryId, { slides, title: formData.customTitle, logoConfig: formData.logoConfig });
         } catch (finalizeErr) {
           console.warn('Finalize call notice:', finalizeErr.message);
         }
         await pptxService.download(savedHistoryId, fileName, true);
       } else {
-        await generateFinalPPTX(slides, recommendations, formData.customTitle);
+        await generateFinalPPTX(slides, recommendations, formData.customTitle, { logoConfig: formData.logoConfig });
       }
 
       setDownloadSuccess(true);
@@ -424,7 +434,7 @@ export default function Generator() {
     } catch (err) {
       console.error('Download error:', err);
       try {
-        await generateFinalPPTX(slides, recommendations, formData.customTitle);
+        await generateFinalPPTX(slides, recommendations, formData.customTitle, { logoConfig: formData.logoConfig });
         setDownloadSuccess(true);
         toast.success('File PPTX Base Master berhasil diekspor!');
         await draft.markCompleted();
@@ -446,6 +456,7 @@ export default function Generator() {
       slideCount: 5,
       layoutMode: 'auto',
       layoutSelections: getDefaultLayoutSelections(5),
+      logoConfig: null,
     });
     setGeneratedData(null);
     setSlides([]);
@@ -844,6 +855,11 @@ export default function Generator() {
           slides={slides}
           originalSlides={originalSlides}
           recommendations={recommendations}
+          logoConfig={formData.logoConfig}
+          onLogoChange={(newLogo) => {
+            setFormData((prev) => ({ ...prev, logoConfig: newLogo }));
+            draft.scheduleSave(buildDraftPayload({ ...stateRef.current, formData: { ...formData, logoConfig: newLogo } }));
+          }}
           onEdit={handleSlideEdit}
           onReset={() => {
             setSlides(JSON.parse(JSON.stringify(originalSlides)));

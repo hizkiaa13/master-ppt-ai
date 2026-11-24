@@ -16,6 +16,7 @@ async function saveHistory(req, res) {
       layoutSelections = [],
       finalData = [],
       slides = [],
+      logoConfig = null,
     } = req.body;
 
     const presentationTitle = (title || 'Base Master PowerPoint').trim();
@@ -36,7 +37,7 @@ async function saveHistory(req, res) {
     // Generate PPTX buffer & base64
     let pptxBase64 = null;
     try {
-      const buffer = await generatePPTXBuffer(slidesData, presentationTitle);
+      const buffer = await generatePPTXBuffer(slidesData, presentationTitle, { logoConfig });
       pptxBase64 = buffer.toString('base64');
     } catch (bufferErr) {
       console.warn('Peringatan: Gagal generate buffer saat saveHistory:', bufferErr.message);
@@ -55,6 +56,7 @@ async function saveHistory(req, res) {
       slide_previews: JSON.stringify(slidesData),
       edited_slides: JSON.stringify(slidesData),
       final_data: JSON.stringify(slidesData),
+      logo_config: logoConfig ? JSON.stringify(logoConfig) : null,
       pptx_file_path: pptxBase64,
       final_pptx_path: pptxBase64,
       created_at: new Date().toISOString(),
@@ -66,21 +68,26 @@ async function saveHistory(req, res) {
     // Upaya 2: Jika error kolom belum ada di Supabase, fallback ke skema dasar
     if (result.error) {
       console.warn('Supabase insert warning, trying compatible fallback:', result.error.message);
-      const fallbackPayload = {
-        id: historyId,
-        user_id: req.userId,
-        theme_name: presentationTitle,
-        slide_previews: JSON.stringify(slidesData),
-        edited_slides: JSON.stringify(slidesData),
-        pptx_file_path: pptxBase64,
-        final_pptx_path: pptxBase64,
-        created_at: new Date().toISOString(),
-      };
-      if (outputLanguage) fallbackPayload.output_language = outputLanguage;
+      delete insertPayload.logo_config;
+      result = await supabase.from('master_histories').insert(insertPayload);
 
-      result = await supabase.from('master_histories').insert(fallbackPayload);
       if (result.error) {
-        throw result.error;
+        const fallbackPayload = {
+          id: historyId,
+          user_id: req.userId,
+          theme_name: presentationTitle,
+          slide_previews: JSON.stringify(slidesData),
+          edited_slides: JSON.stringify(slidesData),
+          pptx_file_path: pptxBase64,
+          final_pptx_path: pptxBase64,
+          created_at: new Date().toISOString(),
+        };
+        if (outputLanguage) fallbackPayload.output_language = outputLanguage;
+
+        result = await supabase.from('master_histories').insert(fallbackPayload);
+        if (result.error) {
+          throw result.error;
+        }
       }
     }
 

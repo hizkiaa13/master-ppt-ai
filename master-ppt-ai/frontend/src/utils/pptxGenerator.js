@@ -1,5 +1,6 @@
 import PptxGenJS from 'pptxgenjs';
 import { validateSlideDeckBeforeExport } from './slideContentValidator.js';
+import { computeLogoBounds } from '../components/Generator/LogoUploader.jsx';
 
 /**
  * Convert hex color string to 6-char hex without '#'
@@ -46,6 +47,26 @@ export async function generateFinalPPTX(slides, recommendations, title, options 
 
     // 1. Background Selalu Putih Murni (#FFFFFF)
     slide.background = { color: 'FFFFFF' };
+
+    // 1.5. Render Logo Presentasi Global (jika aktif)
+    const logoConfig = options?.logoConfig;
+    if (logoConfig?.enabled && logoConfig?.dataUri) {
+      try {
+        const bounds = computeLogoBounds(logoConfig);
+        if (bounds) {
+          slide.addImage({
+            data: logoConfig.dataUri,
+            x: bounds.x,
+            y: bounds.y,
+            w: bounds.w,
+            h: bounds.h,
+            sizing: { type: 'contain', w: bounds.w, h: bounds.h },
+          });
+        }
+      } catch (logoErr) {
+        console.warn('Gagal menambahkan logo ke slide:', logoErr.message);
+      }
+    }
 
     // 2. Render Setiap Placeholder
     (slideData.placeholders || []).forEach((placeholder) => {

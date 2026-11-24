@@ -38,6 +38,7 @@ import {
 } from '../../utils/layoutRenderer';
 import { isDummyText } from '../../utils/slideContentValidator';
 import { regenerateSlideContent } from '../../services/ai';
+import { computeLogoPercent, doesOverlapLogo, LOGO_POSITIONS, LOGO_SIZES } from './LogoUploader';
 
 /**
  * Determine if a hex color is dark or light for optimal contrast
@@ -63,6 +64,8 @@ export default function SlidePreview({
   slides = [],
   originalSlides = [],
   recommendations = {},
+  logoConfig = null,
+  onLogoChange,
   onEdit,
   onReset,
   onNext,
@@ -520,6 +523,12 @@ export default function SlidePreview({
 
   const selectedPlaceholder = currentSlide.placeholders?.find((p) => p.id === selectedElementId);
 
+  // Check if any placeholder in current slide overlaps with the logo
+  const overlappingPlaceholders = logoConfig?.enabled
+    ? (currentSlide.placeholders || []).filter((p) => doesOverlapLogo(p, logoConfig))
+    : [];
+  const hasLogoOverlap = overlappingPlaceholders.length > 0;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Warning Banner: Peringatan jika jumlah poin tidak sesuai rekomendasi layout */}
@@ -527,6 +536,19 @@ export default function SlidePreview({
         <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-3 text-amber-800 text-xs animate-fade-in shadow-xs">
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
           <span className="font-medium tracking-wide">{mismatchWarning}</span>
+        </div>
+      )}
+
+      {/* Warning Banner: Peringatan jika ada elemen yang bertabrakan dengan area logo */}
+      {hasLogoOverlap && (
+        <div className="p-3.5 rounded-xl bg-orange-50 border border-orange-200 flex items-center gap-3 text-orange-900 text-xs animate-fade-in shadow-xs">
+          <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0" />
+          <div>
+            <span className="font-bold">Peringatan Area Logo:</span> Ada elemen teks/konten (
+            {overlappingPlaceholders.map((p) => p.name || p.id).join(', ')}
+            ) yang mendekati atau menutupi logo di sudut{' '}
+            <span className="font-semibold">{logoConfig.position || 'kanan atas'}</span>. Silakan geser elemen secara manual agar tidak tumpang tindih.
+          </div>
         </div>
       )}
 
@@ -571,6 +593,32 @@ export default function SlidePreview({
                   canvasHeight={canvasDimensions.height}
                 />
               )}
+
+              {/* Global Presentation Logo */}
+              {logoConfig?.enabled && logoConfig?.dataUri && (() => {
+                const logoPct = computeLogoPercent(logoConfig);
+                if (!logoPct) return null;
+                return (
+                  <div
+                    key="global-slide-logo"
+                    className="absolute pointer-events-none select-none z-10 flex items-center justify-center"
+                    style={{
+                      left: `${logoPct.x}%`,
+                      top: `${logoPct.y}%`,
+                      width: `${logoPct.w}%`,
+                      height: `${logoPct.h}%`,
+                    }}
+                    title={`Logo Presentasi (${logoConfig.originalName || 'Logo'})`}
+                  >
+                    <img
+                      src={logoConfig.dataUri}
+                      alt="Logo"
+                      className="w-full h-full object-contain"
+                      draggable={false}
+                    />
+                  </div>
+                );
+              })()}
 
               {/* Placeholders rendered with Rnd */}
               {currentSlide.placeholders?.map((placeholder, idx) => {
@@ -983,6 +1031,134 @@ export default function SlidePreview({
             >
               <span>📋 Sisipkan Placeholder (Canva Ipsum)</span>
             </button>
+
+            {/* Panel Pengaturan Logo Presentasi (Global) */}
+            <div className="pt-3 border-t border-gray-100 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-900">Logo Presentasi</span>
+                {logoConfig?.enabled && (
+                  <span className="text-[10px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                    {logoConfig.position}
+                  </span>
+                )}
+              </div>
+
+              {logoConfig?.enabled && logoConfig?.dataUri ? (
+                <div className="space-y-2 bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-7 bg-white border border-gray-200 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <img src={logoConfig.dataUri} alt="Logo" className="max-w-full max-h-full object-contain" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-medium text-gray-900 truncate">{logoConfig.originalName || 'Logo'}</p>
+                      <p className="text-[9px] text-gray-400">{logoConfig.size || 'medium'} • {logoConfig.position || 'top-right'}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onLogoChange && onLogoChange(null)}
+                      className="text-[10px] text-red-600 hover:text-red-800 font-medium px-1.5 py-0.5 rounded border border-red-200 bg-red-50"
+                      title="Hapus logo dari presentasi"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+
+                  {/* Fast position toggle buttons */}
+                  <div>
+                    <label className="block text-[9px] font-semibold text-gray-500 mb-1">Ubah Posisi:</label>
+                    <div className="grid grid-cols-4 gap-1">
+                      {LOGO_POSITIONS.map((pos) => {
+                        const isActive = logoConfig.position === pos.id;
+                        return (
+                          <button
+                            key={pos.id}
+                            type="button"
+                            onClick={() => onLogoChange && onLogoChange({ ...logoConfig, position: pos.id })}
+                            className={`py-1 text-[9px] rounded border font-medium transition-colors ${
+                              isActive
+                                ? 'bg-gray-900 text-white border-gray-900'
+                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
+                            }`}
+                            title={pos.label}
+                          >
+                            {pos.id.replace('top-', 'Atas-').replace('bottom-', 'Bwh-').replace('left', 'Ki').replace('right', 'Ka')}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Fast size toggle */}
+                  <div>
+                    <label className="block text-[9px] font-semibold text-gray-500 mb-1">Ukuran:</label>
+                    <div className="flex gap-1">
+                      {LOGO_SIZES.map((sz) => {
+                        const isActive = (logoConfig.size || 'medium') === sz.id;
+                        return (
+                          <button
+                            key={sz.id}
+                            type="button"
+                            onClick={() => onLogoChange && onLogoChange({ ...logoConfig, size: sz.id })}
+                            className={`flex-1 py-1 text-[9px] rounded border font-medium transition-colors ${
+                              isActive
+                                ? 'bg-gray-900 text-white border-gray-900'
+                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
+                            }`}
+                          >
+                            {sz.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center p-3 rounded-lg border border-dashed border-gray-300 bg-gray-50">
+                  <p className="text-[11px] text-gray-500 mb-1.5">Belum ada logo terpasang.</p>
+                  <label className="inline-block cursor-pointer px-2.5 py-1 text-xs font-semibold bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors">
+                    <span>+ Unggah Logo</span>
+                    <input
+                      type="file"
+                      accept=".png,.jpg,.jpeg"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (!['image/png', 'image/jpeg'].includes(file.type)) {
+                          toast.error('Gunakan file PNG atau JPEG.');
+                          return;
+                        }
+                        if (file.size > 2 * 1024 * 1024) {
+                          toast.error('Ukuran file maksimal 2 MB.');
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const img = new Image();
+                          img.onload = () => {
+                            if (onLogoChange) {
+                              onLogoChange({
+                                enabled: true,
+                                dataUri: reader.result,
+                                position: 'top-right',
+                                size: 'medium',
+                                originalName: file.name,
+                                mimeType: file.type,
+                                naturalWidth: img.naturalWidth,
+                                naturalHeight: img.naturalHeight,
+                              });
+                              toast.success('Logo berhasil dipasang pada semua slide!');
+                            }
+                          };
+                          img.src = reader.result;
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Daftar Thumbnail Vertikal (Scrollable) */}
@@ -1028,9 +1204,16 @@ export default function SlidePreview({
                         #{index + 1}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-gray-900 truncate">
-                          {titleP?.content || slide.name || `Slide ${index + 1}`}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-gray-900 truncate">
+                            {titleP?.content || slide.name || `Slide ${index + 1}`}
+                          </p>
+                          {logoConfig?.enabled && (
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-gray-100 text-gray-500 font-mono" title="Logo terpasang">
+                              logo
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-gray-400 truncate">
                           {renderLayout(slide.layoutId || slide.layout)?.name || slide.layoutId || 'Layout'}
                         </p>

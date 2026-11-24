@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, Save } from 'lucide-react';
+import LogoUploader from './LogoUploader';
 
 const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
   const [errors, setErrors] = useState({});
@@ -150,7 +151,13 @@ const ThemeSelector = ({ formData, setFormData, onNext, onSaveDraft }) => {
           </div>
         </div>
 
-        {/* 5. Pilihan Mode Layout: Radio Button */}
+        {/* 5. Logo Presentasi (Opsional) */}
+        <LogoUploader
+          logoConfig={formData.logoConfig || null}
+          onLogoChange={(newConfig) => setFormData({ ...formData, logoConfig: newConfig })}
+        />
+
+        {/* 6. Pilihan Mode Layout: Radio Button */}
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-2">
             Mode Layout

@@ -83,7 +83,17 @@ Seluruh materi demonstrasi, nama, kontak, dan alamat terintegrasi dengan toolkit
 - **Dropdown Layout Dinamis**: Akses cepat ke seluruh 189 layout yang dikelompokkan rapi per kategori.
 - **Sistem Draft & Auto-Save**: Otomatis tersimpan secara periodik, shortcut `Ctrl+S` / `Cmd+S`, serta perlindungan *beforeunload*.
 
-### 10. 📥 Ekspor PPTX Native (PptxGenJS v4)
+### 10. 🖼️ Fitur Logo Presentasi Global (Opsional)
+Pengguna dapat menyematkan identitas visual perusahaan atau institusi pada deck presentasi:
+- **Pengaturan Awal & Editor**: Input upload di Step 1 (Tema & Topik) dan panel konfigurasi cepat logo di Step 3 (Preview & Edit).
+- **Validasi Format & Ukuran**: Menerima format PNG dan JPEG hingga 2 MB dengan saran PNG transparan. Memvalidasi bahwa berkas terbaca sebagai gambar valid.
+- **Pilihan Posisi**: Kiri atas, kanan atas (default), kiri bawah, dan kanan bawah dengan radio card mini slide.
+- **Pilihan Ukuran**: Kecil, sedang (default), dan besar dengan rasio aspek terjaga (*contain aspect ratio*).
+- **Safe Area & Anti-Tabrakan**: Peringatan visual otomatis muncul jika elemen teks/konten mendekati atau menutupi posisi logo.
+- **Ekspor PPTX Beresolusi Tinggi**: Logo terbenam langsung ke berkas PowerPoint asli di setiap slide (termasuk cover dan penutup) dengan warna asli logo yang dipertahankan.
+- **Penyimpanan Persisten**: Terintegrasi aman dengan autosave draft dan snapshot riwayat master tanpa mengubah snapshot riwayat terdahulu.
+
+### 11. 📥 Ekspor PPTX Native (PptxGenJS v4)
 - Menghasilkan file `.pptx` beresolusi 16:9 yang siap dipresentasikan di Microsoft PowerPoint, Google Slides, maupun Apple Keynote.
 - Mendukung ekspor langsung dari browser (client-side) maupun backend API dengan styling dan positioning presisi tanpa garis dekoratif header.
 

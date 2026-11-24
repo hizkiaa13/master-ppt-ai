@@ -12,9 +12,43 @@ function hexToRgb(hex) {
 }
 
 /**
+ * Helper to compute logo bounding box in inches
+ */
+function computeBackendLogoBounds(logoConfig) {
+  if (!logoConfig || !logoConfig.enabled) return null;
+  const sizes = {
+    small:  { maxW: 0.8, maxH: 0.45 },
+    medium: { maxW: 1.2, maxH: 0.65 },
+    large:  { maxW: 1.8, maxH: 1.0  },
+  };
+  const sizeDef = sizes[logoConfig.size] || sizes.medium;
+  const naturalWidth = logoConfig.naturalWidth || 200;
+  const naturalHeight = logoConfig.naturalHeight || 100;
+  const aspectRatio = naturalWidth / naturalHeight;
+
+  let w = sizeDef.maxW;
+  let h = w / aspectRatio;
+  if (h > sizeDef.maxH) {
+    h = sizeDef.maxH;
+    w = h * aspectRatio;
+  }
+
+  const margin = 0.25;
+  const position = logoConfig.position || 'top-right';
+  let x, y;
+  if (position.includes('left')) x = margin;
+  else x = 10 - margin - w;
+
+  if (position.includes('top')) y = margin;
+  else y = 5.625 - margin - h;
+
+  return { x, y, w, h };
+}
+
+/**
  * Generate a complete PPTX file from slide blueprints (Base Master Hitam & Putih)
  */
-async function generatePPTXBuffer(slides, title) {
+async function generatePPTXBuffer(slides, title, options = {}) {
   const pres = new PptxGenJS();
   pres.layout = 'LAYOUT_16x9';
   pres.author = 'Master PPT AI';
@@ -22,12 +56,32 @@ async function generatePPTXBuffer(slides, title) {
   pres.title = title || 'Base Master PowerPoint (Hitam & Putih)';
 
   const defaultFont = FONT_PAIRINGS[0].heading;
+  const logoConfig = options.logoConfig || null;
 
   slides.forEach((slideData) => {
     const slide = pres.addSlide();
 
     // 1. Background selalu putih murni (#FFFFFF)
     slide.background = { color: 'FFFFFF' };
+
+    // 1.5. Render Logo Presentasi Global jika ada
+    if (logoConfig && logoConfig.enabled && logoConfig.dataUri) {
+      try {
+        const bounds = computeBackendLogoBounds(logoConfig);
+        if (bounds) {
+          slide.addImage({
+            data: logoConfig.dataUri,
+            x: bounds.x,
+            y: bounds.y,
+            w: bounds.w,
+            h: bounds.h,
+            sizing: { type: 'contain', w: bounds.w, h: bounds.h },
+          });
+        }
+      } catch (err) {
+        console.warn('Backend PPTX logo embed warning:', err.message);
+      }
+    }
 
     // 2. Render Placeholders
     (slideData.placeholders || []).forEach((placeholder) => {
@@ -261,7 +315,7 @@ async function updateSlide(req, res) {
 // POST /api/pptx/finalize/:masterId
 async function finalizePPTX(req, res) {
   const { masterId } = req.params;
-  const { slides: incomingSlides, title } = req.body || {};
+  const { slides: incomingSlides, title, logoConfig } = req.body || {};
 
   try {
     const { data: history, error } = await supabase
@@ -280,7 +334,14 @@ async function finalizePPTX(req, res) {
       (history.edited_slides ? JSON.parse(history.edited_slides) : JSON.parse(history.slide_previews || '[]'));
     const docTitle = title || history.custom_title || 'Base Master';
 
-    const pptxBuffer = await generatePPTXBuffer(slidesToRender, docTitle);
+    let effectiveLogo = logoConfig || null;
+    if (!effectiveLogo && history.logo_config) {
+      try {
+        effectiveLogo = typeof history.logo_config === 'string' ? JSON.parse(history.logo_config) : history.logo_config;
+      } catch {}
+    }
+
+    const pptxBuffer = await generatePPTXBuffer(slidesToRender, docTitle, { logoConfig: effectiveLogo });
     const pptxBase64 = pptxBuffer.toString('base64');
 
     const { error: updateError } = await supabase
@@ -342,7 +403,14 @@ async function downloadPPTX(req, res) {
         slides = [];
       }
 
-      const pptxBuffer = await generatePPTXBuffer(slides, docTitle);
+      let effectiveLogo = null;
+      if (history.logo_config) {
+        try {
+          effectiveLogo = typeof history.logo_config === 'string' ? JSON.parse(history.logo_config) : history.logo_config;
+        } catch {}
+      }
+
+      const pptxBuffer = await generatePPTXBuffer(slides, docTitle, { logoConfig: effectiveLogo });
       res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
       return res.send(pptxBuffer);

@@ -28,6 +28,7 @@ import {
 import AlignmentGuidelines from './AlignmentGuidelines';
 import TextFormattingToolbar from './TextFormattingToolbar';
 import PlaceholderModal from './PlaceholderModal';
+import TypographyPanel from './TypographyPanel';
 import toast from 'react-hot-toast';
 import { autoResizeTextarea } from '../../utils/autoResizeTextarea';
 import {
@@ -39,6 +40,10 @@ import {
 import { isDummyText } from '../../utils/slideContentValidator';
 import { regenerateSlideContent } from '../../services/ai';
 import { computeLogoPercent, doesOverlapLogo, LOGO_POSITIONS, LOGO_SIZES } from './LogoUploader';
+import {
+  resolvePlaceholderTypography,
+  DEFAULT_TYPOGRAPHY_CONFIG,
+} from '../../utils/typographySystem';
 
 /**
  * Determine if a hex color is dark or light for optimal contrast
@@ -66,6 +71,8 @@ export default function SlidePreview({
   recommendations = {},
   logoConfig = null,
   onLogoChange,
+  typographyConfig = DEFAULT_TYPOGRAPHY_CONFIG,
+  onTypographyChange,
   onEdit,
   onReset,
   onNext,
@@ -625,17 +632,9 @@ export default function SlidePreview({
                 const isText = placeholder.type === 'text';
                 const isSelected = selectedElementId === placeholder.id;
 
-                let resolvedColor = placeholder.color;
-                if (!isDarkBg) {
-                  if (!resolvedColor || resolvedColor === '#FFFFFF' || resolvedColor === '#9CA3AF' || resolvedColor === '#CBD5E1' || resolvedColor === '#E2E8F0') {
-                    resolvedColor = placeholder.id?.startsWith('title') ? '#000000' : '#1F2937';
-                  }
-                } else {
-                  if (!resolvedColor || resolvedColor === '#000000' || resolvedColor === '#111827' || resolvedColor === '#1F2937') {
-                    resolvedColor = '#FFFFFF';
-                  }
-                }
-                const textColor = resolvedColor;
+                // Resolve typography token from global typographyConfig
+                const typo = resolvePlaceholderTypography(placeholder, typographyConfig, isDarkBg);
+                const textColor = typo.color;
 
                 const cW = canvasDimensions.width || 960;
                 const cH = canvasDimensions.height || 540;
@@ -716,14 +715,15 @@ export default function SlidePreview({
                             placeholder="Ketik teks slide..."
                             className="w-full h-full bg-transparent outline-none slide-text-editor select-text"
                             style={{
-                              fontFamily: placeholder.font || 'Montserrat',
-                              fontSize: `${placeholder.fontSize || 16}px`,
-                              color: placeholder.color || textColor,
-                              fontWeight: placeholder.isBold ? 'bold' : 'normal',
+                              fontFamily: typo.fontFamily,
+                              fontSize: `${typo.fontSize}px`,
+                              color: typo.color,
+                              fontWeight: typo.fontWeight,
                               fontStyle: placeholder.isItalic ? 'italic' : 'normal',
                               textDecoration: placeholder.isUnderline ? 'underline' : 'none',
-                              textAlign: placeholder.align || 'left',
-                              lineHeight: placeholder.lineHeight || 1.4,
+                              textAlign: placeholder.align || typo.align || 'left',
+                              lineHeight: typo.lineHeight,
+                              letterSpacing: typo.letterSpacing ? `${typo.letterSpacing}px` : undefined,
                               border: 'none',
                               padding: '4px',
                             }}
@@ -786,14 +786,15 @@ export default function SlidePreview({
                             <p
                               className="whitespace-pre-wrap select-text placeholder-element w-full"
                               style={{
-                                fontFamily: placeholder.font || 'Montserrat',
-                                fontSize: `${placeholder.fontSize || 16}px`,
-                                color: placeholder.color || textColor,
-                                fontWeight: placeholder.isBold || placeholder.id?.startsWith('title') ? 'bold' : 'normal',
+                                fontFamily: typo.fontFamily,
+                                fontSize: `${typo.fontSize}px`,
+                                color: typo.color,
+                                fontWeight: typo.fontWeight,
                                 fontStyle: placeholder.isItalic ? 'italic' : 'normal',
                                 textDecoration: placeholder.isUnderline ? 'underline' : 'none',
-                                textAlign: placeholder.align || 'left',
-                                lineHeight: placeholder.lineHeight || 1.4,
+                                textAlign: placeholder.align || typo.align || 'left',
+                                lineHeight: typo.lineHeight,
+                                letterSpacing: typo.letterSpacing ? `${typo.letterSpacing}px` : undefined,
                                 wordWrap: 'break-word',
                                 overflowWrap: 'break-word',
                                 overflow: 'hidden',
@@ -1160,6 +1161,14 @@ export default function SlidePreview({
               )}
             </div>
           </div>
+
+          {/* Panel Tipografi Konsisten (Otomatis & Manual) */}
+          <TypographyPanel
+            typographyConfig={typographyConfig}
+            onTypographyChange={onTypographyChange}
+            slides={editedSlides}
+            selectedPlaceholder={selectedPlaceholder}
+          />
 
           {/* Daftar Thumbnail Vertikal (Scrollable) */}
           <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-2">

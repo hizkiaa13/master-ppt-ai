@@ -17,6 +17,7 @@ async function saveHistory(req, res) {
       finalData = [],
       slides = [],
       logoConfig = null,
+      typographyConfig = null,
     } = req.body;
 
     const presentationTitle = (title || 'Base Master PowerPoint').trim();
@@ -37,7 +38,7 @@ async function saveHistory(req, res) {
     // Generate PPTX buffer & base64
     let pptxBase64 = null;
     try {
-      const buffer = await generatePPTXBuffer(slidesData, presentationTitle, { logoConfig });
+      const buffer = await generatePPTXBuffer(slidesData, presentationTitle, { logoConfig, typographyConfig });
       pptxBase64 = buffer.toString('base64');
     } catch (bufferErr) {
       console.warn('Peringatan: Gagal generate buffer saat saveHistory:', bufferErr.message);
@@ -57,6 +58,7 @@ async function saveHistory(req, res) {
       edited_slides: JSON.stringify(slidesData),
       final_data: JSON.stringify(slidesData),
       logo_config: logoConfig ? JSON.stringify(logoConfig) : null,
+      typography_config: typographyConfig ? JSON.stringify(typographyConfig) : null,
       pptx_file_path: pptxBase64,
       final_pptx_path: pptxBase64,
       created_at: new Date().toISOString(),
@@ -69,6 +71,7 @@ async function saveHistory(req, res) {
     if (result.error) {
       console.warn('Supabase insert warning, trying compatible fallback:', result.error.message);
       delete insertPayload.logo_config;
+      delete insertPayload.typography_config;
       result = await supabase.from('master_histories').insert(insertPayload);
 
       if (result.error) {

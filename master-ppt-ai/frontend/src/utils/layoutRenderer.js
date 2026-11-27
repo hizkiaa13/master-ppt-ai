@@ -12,6 +12,62 @@ import {
   FULL_LAYOUT_OPTIONS,
   CATEGORY_LABELS,
 } from './layoutCatalog.js';
+import { DEFAULT_TYPOGRAPHY_CONFIG, resolvePlaceholderTypography } from './typographySystem.js';
+
+/**
+ * Helper untuk menghitung slots layout agenda/daftar isi secara dinamis (2 sampai 8 poin).
+ * Membagi rata secara vertikal jika <= 4 poin (1 kolom), dan 2 kolom jika 5-8 poin.
+ */
+export function generateDynamicAgendaSlots(pointCount = 4) {
+  const n = Math.max(2, Math.min(8, parseInt(pointCount, 10) || 4));
+  const slots = [];
+
+  if (n <= 4) {
+    // 1 Kolom Vertikal Luas
+    const startY = 24;
+    const availableH = 66;
+    const slotH = Math.min(14, (availableH / n) - 2);
+    const gap = (availableH - (slotH * n)) / (n > 1 ? (n - 1) : 1);
+
+    for (let i = 0; i < n; i++) {
+      const y = startY + (i * (slotH + gap));
+      slots.push({
+        x: 8,
+        y: Math.round(y * 10) / 10,
+        w: 84,
+        h: Math.round(slotH * 10) / 10,
+        number: String(i + 1).padStart(2, '0'),
+        align: 'left',
+      });
+    }
+  } else {
+    // 2 Kolom Sejajar (Left & Right)
+    const leftCount = Math.ceil(n / 2);
+    const rightCount = n - leftCount;
+    const rows = leftCount;
+    const startY = 24;
+    const availableH = 66;
+    const slotH = Math.min(12, (availableH / rows) - 2);
+    const gap = (availableH - (slotH * rows)) / (rows > 1 ? (rows - 1) : 1);
+
+    for (let i = 0; i < n; i++) {
+      const col = i < leftCount ? 0 : 1;
+      const row = col === 0 ? i : (i - leftCount);
+      const x = col === 0 ? 6 : 52;
+      const y = startY + (row * (slotH + gap));
+      slots.push({
+        x,
+        y: Math.round(y * 10) / 10,
+        w: 42,
+        h: Math.round(slotH * 10) / 10,
+        number: String(i + 1).padStart(2, '0'),
+        align: 'left',
+      });
+    }
+  }
+
+  return slots;
+}
 
 export const BASE_LAYOUT_DEFINITIONS = {
   // === A. COVER DEPAN ===
@@ -853,20 +909,32 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   }
 
   // 5. Layout Standar Poin
+  const isAgenda = newLayoutId === 'table-of-contents' || newLayoutId.startsWith('agenda-');
+  let slots = layoutDef.points || [];
+
+  // Jika layout adalah Agenda / Daftar Isi, hitung slots secara dinamis sesuai jumlah poin konten (2 s/d 8)
+  if (isAgenda) {
+    const desiredAgendaCount = Math.max(2, Math.min(8, contentItems.length || slide.pointCount || 4));
+    slots = generateDynamicAgendaSlots(desiredAgendaCount);
+  }
+
+  const typographyConfig = themeConfig?.typography || DEFAULT_TYPOGRAPHY_CONFIG;
+  const titleTypo = resolvePlaceholderTypography({ id: `title-${slide.slideNumber}`, type: 'text' }, typographyConfig);
+
   newPlaceholders.push({
     id: `title-${slide.slideNumber}`,
     type: 'text',
     name: isEn ? 'Slide Title' : 'Judul Slide',
     content: titleP?.content || slide.title || (isEn ? 'Slide Title' : 'Judul Slide'),
-    font: fontHeading,
-    fontSize: calculateFontSize(layoutDef.points?.length || 3, (titleP?.content || '').length, true, newLayoutId),
-    color: '#000000',
-    isBold: true,
+    font: titleTypo.fontFamily || fontHeading,
+    fontSize: typographyConfig.mode === 'auto' ? titleTypo.fontSize : calculateFontSize(slots.length, (titleP?.content || '').length, true, newLayoutId),
+    color: titleTypo.color || '#000000',
+    isBold: titleTypo.isBold !== undefined ? titleTypo.isBold : true,
+    lineHeight: titleTypo.lineHeight,
     align: layoutDef.title?.align || 'left',
     position: { ...layoutDef.title },
   });
 
-  const slots = layoutDef.points || [];
   const slideContext = titleP?.content || slide.title || (isEn ? 'Core Topic' : 'Materi Slide');
 
   slots.forEach((slot, i) => {
@@ -929,16 +997,22 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
       formattedText = itemText;
     }
 
+    const pointTypo = resolvePlaceholderTypography({ id: `point-${slide.slideNumber}-${i + 1}`, type: 'text' }, typographyConfig);
+    const resolvedFontSize = typographyConfig.mode === 'auto'
+      ? (isAgenda ? Math.min(pointTypo.fontSize, slots.length >= 6 ? 14 : 16) : pointTypo.fontSize)
+      : calculateFontSize(slots.length, itemText.length, false, newLayoutId);
+
     newPlaceholders.push({
       id: `point-${slide.slideNumber}-${i + 1}`,
       type: 'text',
       name: isEn ? `Point ${i + 1}` : `Poin ${i + 1}`,
       content: formattedText,
-      font: fontBody,
-      fontSize: calculateFontSize(slots.length, itemText.length, false, newLayoutId),
-      color: '#1F2937',
+      font: pointTypo.fontFamily || fontBody,
+      fontSize: resolvedFontSize,
+      color: pointTypo.color || '#1F2937',
       align: slot.align || 'left',
-      lineHeight: 1.5,
+      lineHeight: pointTypo.lineHeight || 1.5,
+      isBold: pointTypo.isBold || false,
       badge: slot.badge || (slot.number ? 'number' : slot.stepLabel ? 'step' : undefined),
       number: slot.number,
       stepLabel: slot.stepLabel,

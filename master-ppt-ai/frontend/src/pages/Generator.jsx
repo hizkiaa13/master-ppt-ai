@@ -5,6 +5,7 @@ import { generateAIContent } from '../services/ai';
 import { mapAIResultToSlides } from '../utils/aiMapper';
 import { generateFinalPPTX } from '../utils/pptxGenerator';
 import { validateSlideDeckBeforeExport } from '../utils/slideContentValidator';
+import { DEFAULT_TYPOGRAPHY_CONFIG } from '../utils/typographySystem';
 import ThemeSelector from '../components/Generator/ThemeSelector';
 import ManualLayoutSelector, { getDefaultLayoutSelections } from '../components/Generator/ManualLayoutSelector';
 import SlidePreview from '../components/Generator/SlidePreview';
@@ -49,6 +50,7 @@ function buildDraftPayload({ formData, step, slides, recommendations, generatedD
       layoutMode: formData.layoutMode || 'auto',
       layoutSelections: formData.layoutSelections || [],
       logoConfig: logoConfigForDraft,
+      typographyConfig: formData.typographyConfig || DEFAULT_TYPOGRAPHY_CONFIG,
     },
     generatedSlides: slides.length > 0 ? slides : null,
     editedSlides: slides.length > 0 ? slides : null,
@@ -103,6 +105,7 @@ export default function Generator() {
     layoutMode: 'auto', // 'auto' | 'manual'
     layoutSelections: getDefaultLayoutSelections(5),
     logoConfig: null, // { enabled, dataUri, position, size, originalName, mimeType, naturalWidth, naturalHeight }
+    typographyConfig: DEFAULT_TYPOGRAPHY_CONFIG,
   });
 
   // Generation & AI state
@@ -173,6 +176,7 @@ export default function Generator() {
           layoutSelections:
             data.formData.layoutSelections || data.layoutSelections || getDefaultLayoutSelections(restoredSlideCount),
           logoConfig: data.formData.logoConfig || prev.logoConfig || null,
+          typographyConfig: data.formData.typographyConfig || prev.typographyConfig || DEFAULT_TYPOGRAPHY_CONFIG,
         }));
       }
 
@@ -406,6 +410,7 @@ export default function Generator() {
           finalData: slides,
           slides,
           logoConfig: formData.logoConfig,
+          typographyConfig: formData.typographyConfig,
         });
 
         if (saveRes?.success && saveRes?.data?.historyId) {
@@ -419,13 +424,21 @@ export default function Generator() {
       // STEP 2: Unduh file PPTX
       if (savedHistoryId) {
         try {
-          await pptxService.finalize(savedHistoryId, { slides, title: formData.customTitle, logoConfig: formData.logoConfig });
+          await pptxService.finalize(savedHistoryId, {
+            slides,
+            title: formData.customTitle,
+            logoConfig: formData.logoConfig,
+            typographyConfig: formData.typographyConfig,
+          });
         } catch (finalizeErr) {
           console.warn('Finalize call notice:', finalizeErr.message);
         }
         await pptxService.download(savedHistoryId, fileName, true);
       } else {
-        await generateFinalPPTX(slides, recommendations, formData.customTitle, { logoConfig: formData.logoConfig });
+        await generateFinalPPTX(slides, recommendations, formData.customTitle, {
+          logoConfig: formData.logoConfig,
+          typographyConfig: formData.typographyConfig,
+        });
       }
 
       setDownloadSuccess(true);
@@ -434,7 +447,10 @@ export default function Generator() {
     } catch (err) {
       console.error('Download error:', err);
       try {
-        await generateFinalPPTX(slides, recommendations, formData.customTitle, { logoConfig: formData.logoConfig });
+        await generateFinalPPTX(slides, recommendations, formData.customTitle, {
+          logoConfig: formData.logoConfig,
+          typographyConfig: formData.typographyConfig,
+        });
         setDownloadSuccess(true);
         toast.success('File PPTX Base Master berhasil diekspor!');
         await draft.markCompleted();
@@ -457,6 +473,7 @@ export default function Generator() {
       layoutMode: 'auto',
       layoutSelections: getDefaultLayoutSelections(5),
       logoConfig: null,
+      typographyConfig: DEFAULT_TYPOGRAPHY_CONFIG,
     });
     setGeneratedData(null);
     setSlides([]);
@@ -859,6 +876,11 @@ export default function Generator() {
           onLogoChange={(newLogo) => {
             setFormData((prev) => ({ ...prev, logoConfig: newLogo }));
             draft.scheduleSave(buildDraftPayload({ ...stateRef.current, formData: { ...formData, logoConfig: newLogo } }));
+          }}
+          typographyConfig={formData.typographyConfig || DEFAULT_TYPOGRAPHY_CONFIG}
+          onTypographyChange={(newTypo) => {
+            setFormData((prev) => ({ ...prev, typographyConfig: newTypo }));
+            draft.scheduleSave(buildDraftPayload({ ...stateRef.current, formData: { ...formData, typographyConfig: newTypo } }));
           }}
           onEdit={handleSlideEdit}
           onReset={() => {

@@ -235,7 +235,7 @@ function normalizeSlideDeckLayouts(slides, totalCount, options = {}) {
 /**
  * Buat slide pengganti yang substantif, kontekstual, dan bebas dummy text
  */
-function createDynamicSubstantiveSlide(slideNumber, layoutId, userTitle, userDescription, outputLanguage = 'id') {
+function createDynamicSubstantiveSlide(slideNumber, layoutId, userTitle, userDescription, outputLanguage = 'id', totalSlides = 5) {
   const isEn = (outputLanguage || 'id').toLowerCase() === 'en';
   const safeTitle = userTitle || (isEn ? 'Strategic Focus' : 'Fokus Strategis');
 
@@ -254,27 +254,41 @@ function createDynamicSubstantiveSlide(slideNumber, layoutId, userTitle, userDes
   }
 
   if (slideNumber === 2 && (layoutId === 'table-of-contents' || layoutId.startsWith('agenda-'))) {
+    // Sesuaikan jumlah poin agenda dengan jumlah slide isi (totalSlides - 2), antara 2 s/d 8
+    const contentSlideCount = Math.max(2, Math.min(8, (totalSlides || 5) - 2));
+    const allTopicsEn = [
+      `Context & Core Objectives of ${safeTitle}`,
+      `Methodological Architecture & Strategy`,
+      `Actionable Tactical Implementation`,
+      `Performance Metrics & Measurable Outcomes`,
+      `Key Stakeholder Alignment & Governance`,
+      `Technology Stack & Infrastructure`,
+      `Continuous Optimization & Scaling`,
+      `Roadmap & Final Recommendations`,
+    ];
+    const allTopicsId = [
+      `Latar Belakang & Urgensi ${safeTitle}`,
+      `Pilar Strategis & Metodologi Utama`,
+      `Rencana Eksekusi & Tahapan Praktis`,
+      `Indikator Keberhasilan & Dampak Kinerja`,
+      `Penyelarasan Pemangku Kepentingan`,
+      `Fondasi Infrastruktur & Teknologi`,
+      `Optimalisasi & Skalabilitas Berkelanjutan`,
+      `Peta Jalan & Rekomendasi Akhir`,
+    ];
+
+    const selectedTopics = (isEn ? allTopicsEn : allTopicsId).slice(0, contentSlideCount);
+    const numberedContent = selectedTopics.map((topic, idx) => `${String(idx + 1).padStart(2, '0')}. ${topic}`);
+
     return {
       slideNumber: 2,
       slideType: 'agenda',
       layoutId: layoutId || 'table-of-contents',
-      pointCount: 4,
-      layoutReason: isEn ? `Agenda overview for ${safeTitle}` : `Agenda pembahasan utama ${safeTitle}`,
+      pointCount: contentSlideCount,
+      layoutReason: isEn ? `Agenda overview (${contentSlideCount} topics) for ${safeTitle}` : `Agenda pembahasan (${contentSlideCount} topik) ${safeTitle}`,
       title: isEn ? 'Table of Contents' : 'Agenda Pembahasan',
       subtitle: isEn ? `Structured overview of ${safeTitle}` : `Rangkaian pembahasan ${safeTitle}`,
-      content: isEn
-        ? [
-            `01. Context & Core Objectives of ${safeTitle}`,
-            `02. Methodological Architecture & Strategy`,
-            `03. Actionable Tactical Implementation`,
-            `04. Performance Metrics & Measurable Outcomes`,
-          ]
-        : [
-            `01. Latar Belakang & Urgensi ${safeTitle}`,
-            `02. Pilar Strategis & Metodologi Utama`,
-            `03. Rencana Eksekusi & Tahapan Praktis`,
-            `04. Indikator Keberhasilan & Dampak Kinerja`,
-          ],
+      content: numberedContent,
     };
   }
 
@@ -404,7 +418,7 @@ function getRuleBasedFallback({
             ],
       });
     } else {
-      generatedSlides.push(createDynamicSubstantiveSlide(i, layoutId, safeTitle, safeDesc, outputLanguage));
+      generatedSlides.push(createDynamicSubstantiveSlide(i, layoutId, safeTitle, safeDesc, outputLanguage, count));
     }
   }
 
@@ -613,7 +627,8 @@ async function generateCopywriting(input) {
               currentSlide.layoutId,
               title,
               description,
-              outputLanguage
+              outputLanguage,
+              slideCountResult
             );
           }
 

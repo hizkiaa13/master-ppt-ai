@@ -57,6 +57,7 @@ async function generatePPTXBuffer(slides, title, options = {}) {
 
   const defaultFont = FONT_PAIRINGS[0].heading;
   const logoConfig = options.logoConfig || null;
+  const typographyConfig = options.typographyConfig || null;
 
   slides.forEach((slideData) => {
     const slide = pres.addSlide();
@@ -98,10 +99,34 @@ async function generatePPTXBuffer(slides, title, options = {}) {
       const h = isPercent ? (rawH / 100) * 5.625 : Math.min(5.625, Math.max(0.3, rawH));
 
       if (placeholder.type === 'text') {
-        const isTitle = placeholder.id?.startsWith('title') || placeholder.name?.toLowerCase().includes('judul');
-        const defaultColor = isTitle ? '000000' : '1F2937';
-        const textColor = placeholder.color ? hexToRgb(placeholder.color) : defaultColor;
+        const id = (placeholder.id || '').toLowerCase();
+        const isTitle = id.startsWith('title') || (placeholder.name || '').toLowerCase().includes('judul');
+        const isSubtitle = id.startsWith('subtitle') || (placeholder.name || '').toLowerCase().includes('subjudul');
+        const isCaption = id.startsWith('caption') || id.startsWith('footer') || id.startsWith('presenter');
+        const role = isTitle ? 'title' : (isSubtitle ? 'subtitle' : (isCaption ? 'caption' : 'body'));
 
+        let resolvedFont = placeholder.font || (isTitle ? defaultFont : FONT_PAIRINGS[0].body);
+        let resolvedSize = placeholder.fontSize || (isTitle ? 32 : 16);
+        let resolvedColor = isTitle ? '000000' : '1F2937';
+        let resolvedLineHeight = placeholder.lineHeight || 1.4;
+
+        if (typographyConfig?.mode === 'auto') {
+          resolvedFont = typographyConfig.fontFamily || resolvedFont;
+          const roleScale = typographyConfig.scale?.[role];
+          if (roleScale?.size) resolvedSize = roleScale.size;
+          if (roleScale?.color) resolvedColor = hexToRgb(roleScale.color);
+          if (roleScale?.lineHeight) resolvedLineHeight = roleScale.lineHeight;
+        } else if (typographyConfig?.mode === 'manual') {
+          const roleScale = typographyConfig.scale?.[role];
+          if (roleScale?.fontFamily) resolvedFont = roleScale.fontFamily;
+          if (roleScale?.size) resolvedSize = roleScale.size;
+          if (roleScale?.color) resolvedColor = hexToRgb(roleScale.color);
+          if (roleScale?.lineHeight) resolvedLineHeight = roleScale.lineHeight;
+        }
+
+        if (placeholder.color) resolvedColor = hexToRgb(placeholder.color);
+
+        const textColor = resolvedColor;
         const align = placeholder.align || (isCover && !slideData.layoutId?.includes('editorial') ? 'center' : 'left');
 
         const textOptions = {
@@ -109,8 +134,8 @@ async function generatePPTXBuffer(slides, title, options = {}) {
           y,
           w,
           h,
-          fontSize: placeholder.fontSize || (isTitle ? 32 : 16),
-          fontFace: placeholder.font || defaultFont,
+          fontSize: resolvedSize,
+          fontFace: resolvedFont,
           color: textColor,
           align,
           valign: 'middle',
@@ -119,7 +144,7 @@ async function generatePPTXBuffer(slides, title, options = {}) {
           bold: placeholder.isBold !== undefined ? !!placeholder.isBold : isTitle,
           italic: !!placeholder.isItalic,
           underline: !!placeholder.isUnderline,
-          lineSpacing: Math.round((placeholder.lineHeight || 1.4) * (placeholder.fontSize || 16)),
+          lineSpacing: Math.round(resolvedLineHeight * (resolvedSize || 16)),
         };
 
         slide.addText(placeholder.content || '', textOptions);
@@ -315,7 +340,7 @@ async function updateSlide(req, res) {
 // POST /api/pptx/finalize/:masterId
 async function finalizePPTX(req, res) {
   const { masterId } = req.params;
-  const { slides: incomingSlides, title, logoConfig } = req.body || {};
+  const { slides: incomingSlides, title, logoConfig, typographyConfig } = req.body || {};
 
   try {
     const { data: history, error } = await supabase
@@ -341,7 +366,17 @@ async function finalizePPTX(req, res) {
       } catch {}
     }
 
-    const pptxBuffer = await generatePPTXBuffer(slidesToRender, docTitle, { logoConfig: effectiveLogo });
+    let effectiveTypography = typographyConfig || null;
+    if (!effectiveTypography && history.typography_config) {
+      try {
+        effectiveTypography = typeof history.typography_config === 'string' ? JSON.parse(history.typography_config) : history.typography_config;
+      } catch {}
+    }
+
+    const pptxBuffer = await generatePPTXBuffer(slidesToRender, docTitle, {
+      logoConfig: effectiveLogo,
+      typographyConfig: effectiveTypography,
+    });
     const pptxBase64 = pptxBuffer.toString('base64');
 
     const { error: updateError } = await supabase
@@ -410,7 +445,17 @@ async function downloadPPTX(req, res) {
         } catch {}
       }
 
-      const pptxBuffer = await generatePPTXBuffer(slides, docTitle, { logoConfig: effectiveLogo });
+      let effectiveTypography = null;
+      if (history.typography_config) {
+        try {
+          effectiveTypography = typeof history.typography_config === 'string' ? JSON.parse(history.typography_config) : history.typography_config;
+        } catch {}
+      }
+
+      const pptxBuffer = await generatePPTXBuffer(slides, docTitle, {
+        logoConfig: effectiveLogo,
+        typographyConfig: effectiveTypography,
+      });
       res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
       return res.send(pptxBuffer);

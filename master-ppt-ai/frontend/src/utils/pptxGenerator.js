@@ -1,6 +1,7 @@
 import PptxGenJS from 'pptxgenjs';
 import { validateSlideDeckBeforeExport } from './slideContentValidator.js';
 import { computeLogoBounds } from '../components/Generator/LogoUploader.jsx';
+import { resolvePlaceholderTypography, DEFAULT_TYPOGRAPHY_CONFIG } from './typographySystem.js';
 
 /**
  * Convert hex color string to 6-char hex without '#'
@@ -38,6 +39,7 @@ export async function generateFinalPPTX(slides, recommendations, title, options 
 
   const headingFont = recommendations?.fonts?.heading || 'Montserrat';
   const bodyFont = recommendations?.fonts?.body || 'Open Sans';
+  const typographyConfig = options?.typographyConfig || DEFAULT_TYPOGRAPHY_CONFIG;
 
   slides.forEach((slideData) => {
     const slide = pres.addSlide();
@@ -114,28 +116,30 @@ export async function generateFinalPPTX(slides, recommendations, title, options 
       }
 
       if (placeholder.type === 'text') {
-        const isTitle = placeholder.id?.startsWith('title') || placeholder.name?.toLowerCase().includes('judul');
+        const typo = resolvePlaceholderTypography(placeholder, typographyConfig);
+        const isTitle = typo.role === 'title';
         const defaultColor = isTitle ? '000000' : '1F2937';
-        const textColor = placeholder.color ? hexToRgb(placeholder.color) : defaultColor;
+        const rawColor = typo.color || placeholder.color || defaultColor;
+        const textColor = hexToRgb(rawColor);
 
-        const align = placeholder.align || (isCover && layoutId === 'cover-front' ? 'center' : 'left');
+        const align = placeholder.align || typo.align || (isCover && layoutId === 'cover-front' ? 'center' : 'left');
 
         const textOptions = {
           x,
           y,
           w,
           h,
-          fontSize: placeholder.fontSize || (isTitle ? 32 : 16),
-          fontFace: placeholder.font || (isTitle ? headingFont : bodyFont),
+          fontSize: typo.fontSize || placeholder.fontSize || (isTitle ? 32 : 16),
+          fontFace: typo.fontFamily || placeholder.font || (isTitle ? headingFont : bodyFont),
           color: textColor,
           align,
           valign: 'middle',
           isTextBox: true,
           wrap: true,
-          bold: placeholder.isBold !== undefined ? !!placeholder.isBold : isTitle,
+          bold: typo.isBold !== undefined ? typo.isBold : (placeholder.isBold !== undefined ? !!placeholder.isBold : isTitle),
           italic: !!placeholder.isItalic,
           underline: !!placeholder.isUnderline,
-          lineSpacing: Math.round((placeholder.lineHeight || 1.35) * (placeholder.fontSize || 15)),
+          lineSpacing: Math.round((typo.lineHeight || placeholder.lineHeight || 1.35) * (typo.fontSize || placeholder.fontSize || 15)),
         };
 
         slide.addText(placeholder.content || '', textOptions);

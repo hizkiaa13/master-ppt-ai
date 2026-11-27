@@ -12,7 +12,12 @@ import {
   FULL_LAYOUT_OPTIONS,
   CATEGORY_LABELS,
 } from './layoutCatalog.js';
-import { DEFAULT_TYPOGRAPHY_CONFIG, resolvePlaceholderTypography } from './typographySystem.js';
+import {
+  DEFAULT_TYPOGRAPHY_CONFIG,
+  resolvePlaceholderTypography,
+  resolveSpacingConfig,
+  equalizePointCardHeights,
+} from './typographySystem.js';
 
 /**
  * Helper untuk menghitung slots layout agenda/daftar isi secara dinamis (2 sampai 8 poin).
@@ -1035,7 +1040,7 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   updatedSlide.slideType = (newLayoutId === 'table-of-contents' || newLayoutId.startsWith('agenda-')) ? 'agenda' : 'content';
   updatedSlide.pointCount = slots.length;
   updatedSlide.outputLanguage = isEn ? 'en' : 'id';
-  updatedSlide.placeholders = newPlaceholders;
+  updatedSlide.placeholders = equalizePointCardHeights(newPlaceholders, typographyConfig, newLayoutId);
   return updatedSlide;
 }
 

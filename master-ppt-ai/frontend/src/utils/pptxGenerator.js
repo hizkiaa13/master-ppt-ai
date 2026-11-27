@@ -1,7 +1,12 @@
 import PptxGenJS from 'pptxgenjs';
 import { validateSlideDeckBeforeExport } from './slideContentValidator.js';
 import { computeLogoBounds } from '../components/Generator/LogoUploader.jsx';
-import { resolvePlaceholderTypography, DEFAULT_TYPOGRAPHY_CONFIG } from './typographySystem.js';
+import {
+  resolvePlaceholderTypography,
+  resolveSpacingConfig,
+  equalizePointCardHeights,
+  DEFAULT_TYPOGRAPHY_CONFIG,
+} from './typographySystem.js';
 
 /**
  * Convert hex color string to 6-char hex without '#'
@@ -40,6 +45,7 @@ export async function generateFinalPPTX(slides, recommendations, title, options 
   const headingFont = recommendations?.fonts?.heading || 'Montserrat';
   const bodyFont = recommendations?.fonts?.body || 'Open Sans';
   const typographyConfig = options?.typographyConfig || DEFAULT_TYPOGRAPHY_CONFIG;
+  const spacing = resolveSpacingConfig(typographyConfig);
 
   slides.forEach((slideData) => {
     const slide = pres.addSlide();
@@ -70,8 +76,16 @@ export async function generateFinalPPTX(slides, recommendations, title, options 
       }
     }
 
-    // 2. Render Setiap Placeholder
-    (slideData.placeholders || []).forEach((placeholder) => {
+    // 2. Render Setiap Placeholder (Tinggi kartu di baris yang sama disetarakan)
+    const displayPlaceholders = equalizePointCardHeights(
+      slideData.placeholders || [],
+      typographyConfig,
+      layoutId,
+      960,
+      540
+    );
+
+    displayPlaceholders.forEach((placeholder) => {
       const rawX = parseFloat(placeholder.position?.x) || 0;
       const rawY = parseFloat(placeholder.position?.y) || 0;
       const rawW = parseFloat(placeholder.position?.w) || 10;
@@ -124,22 +138,27 @@ export async function generateFinalPPTX(slides, recommendations, title, options 
 
         const align = placeholder.align || typo.align || (isCover && layoutId === 'cover-front' ? 'center' : 'left');
 
+        const resolvedLineSpacing = isPointCard || typo.role === 'body'
+          ? Math.round((spacing.lineHeightBody || 1.5) * (typo.fontSize || 16))
+          : Math.round((isTitle ? (spacing.lineHeightTitle || 1.2) : (typo.lineHeight || 1.35)) * (typo.fontSize || (isTitle ? 32 : 16)));
+
         const textOptions = {
-          x,
-          y,
-          w,
-          h,
+          x: isPointCard ? x + 0.08 : x,
+          y: isPointCard ? y + 0.08 : y,
+          w: isPointCard ? Math.max(0.5, w - 0.16) : w,
+          h: isPointCard ? Math.max(0.3, h - 0.16) : h,
           fontSize: typo.fontSize || placeholder.fontSize || (isTitle ? 32 : 16),
           fontFace: typo.fontFamily || placeholder.font || (isTitle ? headingFont : bodyFont),
           color: textColor,
           align,
-          valign: 'middle',
+          valign: isPointCard ? 'top' : (isTitle ? 'middle' : 'top'),
           isTextBox: true,
           wrap: true,
           bold: typo.isBold !== undefined ? typo.isBold : (placeholder.isBold !== undefined ? !!placeholder.isBold : isTitle),
           italic: !!placeholder.isItalic,
           underline: !!placeholder.isUnderline,
-          lineSpacing: Math.round((typo.lineHeight || placeholder.lineHeight || 1.35) * (typo.fontSize || placeholder.fontSize || 15)),
+          lineSpacing: resolvedLineSpacing,
+          margin: isPointCard ? [6, 8, 6, 8] : [0, 0, 0, 0],
         };
 
         slide.addText(placeholder.content || '', textOptions);

@@ -31,6 +31,15 @@ export const TYPOGRAPHY_COLORS = [
   { id: 'gray', label: 'Abu', hex: '#9CA3AF' },
 ];
 
+export const DEFAULT_SPACING_CONFIG = {
+  lineHeightBody: 1.5,
+  lineHeightTitle: 1.2,
+  gapBetweenPoints: 16,
+  gapTitleToBody: 8,
+  gapBetweenParagraphs: 8,
+  cardPadding: 16,
+};
+
 export const DEFAULT_TYPOGRAPHY_CONFIG = {
   mode: 'auto', // 'auto' | 'manual'
   fontFamily: 'Inter',
@@ -76,6 +85,7 @@ export const DEFAULT_TYPOGRAPHY_CONFIG = {
       isBold: false,
     },
   },
+  spacing: DEFAULT_SPACING_CONFIG,
 };
 
 /**
@@ -176,4 +186,164 @@ export function checkTypographyConsistency(slides, typographyConfig) {
   }
 
   return warnings;
+}
+
+/**
+ * Resolusi konfigurasi spacing global
+ */
+export function resolveSpacingConfig(typographyConfig) {
+  const base = typographyConfig?.spacing || DEFAULT_SPACING_CONFIG;
+  const bodyLineHeight = typographyConfig?.scale?.body?.lineHeight || base.lineHeightBody || 1.5;
+  const titleLineHeight = typographyConfig?.scale?.title?.lineHeight || base.lineHeightTitle || 1.2;
+
+  return {
+    lineHeightBody: bodyLineHeight,
+    lineHeightTitle: titleLineHeight,
+    gapBetweenPoints: base.gapBetweenPoints !== undefined ? base.gapBetweenPoints : 16,
+    gapTitleToBody: base.gapTitleToBody !== undefined ? base.gapTitleToBody : 8,
+    gapBetweenParagraphs: base.gapBetweenParagraphs !== undefined ? base.gapBetweenParagraphs : 8,
+    cardPadding: base.cardPadding !== undefined ? base.cardPadding : 16,
+  };
+}
+
+/**
+ * Kelompokkan placeholder kartu poin berdasarkan baris vertikal (koordinat Y serupa)
+ */
+export function groupPlaceholdersByRow(pointPlaceholders, yTolerance = 7) {
+  const sorted = [...pointPlaceholders].sort((a, b) => {
+    const yA = parseFloat(a.position?.y) || 0;
+    const yB = parseFloat(b.position?.y) || 0;
+    return yA - yB;
+  });
+
+  const rows = [];
+  sorted.forEach((p) => {
+    const y = parseFloat(p.position?.y) || 0;
+    const matchingRow = rows.find((r) => Math.abs(r.y - y) <= yTolerance);
+    if (matchingRow) {
+      matchingRow.items.push(p);
+      matchingRow.y = matchingRow.items.reduce((sum, item) => sum + (parseFloat(item.position?.y) || 0), 0) / matchingRow.items.length;
+    } else {
+      rows.push({ y, items: [p] });
+    }
+  });
+
+  rows.forEach((r) => {
+    r.items.sort((a, b) => (parseFloat(a.position?.x) || 0) - (parseFloat(b.position?.x) || 0));
+  });
+
+  return rows;
+}
+
+/**
+ * Menghitung perkiraan tinggi kebutuhan kartu poin dalam satuan persentase slide (0-100%).
+ * Berdasarkan panjang teks, ukuran font, padding kartu, line height, dan badge aksesoris.
+ */
+export function estimateCardHeightPercent(placeholder, typographyConfig, canvasWidth = 960, canvasHeight = 540) {
+  const typo = resolvePlaceholderTypography(placeholder, typographyConfig);
+  const spacing = resolveSpacingConfig(typographyConfig);
+
+  const cardWPercent = parseFloat(placeholder.position?.w) || 30;
+  const cardWPx = (cardWPercent / 100) * canvasWidth;
+  // Area bersih teks di dalam kartu (dikurangi padding kiri dan kanan)
+  const usableWidthPx = Math.max(80, cardWPx - (spacing.cardPadding * 2));
+
+  const fontSize = typo.fontSize || 16;
+  const lineHeightPx = fontSize * (spacing.lineHeightBody || 1.5);
+
+  // Estimasi karakter per baris (lebar rata-rata karakter proporsional ~ 0.52 * fontSize)
+  const charsPerLine = Math.max(12, Math.floor(usableWidthPx / (fontSize * 0.52)));
+
+  // Hitung jumlah baris dari teks (memperhitungkan paragraf dan wrapping)
+  const content = (placeholder.content || '').trim();
+  const paragraphs = content ? content.split(/\n+/) : [''];
+
+  let totalLines = 0;
+  paragraphs.forEach((p) => {
+    const pTrim = p.trim();
+    if (!pTrim) {
+      totalLines += 1;
+    } else {
+      const wrappedLines = Math.max(1, Math.ceil(pTrim.length / charsPerLine));
+      totalLines += wrappedLines;
+    }
+  });
+
+  // Tinggi teks murni + gap antar paragraf
+  const textHeightPx = (totalLines * lineHeightPx) + Math.max(0, (paragraphs.length - 1) * spacing.gapBetweenParagraphs);
+
+  // Tambahan tinggi untuk badge/header (arrow, rating, stepLabel, stat, number)
+  let headerHeightPx = 0;
+  if (placeholder.badge === 'arrow' || placeholder.stepLabel || placeholder.number) {
+    headerHeightPx = 22 + spacing.gapTitleToBody;
+  } else if (placeholder.badge === 'stat') {
+    headerHeightPx = 48 + spacing.gapTitleToBody;
+  } else if (placeholder.badge === 'rating') {
+    headerHeightPx = 40 + spacing.gapTitleToBody;
+  }
+
+  // Total tinggi dalam pixel (termasuk padding atas & bawah)
+  const totalHeightPx = textHeightPx + headerHeightPx + (spacing.cardPadding * 2);
+
+  // Konversi ke persentase slide height
+  const percentH = (totalHeightPx / canvasHeight) * 100;
+  return Math.round(percentH * 10) / 10;
+}
+
+/**
+ * Samakan tinggi kartu poin yang berada dalam satu baris (row-equalized heights).
+ * Mengembalikan array placeholders baru dengan tinggi yang setara per baris,
+ * disejajarkan dari atas (top alignment) tanpa kartu pendek yang menggantung.
+ */
+export function equalizePointCardHeights(placeholders = [], typographyConfig = null, layoutId = '', canvasWidth = 960, canvasHeight = 540) {
+  if (!Array.isArray(placeholders) || placeholders.length === 0) return placeholders;
+
+  // Jangan sentuh layout khusus non-grid card
+  if (layoutId === 'table-of-contents' || layoutId.startsWith('agenda-') || layoutId === 'cover-front' || layoutId === 'cover-back' || layoutId === 'one-point') {
+    return placeholders;
+  }
+
+  const pointPlaceholders = placeholders.filter((p) => p.id?.startsWith('point-') && p.type === 'text');
+  if (pointPlaceholders.length <= 1) return placeholders;
+
+  const rows = groupPlaceholdersByRow(pointPlaceholders);
+  const rowHeightMap = new Map();
+
+  const isMultiRow = rows.length > 1;
+
+  rows.forEach((row) => {
+    let maxNeededH = 0;
+    let minRowY = 100;
+
+    row.items.forEach((item) => {
+      const existingH = parseFloat(item.position?.h) || 20;
+      const existingY = parseFloat(item.position?.y) || 20;
+      minRowY = Math.min(minRowY, existingY);
+
+      const neededH = estimateCardHeightPercent(item, typographyConfig, canvasWidth, canvasHeight);
+      maxNeededH = Math.max(maxNeededH, existingH, neededH);
+    });
+
+    const maxAllowedH = isMultiRow ? 36 : 65;
+    const finalH = Math.min(maxAllowedH, Math.max(20, maxNeededH));
+
+    row.items.forEach((item) => {
+      rowHeightMap.set(item.id, { h: finalH, y: minRowY });
+    });
+  });
+
+  return placeholders.map((p) => {
+    if (rowHeightMap.has(p.id)) {
+      const { h, y } = rowHeightMap.get(p.id);
+      return {
+        ...p,
+        position: {
+          ...p.position,
+          h,
+          y,
+        },
+      };
+    }
+    return p;
+  });
 }

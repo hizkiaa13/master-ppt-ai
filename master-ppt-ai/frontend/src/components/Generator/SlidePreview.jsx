@@ -42,6 +42,8 @@ import { regenerateSlideContent } from '../../services/ai';
 import { computeLogoPercent, doesOverlapLogo, LOGO_POSITIONS, LOGO_SIZES } from './LogoUploader';
 import {
   resolvePlaceholderTypography,
+  resolveSpacingConfig,
+  equalizePointCardHeights,
   DEFAULT_TYPOGRAPHY_CONFIG,
 } from '../../utils/typographySystem';
 
@@ -627,164 +629,108 @@ export default function SlidePreview({
                 );
               })()}
 
-              {/* Placeholders rendered with Rnd */}
-              {currentSlide.placeholders?.map((placeholder, idx) => {
-                const isText = placeholder.type === 'text';
-                const isSelected = selectedElementId === placeholder.id;
+              {/* Placeholders rendered with Rnd (Tinggi kartu di baris yang sama disetarakan) */}
+              {(() => {
+                const spacing = resolveSpacingConfig(typographyConfig);
+                const displayPlaceholders = equalizePointCardHeights(
+                  currentSlide.placeholders || [],
+                  typographyConfig,
+                  currentSlide.layoutId,
+                  canvasDimensions.width || 960,
+                  canvasDimensions.height || 540
+                );
 
-                // Resolve typography token from global typographyConfig
-                const typo = resolvePlaceholderTypography(placeholder, typographyConfig, isDarkBg);
-                const textColor = typo.color;
+                return displayPlaceholders.map((placeholder, idx) => {
+                  const isText = placeholder.type === 'text';
+                  const isSelected = selectedElementId === placeholder.id;
 
-                const cW = canvasDimensions.width || 960;
-                const cH = canvasDimensions.height || 540;
+                  // Resolve typography token from global typographyConfig
+                  const typo = resolvePlaceholderTypography(placeholder, typographyConfig, isDarkBg);
+                  const textColor = typo.color;
 
-                const rawX = parseFloat(placeholder.position?.x) || 0;
-                const rawY = parseFloat(placeholder.position?.y) || 0;
-                const rawW = parseFloat(placeholder.position?.w) || 10;
-                const rawH = parseFloat(placeholder.position?.h) || 10;
+                  const cW = canvasDimensions.width || 960;
+                  const cH = canvasDimensions.height || 540;
 
-                const isPercent = rawW > 10 || rawH > 10 || rawX > 10 || rawY > 10 || currentSlide.layoutId;
-                const pctX = isPercent ? rawX / 100 : rawX / 10;
-                const pctY = isPercent ? rawY / 100 : rawY / 10;
-                const pctW = isPercent ? rawW / 100 : rawW / 10;
-                const pctH = isPercent ? rawH / 100 : rawH / 10;
+                  const rawX = parseFloat(placeholder.position?.x) || 0;
+                  const rawY = parseFloat(placeholder.position?.y) || 0;
+                  const rawW = parseFloat(placeholder.position?.w) || 10;
+                  const rawH = parseFloat(placeholder.position?.h) || 10;
 
-                const pixelX = Math.round(pctX * cW);
-                const pixelY = Math.round(pctY * cH);
-                const pixelW = Math.max(50, Math.round(pctW * cW));
-                const pixelH = Math.max(26, Math.round(pctH * cH));
+                  const isPercent = rawW > 10 || rawH > 10 || rawX > 10 || rawY > 10 || currentSlide.layoutId;
+                  const pctX = isPercent ? rawX / 100 : rawX / 10;
+                  const pctY = isPercent ? rawY / 100 : rawY / 10;
+                  const pctW = isPercent ? rawW / 100 : rawW / 10;
+                  const pctH = isPercent ? rawH / 100 : rawH / 10;
 
-                return (
-                  <Rnd
-                    key={`rnd-${placeholder.id}-${idx}-${currentSlideIndex}`}
-                    size={{ width: pixelW, height: pixelH }}
-                    position={{ x: pixelX, y: pixelY }}
-                    bounds="parent"
-                    enableResizing={
-                      isEditMode
-                        ? {
-                            top: true, right: true, bottom: true, left: true,
-                            topRight: true, bottomRight: true, bottomLeft: true, topLeft: true,
-                          }
-                        : false
-                    }
-                    disableDragging={!isEditMode}
-                    snap={useSnapToGrid && isEditMode ? { x: 10, y: 10 } : undefined}
-                    onDragStop={(e, d) => handleDragStop(placeholder.id, d)}
-                    onResizeStop={(e, direction, ref, delta, position) => {
-                      handleResizeStop(
-                        placeholder.id,
-                        {
-                          width: parseInt(ref.style.width, 10),
-                          height: parseInt(ref.style.height, 10),
-                        },
-                        position
-                      );
-                    }}
-                    className={`absolute group transition-shadow ${
-                      isEditMode ? 'cursor-move' : 'cursor-default'
-                    } ${
-                      isSelected
-                        ? 'ring-2 ring-gray-900 shadow-lg z-20'
-                        : isEditMode
-                        ? 'hover:ring-1 hover:ring-gray-400 z-10'
-                        : 'z-10'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleElementClick(placeholder.id);
-                    }}
-                  >
-                    <div
-                      className={`w-full h-full p-2 rounded relative flex flex-col justify-center transition-all ${
+                  const pixelX = Math.round(pctX * cW);
+                  const pixelY = Math.round(pctY * cH);
+                  const pixelW = Math.max(50, Math.round(pctW * cW));
+                  const pixelH = Math.max(26, Math.round(pctH * cH));
+
+                  const isPointCard =
+                    placeholder.id?.startsWith('point-') &&
+                    !isDarkBg &&
+                    currentSlide.layoutId !== 'table-of-contents';
+
+                  return (
+                    <Rnd
+                      key={`rnd-${placeholder.id}-${idx}-${currentSlideIndex}`}
+                      size={{ width: pixelW, height: pixelH }}
+                      position={{ x: pixelX, y: pixelY }}
+                      bounds="parent"
+                      enableResizing={
                         isEditMode
-                          ? 'border border-dashed border-gray-400 bg-gray-50/50'
-                          : 'border border-transparent'
+                          ? {
+                              top: true, right: true, bottom: true, left: true,
+                              topRight: true, bottomRight: true, bottomLeft: true, topLeft: true,
+                            }
+                          : false
+                      }
+                      disableDragging={!isEditMode}
+                      snap={useSnapToGrid && isEditMode ? { x: 10, y: 10 } : undefined}
+                      onDragStop={(e, d) => handleDragStop(placeholder.id, d)}
+                      onResizeStop={(e, direction, ref, delta, position) => {
+                        handleResizeStop(
+                          placeholder.id,
+                          {
+                            width: parseInt(ref.style.width, 10),
+                            height: parseInt(ref.style.height, 10),
+                          },
+                          position
+                        );
+                      }}
+                      className={`absolute group transition-shadow ${
+                        isEditMode ? 'cursor-move' : 'cursor-default'
+                      } ${
+                        isSelected
+                          ? 'ring-2 ring-gray-900 shadow-lg z-20'
+                          : isEditMode
+                          ? 'hover:ring-1 hover:ring-gray-400 z-10'
+                          : 'z-10'
                       }`}
-                      style={{ overflow: 'hidden' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleElementClick(placeholder.id);
+                      }}
                     >
-                      {isText ? (
-                        isEditMode && isSelected ? (
-                          <textarea
-                            value={placeholder.content || ''}
-                            onChange={(e) => {
-                              handlePlaceholderEdit(placeholder.id, e.target.value);
-                              autoResizeTextarea(e.target);
-                            }}
-                            placeholder="Ketik teks slide..."
-                            className="w-full h-full bg-transparent outline-none slide-text-editor select-text"
-                            style={{
-                              fontFamily: typo.fontFamily,
-                              fontSize: `${typo.fontSize}px`,
-                              color: typo.color,
-                              fontWeight: typo.fontWeight,
-                              fontStyle: placeholder.isItalic ? 'italic' : 'normal',
-                              textDecoration: placeholder.isUnderline ? 'underline' : 'none',
-                              textAlign: placeholder.align || typo.align || 'left',
-                              lineHeight: typo.lineHeight,
-                              letterSpacing: typo.letterSpacing ? `${typo.letterSpacing}px` : undefined,
-                              border: 'none',
-                              padding: '4px',
-                            }}
-                            rows={1}
-                          />
-                        ) : (
-                          <div
-                            className={`w-full h-full flex flex-col justify-center transition-all ${
-                              placeholder.id?.startsWith('point-') &&
-                              !isDarkBg &&
-                              currentSlide.layoutId !== 'table-of-contents'
-                                ? 'bg-white rounded-lg p-3 border border-gray-200 shadow-xs'
-                                : currentSlide.layoutId === 'table-of-contents'
-                                ? 'border-b border-gray-200 pb-2 justify-end'
-                                : ''
-                            }`}
-                          >
-                            {/* Header Aksesori / Badge */}
-                            {placeholder.badge === 'arrow' && (
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
-                                  →
-                                </span>
-                                <span className="text-[11px] font-bold tracking-wider uppercase text-gray-500">
-                                  Topik
-                                </span>
-                              </div>
-                            )}
-
-                            {placeholder.number && currentSlide.layoutId !== 'table-of-contents' && (
-                              <span className="font-mono font-bold text-xl tracking-tight text-gray-900 mb-1">
-                                {placeholder.number}
-                              </span>
-                            )}
-
-                            {placeholder.stepLabel && (
-                              <span className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-gray-900 text-white mb-2 self-start shadow-xs">
-                                {placeholder.stepLabel}
-                              </span>
-                            )}
-
-                            {placeholder.badge === 'stat' && (
-                              <div className="w-12 h-12 rounded-full border-2 border-gray-900 bg-gray-50 flex items-center justify-center mx-auto mb-2 font-mono font-bold text-base text-gray-900 shadow-xs">
-                                {placeholder.content?.split('\n')[0] || '67%'}
-                              </div>
-                            )}
-
-                            {placeholder.badge === 'rating' && (
-                              <div className="flex flex-col items-center mb-2">
-                                <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-sm mb-1">
-                                  👤
-                                </div>
-                                <span className="text-gray-800 text-[11px] font-semibold tracking-wider">
-                                  ★★★★ 4.9/5
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Isi Teks Utama */}
-                            <p
-                              className="whitespace-pre-wrap select-text placeholder-element w-full"
+                      <div
+                        className={`w-full h-full p-2 rounded relative flex flex-col justify-start transition-all ${
+                          isEditMode
+                            ? 'border border-dashed border-gray-400 bg-gray-50/50'
+                            : 'border border-transparent'
+                        }`}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        {isText ? (
+                          isEditMode && isSelected ? (
+                            <textarea
+                              value={placeholder.content || ''}
+                              onChange={(e) => {
+                                handlePlaceholderEdit(placeholder.id, e.target.value);
+                                autoResizeTextarea(e.target);
+                              }}
+                              placeholder="Ketik teks slide..."
+                              className="w-full h-full bg-transparent outline-none slide-text-editor select-text"
                               style={{
                                 fontFamily: typo.fontFamily,
                                 fontSize: `${typo.fontSize}px`,
@@ -793,44 +739,139 @@ export default function SlidePreview({
                                 fontStyle: placeholder.isItalic ? 'italic' : 'normal',
                                 textDecoration: placeholder.isUnderline ? 'underline' : 'none',
                                 textAlign: placeholder.align || typo.align || 'left',
-                                lineHeight: typo.lineHeight,
+                                lineHeight: spacing.lineHeightBody,
                                 letterSpacing: typo.letterSpacing ? `${typo.letterSpacing}px` : undefined,
-                                wordWrap: 'break-word',
-                                overflowWrap: 'break-word',
+                                border: 'none',
+                                padding: '4px',
+                              }}
+                              rows={1}
+                            />
+                          ) : (
+                            <div
+                              className={`w-full h-full flex flex-col justify-start text-left transition-all ${
+                                isPointCard
+                                  ? 'bg-white rounded-lg border border-gray-200 shadow-xs'
+                                  : currentSlide.layoutId === 'table-of-contents'
+                                  ? 'border-b border-gray-200 pb-2 justify-end'
+                                  : ''
+                              }`}
+                              style={{
+                                padding: isPointCard ? `${spacing.cardPadding}px` : '4px',
                                 overflow: 'hidden',
                               }}
                             >
-                              {placeholder.content}
-                            </p>
-                          </div>
-                        )
-                      ) : (
-                        <div
-                          className="w-full h-full flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-lg p-3 text-center bg-gray-50"
-                        >
-                          <span className="text-xl mb-1">📊</span>
-                          <span className="text-xs font-semibold text-gray-800">
-                            {placeholder.placeholder || 'Area Grafik / Visual Chart'}
-                          </span>
-                          <span className="text-[10px] text-gray-400 mt-0.5">
-                            Format visual presisi hitam-putih
-                          </span>
-                        </div>
-                      )}
+                              {/* Header Aksesori / Badge */}
+                              {placeholder.badge === 'arrow' && (
+                                <div
+                                  className="flex items-center gap-2"
+                                  style={{ marginBottom: `${spacing.gapTitleToBody}px` }}
+                                >
+                                  <span className="w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center text-[10px] font-bold shadow-xs">
+                                    →
+                                  </span>
+                                  <span className="text-[11px] font-bold tracking-wider uppercase text-gray-500">
+                                    Topik
+                                  </span>
+                                </div>
+                              )}
 
-                      {/* Corner Resize Handles */}
-                      {isEditMode && isSelected && (
-                        <>
-                          <div className="absolute -top-1.5 -left-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
-                          <div className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
-                          <div className="absolute -bottom-1.5 -left-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
-                          <div className="absolute -bottom-1.5 -right-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
-                        </>
-                      )}
-                    </div>
-                  </Rnd>
-                );
-              })}
+                              {placeholder.number && currentSlide.layoutId !== 'table-of-contents' && (
+                                <span
+                                  className="font-mono font-bold text-xl tracking-tight text-gray-900"
+                                  style={{ marginBottom: `${spacing.gapTitleToBody}px` }}
+                                >
+                                  {placeholder.number}
+                                </span>
+                              )}
+
+                              {placeholder.stepLabel && (
+                                <span
+                                  className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-gray-900 text-white self-start shadow-xs"
+                                  style={{ marginBottom: `${spacing.gapTitleToBody}px` }}
+                                >
+                                  {placeholder.stepLabel}
+                                </span>
+                              )}
+
+                              {placeholder.badge === 'stat' && (
+                                <div
+                                  className="w-12 h-12 rounded-full border-2 border-gray-900 bg-gray-50 flex items-center justify-center mx-auto font-mono font-bold text-base text-gray-900 shadow-xs"
+                                  style={{ marginBottom: `${spacing.gapTitleToBody}px` }}
+                                >
+                                  {placeholder.content?.split('\n')[0] || '67%'}
+                                </div>
+                              )}
+
+                              {placeholder.badge === 'rating' && (
+                                <div
+                                  className="flex flex-col items-center"
+                                  style={{ marginBottom: `${spacing.gapTitleToBody}px` }}
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-sm mb-1">
+                                    👤
+                                  </div>
+                                  <span className="text-gray-800 text-[11px] font-semibold tracking-wider">
+                                    ★★★★ 4.9/5
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Isi Teks Utama dengan reset margin & jarak paragraf konsisten */}
+                              <div className="w-full flex-1 overflow-hidden flex flex-col">
+                                {(placeholder.content || '').split(/\n\n+/).map((para, pIdx, arr) => (
+                                  <p
+                                    key={pIdx}
+                                    className="whitespace-pre-wrap select-text placeholder-element w-full m-0 p-0"
+                                    style={{
+                                      fontFamily: typo.fontFamily,
+                                      fontSize: `${typo.fontSize}px`,
+                                      color: typo.color,
+                                      fontWeight: typo.fontWeight,
+                                      fontStyle: placeholder.isItalic ? 'italic' : 'normal',
+                                      textDecoration: placeholder.isUnderline ? 'underline' : 'none',
+                                      textAlign: placeholder.align || typo.align || 'left',
+                                      lineHeight: spacing.lineHeightBody,
+                                      letterSpacing: typo.letterSpacing ? `${typo.letterSpacing}px` : undefined,
+                                      marginBottom: pIdx < arr.length - 1 ? `${spacing.gapBetweenParagraphs}px` : '0px',
+                                      wordWrap: 'break-word',
+                                      overflowWrap: 'break-word',
+                                      overflow: 'hidden',
+                                    }}
+                                  >
+                                    {para}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        ) : (
+                          <div
+                            className="w-full h-full flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-lg p-3 text-center bg-gray-50"
+                          >
+                            <span className="text-xl mb-1">📊</span>
+                            <span className="text-xs font-semibold text-gray-800">
+                              {placeholder.placeholder || 'Area Grafik / Visual Chart'}
+                            </span>
+                            <span className="text-[10px] text-gray-400 mt-0.5">
+                              Format visual presisi hitam-putih
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Corner Resize Handles */}
+                        {isEditMode && isSelected && (
+                          <>
+                            <div className="absolute -top-1.5 -left-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
+                            <div className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
+                            <div className="absolute -bottom-1.5 -left-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
+                            <div className="absolute -bottom-1.5 -right-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
+                          </>
+                        )}
+                      </div>
+                    </Rnd>
+                  );
+                });
+              })()}
 
               {/* Empty state fallback */}
               {(!currentSlide?.placeholders || currentSlide.placeholders.length === 0) && (

@@ -46,6 +46,125 @@ function computeBackendLogoBounds(logoConfig) {
 }
 
 /**
+ * Kelompokkan placeholder kartu poin berdasarkan baris vertikal (koordinat Y serupa)
+ */
+function groupPlaceholdersByRow(pointPlaceholders, yTolerance = 7) {
+  const sorted = [...pointPlaceholders].sort((a, b) => {
+    const yA = parseFloat(a.position?.y) || 0;
+    const yB = parseFloat(b.position?.y) || 0;
+    return yA - yB;
+  });
+
+  const rows = [];
+  sorted.forEach((p) => {
+    const y = parseFloat(p.position?.y) || 0;
+    const matchingRow = rows.find((r) => Math.abs(r.y - y) <= yTolerance);
+    if (matchingRow) {
+      matchingRow.items.push(p);
+      matchingRow.y = matchingRow.items.reduce((sum, item) => sum + (parseFloat(item.position?.y) || 0), 0) / matchingRow.items.length;
+    } else {
+      rows.push({ y, items: [p] });
+    }
+  });
+
+  rows.forEach((r) => {
+    r.items.sort((a, b) => (parseFloat(a.position?.x) || 0) - (parseFloat(b.position?.x) || 0));
+  });
+
+  return rows;
+}
+
+/**
+ * Menghitung perkiraan tinggi kebutuhan kartu poin dalam satuan persentase slide (0-100%)
+ */
+function estimateCardHeightPercent(placeholder, typographyConfig) {
+  const cardWPercent = parseFloat(placeholder.position?.w) || 30;
+  const cardWPx = (cardWPercent / 100) * 960;
+  const usableWidthPx = Math.max(80, cardWPx - 32);
+
+  const fontSize = placeholder.fontSize || 16;
+  const lineHeightPx = fontSize * 1.5;
+  const charsPerLine = Math.max(12, Math.floor(usableWidthPx / (fontSize * 0.52)));
+
+  const content = (placeholder.content || '').trim();
+  const paragraphs = content ? content.split(/\n+/) : [''];
+
+  let totalLines = 0;
+  paragraphs.forEach((p) => {
+    const pTrim = p.trim();
+    if (!pTrim) totalLines += 1;
+    else totalLines += Math.max(1, Math.ceil(pTrim.length / charsPerLine));
+  });
+
+  const textHeightPx = (totalLines * lineHeightPx) + Math.max(0, (paragraphs.length - 1) * 8);
+  let headerHeightPx = 0;
+  if (placeholder.badge === 'arrow' || placeholder.stepLabel || placeholder.number) {
+    headerHeightPx = 30;
+  } else if (placeholder.badge === 'stat') {
+    headerHeightPx = 56;
+  } else if (placeholder.badge === 'rating') {
+    headerHeightPx = 48;
+  }
+
+  const totalHeightPx = textHeightPx + headerHeightPx + 32;
+  return Math.round(((totalHeightPx / 540) * 100) * 10) / 10;
+}
+
+/**
+ * Samakan tinggi kartu poin yang berada dalam satu baris (row-equalized heights)
+ */
+function equalizePointCardHeights(placeholders = [], typographyConfig = null, layoutId = '') {
+  if (!Array.isArray(placeholders) || placeholders.length === 0) return placeholders;
+
+  if (layoutId === 'table-of-contents' || layoutId?.startsWith('agenda-') || layoutId?.startsWith('cover-') || layoutId === 'one-point') {
+    return placeholders;
+  }
+
+  const pointPlaceholders = placeholders.filter((p) => p.id?.startsWith('point-') && p.type === 'text');
+  if (pointPlaceholders.length <= 1) return placeholders;
+
+  const rows = groupPlaceholdersByRow(pointPlaceholders);
+  const rowHeightMap = new Map();
+  const isMultiRow = rows.length > 1;
+
+  rows.forEach((row) => {
+    let maxNeededH = 0;
+    let minRowY = 100;
+
+    row.items.forEach((item) => {
+      const existingH = parseFloat(item.position?.h) || 20;
+      const existingY = parseFloat(item.position?.y) || 20;
+      minRowY = Math.min(minRowY, existingY);
+
+      const neededH = estimateCardHeightPercent(item, typographyConfig);
+      maxNeededH = Math.max(maxNeededH, existingH, neededH);
+    });
+
+    const maxAllowedH = isMultiRow ? 36 : 65;
+    const finalH = Math.min(maxAllowedH, Math.max(20, maxNeededH));
+
+    row.items.forEach((item) => {
+      rowHeightMap.set(item.id, { h: finalH, y: minRowY });
+    });
+  });
+
+  return placeholders.map((p) => {
+    if (rowHeightMap.has(p.id)) {
+      const { h, y } = rowHeightMap.get(p.id);
+      return {
+        ...p,
+        position: {
+          ...p.position,
+          h,
+          y,
+        },
+      };
+    }
+    return p;
+  });
+}
+
+/**
  * Generate a complete PPTX file from slide blueprints (Base Master Hitam & Putih)
  */
 async function generatePPTXBuffer(slides, title, options = {}) {
@@ -84,8 +203,18 @@ async function generatePPTXBuffer(slides, title, options = {}) {
       }
     }
 
-    // 2. Render Placeholders
-    (slideData.placeholders || []).forEach((placeholder) => {
+    // 2. Render Placeholders (Tinggi kartu di baris yang sama disetarakan)
+    const layoutId = slideData.layoutId || slideData.layout || 'three-points';
+    const isCover = layoutId.startsWith('cover-') || slideData.slideType === 'cover';
+    const isClosing = layoutId.startsWith('cover-back') || layoutId.startsWith('closing-') || slideData.slideType === 'closing';
+
+    const displayPlaceholders = equalizePointCardHeights(
+      slideData.placeholders || [],
+      typographyConfig,
+      layoutId
+    );
+
+    displayPlaceholders.forEach((placeholder) => {
       const rawX = parseFloat(placeholder.position?.x) || 1;
       const rawY = parseFloat(placeholder.position?.y) || 1;
       const rawW = parseFloat(placeholder.position?.w) || 8;
@@ -97,6 +226,25 @@ async function generatePPTXBuffer(slides, title, options = {}) {
       const y = isPercent ? (rawY / 100) * 5.625 : Math.max(0, rawY);
       const w = isPercent ? (rawW / 100) * 10 : Math.min(10, Math.max(0.5, rawW));
       const h = isPercent ? (rawH / 100) * 5.625 : Math.min(5.625, Math.max(0.3, rawH));
+
+      const isPointCard =
+        placeholder.id?.startsWith('point-') &&
+        !isCover &&
+        !isClosing &&
+        layoutId !== 'table-of-contents' &&
+        layoutId !== 'one-point';
+
+      if (isPointCard) {
+        slide.addShape(pres.ShapeType.roundRect, {
+          x: Math.max(0, x - 0.05),
+          y: Math.max(0, y - 0.05),
+          w: w + 0.1,
+          h: h + 0.1,
+          fill: { color: 'F9FAFB' },
+          line: { color: 'E5E7EB', width: 1 },
+          rectRadius: 0.08,
+        });
+      }
 
       if (placeholder.type === 'text') {
         const id = (placeholder.id || '').toLowerCase();
@@ -129,22 +277,27 @@ async function generatePPTXBuffer(slides, title, options = {}) {
         const textColor = resolvedColor;
         const align = placeholder.align || (isCover && !slideData.layoutId?.includes('editorial') ? 'center' : 'left');
 
+        const resolvedLineSpacing = isPointCard || role === 'body'
+          ? Math.round(1.5 * (resolvedSize || 16))
+          : Math.round((isTitle ? 1.2 : resolvedLineHeight) * (resolvedSize || 16));
+
         const textOptions = {
-          x,
-          y,
-          w,
-          h,
+          x: isPointCard ? x + 0.08 : x,
+          y: isPointCard ? y + 0.08 : y,
+          w: isPointCard ? Math.max(0.5, w - 0.16) : w,
+          h: isPointCard ? Math.max(0.3, h - 0.16) : h,
           fontSize: resolvedSize,
           fontFace: resolvedFont,
           color: textColor,
           align,
-          valign: 'middle',
+          valign: isPointCard ? 'top' : (isTitle ? 'middle' : 'top'),
           isTextBox: true,
           wrap: true,
           bold: placeholder.isBold !== undefined ? !!placeholder.isBold : isTitle,
           italic: !!placeholder.isItalic,
           underline: !!placeholder.isUnderline,
-          lineSpacing: Math.round(resolvedLineHeight * (resolvedSize || 16)),
+          lineSpacing: resolvedLineSpacing,
+          margin: isPointCard ? [6, 8, 6, 8] : [0, 0, 0, 0],
         };
 
         slide.addText(placeholder.content || '', textOptions);

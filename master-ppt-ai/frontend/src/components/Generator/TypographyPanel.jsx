@@ -157,7 +157,7 @@ export default function TypographyPanel({
               The Quick Brown Fox Jumps Over The Lazy Dog
             </p>
             <p className="text-xs text-gray-600 truncate">
-              Pratinjau Tipografi Global: Judul 32pt · Subjudul 20pt · Body 15pt
+              Pratinjau Tipografi Global: Judul 32pt · Subjudul 22pt · Body 16pt
             </p>
           </div>
 
@@ -169,15 +169,31 @@ export default function TypographyPanel({
             </div>
             <div className="p-2 bg-gray-50 rounded border border-gray-100">
               <span className="font-semibold text-gray-800 block">Subjudul</span>
-              <span>{currentConfig.scale?.subtitle?.size || 20}pt · Semibold (600)</span>
+              <span>{currentConfig.scale?.subtitle?.size || 22}pt · Semibold (600)</span>
             </div>
             <div className="p-2 bg-gray-50 rounded border border-gray-100">
               <span className="font-semibold text-gray-800 block">Isi / Poin</span>
-              <span>{currentConfig.scale?.body?.size || 15}pt · Regular (400)</span>
+              <span>{currentConfig.scale?.body?.size || 16}pt · Regular (400)</span>
             </div>
             <div className="p-2 bg-gray-50 rounded border border-gray-100">
               <span className="font-semibold text-gray-800 block">Caption / Footer</span>
               <span>{currentConfig.scale?.caption?.size || 12}pt · Regular (400)</span>
+            </div>
+          </div>
+
+          {/* Token Spacing & Jarak Konsisten */}
+          <div className="p-2.5 bg-gray-50/80 rounded-lg border border-gray-200 text-[10px] space-y-1.5 text-gray-600">
+            <div className="flex items-center justify-between font-bold text-gray-800">
+              <span>Token Jarak & Spacing Global:</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-gray-200 text-gray-700">Tersinkron</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[9.5px]">
+              <div>Line Height Body: <span className="font-mono font-semibold text-gray-800">1.5</span></div>
+              <div>Line Height Judul: <span className="font-mono font-semibold text-gray-800">1.2</span></div>
+              <div>Jarak Antar Poin: <span className="font-mono font-semibold text-gray-800">16px</span></div>
+              <div>Jarak Judul-ke-Isi: <span className="font-mono font-semibold text-gray-800">8px</span></div>
+              <div>Jarak Paragraf: <span className="font-mono font-semibold text-gray-800">8px</span></div>
+              <div>Padding Kartu: <span className="font-mono font-semibold text-gray-800">16px</span></div>
             </div>
           </div>
         </div>

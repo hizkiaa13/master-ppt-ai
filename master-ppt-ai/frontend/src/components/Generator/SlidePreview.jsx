@@ -31,6 +31,8 @@ import AlignmentGuidelines from './AlignmentGuidelines';
 import TextFormattingToolbar from './TextFormattingToolbar';
 import PlaceholderModal from './PlaceholderModal';
 import TypographyPanel from './TypographyPanel';
+import LayoutThumbnail from './LayoutThumbnail';
+import { LayoutCatalogModal } from './ManualLayoutSelector';
 import toast from 'react-hot-toast';
 import { autoResizeTextarea } from '../../utils/autoResizeTextarea';
 import {
@@ -94,6 +96,7 @@ export default function SlidePreview({
   const [isRegeneratingLayout, setIsRegeneratingLayout] = useState(false);
   const [zoomMode, setZoomMode] = useState('fit'); // 'fit' | '75' | '100'
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
+  const [showLayoutCatalogModal, setShowLayoutCatalogModal] = useState(false);
 
   const handleInsertPlaceholder = (placeholderText) => {
     const currentSlide = editedSlides[currentSlideIndex];
@@ -1196,11 +1199,41 @@ export default function SlidePreview({
               </div>
             )}
 
-            {/* Layout Selector Dropdown */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Ganti Layout Slide Ini:
-              </label>
+            {/* Layout Selector & Pratinjau Visual */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-gray-700">
+                  Layout Slide Ini:
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowLayoutCatalogModal(true)}
+                  className="text-[11px] font-semibold text-gray-900 hover:text-gray-600 underline flex items-center gap-1"
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>Katalog Visual</span>
+                </button>
+              </div>
+
+              {/* Pratinjau Sketsa Layout Aktif */}
+              <div
+                onClick={() => setShowLayoutCatalogModal(true)}
+                className="cursor-pointer group relative rounded-lg overflow-hidden border border-gray-200 hover:border-gray-900 transition-all shadow-2xs"
+                title="Klik untuk membuka katalog visual layout"
+              >
+                <LayoutThumbnail
+                  layoutId={currentLayoutId}
+                  logoConfig={logoConfig}
+                  showPageNum={currentSlideIndex !== 0 && currentSlideIndex !== editedSlides.length - 1}
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <span className="opacity-0 group-hover:opacity-100 px-2 py-0.5 rounded bg-gray-900 text-white text-[10px] font-semibold transition-opacity shadow-xs">
+                    Ganti Layout Secara Visual →
+                  </span>
+                </div>
+              </div>
+
+              {/* Dropdown Selector */}
               <select
                 value={currentLayoutId}
                 onChange={(e) => handleLayoutChange(e.target.value)}
@@ -1522,6 +1555,19 @@ export default function SlidePreview({
         onClose={() => setShowPlaceholderModal(false)}
         onInsert={handleInsertPlaceholder}
       />
+
+      {/* Modal Katalog Layout Visual dengan Pratinjau 16:9 */}
+      {showLayoutCatalogModal && (
+        <LayoutCatalogModal
+          isOpen={showLayoutCatalogModal}
+          onClose={() => setShowLayoutCatalogModal(false)}
+          slideNumber={currentSlideIndex + 1}
+          slideCount={editedSlides.length}
+          currentLayoutId={currentLayoutId}
+          onSelectLayout={(_, newId) => handleLayoutChange(newId)}
+          logoConfig={logoConfig}
+        />
+      )}
 
       {/* Modal Perbesar Penuh (Fullscreen Slide Viewer) */}
       {isFullscreenOpen && (

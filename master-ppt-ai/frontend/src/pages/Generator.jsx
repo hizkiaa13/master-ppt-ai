@@ -738,6 +738,7 @@ export default function Generator() {
               onGenerate={handleGenerateAI}
               userTitle={formData.customTitle}
               outputLanguage={formData.outputLanguage || 'id'}
+              logoConfig={formData.logoConfig}
             />
           ) : generatedData && slides.length > 0 ? (
             <div className="space-y-6 max-w-2xl mx-auto">

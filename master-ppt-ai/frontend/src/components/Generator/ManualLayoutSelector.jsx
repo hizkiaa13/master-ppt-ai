@@ -16,12 +16,14 @@ import {
   Sliders,
   Check,
   Info,
+  Maximize2,
 } from 'lucide-react';
 import {
   FULL_LAYOUT_CATALOG,
   CATEGORY_MAP,
   CATEGORY_LABELS,
 } from '../../utils/layoutCatalog';
+import LayoutThumbnail from './LayoutThumbnail';
 
 // ─── 1. COVER LAYOUTS (KHUSUS SLIDE 1) ────────────────────────
 export const COVER_LAYOUTS = [
@@ -253,17 +255,19 @@ export function getDefaultLayoutSelections(slideCount = 5) {
 }
 
 /**
- * Komponen Modal Katalog Visual
+ * Komponen Modal Katalog Visual dengan Pratinjau 16:9
  */
-function LayoutCatalogModal({
+export function LayoutCatalogModal({
   isOpen,
   onClose,
   slideNumber,
   slideCount,
   currentLayoutId,
   onSelectLayout,
+  logoConfig = null,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [zoomLayout, setZoomLayout] = useState(null);
   const isCover = slideNumber === 1;
   const isClosing = slideNumber === slideCount;
 
@@ -310,16 +314,16 @@ function LayoutCatalogModal({
   });
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-xs animate-fade-in">
-      <div className="bg-white border border-gray-200 rounded-2xl max-w-4xl w-full h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-3 sm:p-4 backdrop-blur-xs animate-fade-in">
+      <div className="bg-white border border-gray-200 rounded-2xl max-w-5xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden relative">
         {/* Header Modal */}
-        <div className="p-5 sm:p-6 border-b border-gray-200 flex items-center justify-between flex-shrink-0 bg-gray-50">
+        <div className="p-4 sm:p-5 border-b border-gray-200 flex items-center justify-between flex-shrink-0 bg-gray-50">
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-gray-200 text-gray-800">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-gray-900 text-white">
                 {isCover ? 'Slide #1 (Cover)' : isClosing ? `Slide #${slideNumber} (Penutup)` : `Slide #${slideNumber} (Materi Isi)`}
               </span>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900">
                 {isCover
                   ? 'Pilih Layout Cover Depan'
                   : isClosing
@@ -328,24 +332,20 @@ function LayoutCatalogModal({
               </h3>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {isCover
-                ? 'Slide pertama khusus menampilkan judul utama dan identitas presentasi.'
-                : isClosing
-                ? 'Slide terakhir khusus memuat kontak resmi, ucapan terima kasih, dan call to action.'
-                : 'Pilih tata letak yang paling sesuai dengan kedalaman materi slide ini.'}
+              Pratinjau visual menunjukkan struktur sebenarnya dalam rasio 16:9 monokrom.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 flex items-center justify-center transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Filter Bar & Search */}
-        <div className="p-4 border-b border-gray-200 bg-white flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between flex-shrink-0">
+        <div className="p-3 sm:p-4 border-b border-gray-200 bg-white flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between flex-shrink-0">
           {/* Category Tabs (hanya untuk slide tengah) */}
           {!isCover && !isClosing && (
             <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none flex-1">
@@ -379,8 +379,8 @@ function LayoutCatalogModal({
           </div>
         </div>
 
-        {/* Layout Grid */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50/50">
+        {/* Layout Grid (3 kolom desktop, 2 kolom tablet, 1 kolom mobile) */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-50/50">
           {filteredList.length === 0 ? (
             <div className="col-span-full text-center py-12 text-gray-500 text-sm">
               Tidak ada layout yang cocok dengan pencarian &ldquo;{searchQuery}&rdquo;.
@@ -396,35 +396,65 @@ function LayoutCatalogModal({
                     onSelectLayout(slideNumber, layout.id);
                     onClose();
                   }}
-                  className={`p-4 rounded-xl border text-left cursor-pointer flex flex-col justify-between group transition-all ${
+                  className={`p-3.5 rounded-xl border text-left cursor-pointer flex flex-col justify-between group transition-all ${
                     isSelected
-                      ? 'bg-gray-50 border-2 border-gray-900 ring-1 ring-gray-900/10 shadow-xs'
-                      : 'bg-white border-gray-200 hover:border-gray-400 hover:shadow-xs'
+                      ? 'bg-white border-2 border-gray-900 ring-1 ring-gray-900/10 shadow-sm'
+                      : 'bg-white border-gray-200 hover:border-gray-400 hover:shadow-sm'
                   }`}
                 >
                   <div>
-                    {/* Header Card */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                    {/* Pratinjau Sketsa 16:9 di bagian atas kartu */}
+                    <div className="relative mb-3 group/thumb rounded-lg overflow-hidden border border-gray-200 bg-white">
+                      <LayoutThumbnail
+                        layoutId={layout.id}
+                        logoConfig={logoConfig}
+                        showPageNum={!isCover && !isClosing}
+                      />
+                      
+                      {/* Tombol Perbesar Hover */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setZoomLayout(layout);
+                        }}
+                        className="absolute bottom-1.5 right-1.5 p-1 rounded-md bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 shadow-xs border border-gray-200 opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                        title="Perbesar Pratinjau Sketsa"
+                      >
+                        <Maximize2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Badge Terpilih di atas Thumbnail */}
+                      {isSelected && (
+                        <div className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-gray-900 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          <span>Dipilih</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Header Card Meta */}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
                         {layout.pageRef}
                       </span>
                       <span className="text-[10px] font-semibold text-gray-500">
-                        {layout.points > 0 ? `${layout.points} Poin` : 'Cover / Kontak'}
+                        {layout.points > 0 ? `Cocok untuk ${layout.points} Poin` : 'Cover / Kontak'}
                       </span>
                     </div>
 
                     {/* Judul Layout */}
-                    <h4 className="text-sm font-bold text-gray-900 transition-colors line-clamp-2">
+                    <h4 className="text-xs font-bold text-gray-900 line-clamp-2">
                       {layout.name}
                     </h4>
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] text-gray-500 mt-1 line-clamp-2 leading-relaxed">
                       {layout.desc}
                     </p>
                   </div>
 
                   {/* Footer Card */}
-                  <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                    <span className="font-mono text-[10px] text-gray-400 truncate max-w-[150px]">
+                  <div className="pt-2.5 mt-2.5 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span className="font-mono text-[9px] text-gray-400 truncate max-w-[140px]">
                       {layout.id}
                     </span>
                     {isSelected ? (
@@ -443,10 +473,81 @@ function LayoutCatalogModal({
           )}
         </div>
 
+        {/* Modal Perbesar Pratinjau (Zoom Preview Modal) */}
+        {zoomLayout && (
+          <div
+            className="fixed inset-0 z-60 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
+            onClick={() => setZoomLayout(null)}
+          >
+            <div
+              className="bg-white rounded-2xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-gray-200 space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-gray-500">
+                    Pratinjau Layout Sketsa 16:9
+                  </span>
+                  <h3 className="text-base font-bold text-gray-900">{zoomLayout.name}</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setZoomLayout(null)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Large Thumbnail */}
+              <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                <LayoutThumbnail
+                  layoutId={zoomLayout.id}
+                  logoConfig={logoConfig}
+                  showPageNum={!isCover && !isClosing}
+                />
+              </div>
+
+              <div className="p-3 bg-gray-50 rounded-lg text-xs space-y-1 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Katalog Studio:</span>
+                  <span className="font-semibold text-gray-900">{zoomLayout.pageRef}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500">Kapasitas Poin:</span>
+                  <span className="font-semibold text-gray-900">{zoomLayout.points > 0 ? `${zoomLayout.points} Poin` : 'Cover / Kontak'}</span>
+                </div>
+                <p className="text-gray-600 pt-1 border-t border-gray-200 mt-1">{zoomLayout.desc}</p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelectLayout(slideNumber, zoomLayout.id);
+                    setZoomLayout(null);
+                    onClose();
+                  }}
+                  className="btn-primary flex-1 py-2 text-xs font-semibold"
+                >
+                  Gunakan Layout Ini
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoomLayout(null)}
+                  className="btn-secondary py-2 px-4 text-xs"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Footer Info */}
         <div className="p-3.5 px-6 border-t border-gray-200 bg-white flex items-center justify-between text-xs text-gray-500 flex-shrink-0">
           <span>
-            Menampilkan <strong className="text-gray-900">{filteredList.length}</strong> pilihan layout berstandar studio.
+            Menampilkan <strong className="text-gray-900">{filteredList.length}</strong> pilihan layout berstandar studio dengan sketsa 16:9.
           </span>
           <button
             type="button"
@@ -472,6 +573,7 @@ export default function ManualLayoutSelector({
   onGenerate,
   userTitle,
   outputLanguage = 'id',
+  logoConfig = null,
 }) {
   const isEn = outputLanguage === 'en';
   const [modalSlideNumber, setModalSlideNumber] = useState(null);
@@ -512,6 +614,7 @@ export default function ManualLayoutSelector({
             layoutSelections.find((s) => s.slideNumber === modalSlideNumber)?.layoutId
           }
           onSelectLayout={handleSelectLayout}
+          logoConfig={logoConfig}
         />
       )}
 
@@ -540,7 +643,7 @@ export default function ManualLayoutSelector({
           return (
             <div
               key={slideNumber}
-              className={`p-5 rounded-xl border transition-all ${
+              className={`p-4 sm:p-5 rounded-xl border transition-all ${
                 isCover
                   ? 'bg-white border-2 border-gray-900 shadow-xs'
                   : isClosing
@@ -549,12 +652,31 @@ export default function ManualLayoutSelector({
               }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                {/* Info Slide & Status */}
-                <div className="flex items-start sm:items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0 bg-gray-900 text-white">
+                {/* Info Slide & Status + Pratinjau Mini 16:9 */}
+                <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0 bg-gray-900 text-white">
                     #{slideNumber}
                   </div>
-                  <div>
+
+                  {/* Thumbnail Pratinjau Mini 16:9 */}
+                  <div
+                    onClick={() => setModalSlideNumber(slideNumber)}
+                    className="w-24 sm:w-28 flex-shrink-0 cursor-pointer group/thumb relative rounded-lg overflow-hidden border border-gray-200 hover:border-gray-900 transition-all shadow-2xs"
+                    title="Klik untuk memilih layout secara visual dari katalog"
+                  >
+                    <LayoutThumbnail
+                      layoutId={item.layoutId}
+                      logoConfig={logoConfig}
+                      showPageNum={!isCover && !isClosing}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover/thumb:bg-black/15 transition-colors flex items-center justify-center">
+                      <span className="opacity-0 group-hover/thumb:opacity-100 px-1.5 py-0.5 rounded bg-gray-900 text-white text-[9px] font-semibold transition-opacity shadow-xs">
+                        Ganti
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span
                         className={`text-xs uppercase font-mono tracking-wider font-bold ${
@@ -579,10 +701,10 @@ export default function ManualLayoutSelector({
                       </span>
                     </div>
 
-                    <p className="text-sm font-bold text-gray-900 mt-0.5">
+                    <p className="text-sm font-bold text-gray-900 mt-0.5 truncate">
                       {layoutDetail.name}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">
+                    <p className="text-xs text-gray-500 mt-0.5 hidden sm:block truncate">
                       {layoutDetail.desc}
                     </p>
                   </div>

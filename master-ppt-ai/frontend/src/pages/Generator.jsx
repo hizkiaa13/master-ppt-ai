@@ -124,6 +124,8 @@ export default function Generator() {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [validationWarnings, setValidationWarnings] = useState([]);
+  const [historySaveError, setHistorySaveError] = useState(null);
+  const [isRetryingSave, setIsRetryingSave] = useState(false);
 
   // Exit confirmation state
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -380,6 +382,39 @@ export default function Generator() {
     [masterId, draft]
   );
 
+  // ─── Retry saving to history if it previously failed ──────────────
+  const handleRetrySaveHistory = async () => {
+    setIsRetryingSave(true);
+    try {
+      const saveRes = await pptxService.saveHistory({
+        title: formData.customTitle || 'Base Master PowerPoint',
+        slideCount: slides.length,
+        outputLanguage: formData.outputLanguage || 'id',
+        layoutMode: formData.layoutMode || 'auto',
+        layoutSelections: formData.layoutSelections || [],
+        finalData: slides,
+        slides,
+        logoConfig: formData.logoConfig,
+        typographyConfig: formData.typographyConfig,
+      });
+
+      if (saveRes?.success && (saveRes?.data?.historyId || saveRes?.data?.id)) {
+        setMasterId(saveRes.data.historyId || saveRes.data.id);
+        setHistorySaveError(null);
+        toast.success('Master berhasil disimpan ke Riwayat!');
+        await draft.markCompleted();
+      } else {
+        throw new Error(saveRes?.message || 'Gagal menyimpan riwayat ke database');
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || 'Gagal menyimpan riwayat ke database.';
+      setHistorySaveError(msg);
+      toast.error('Simpan riwayat gagal: ' + msg);
+    } finally {
+      setIsRetryingSave(false);
+    }
+  };
+
   // ─── Final download with History Save & Validation Check ───────────────
   const handleFinalizeAndDownload = async (forceDownload = false) => {
     // Validasi konten slide sebelum unduh
@@ -394,71 +429,60 @@ export default function Generator() {
 
     setShowWarningModal(false);
     setIsFinalizing(true);
+    setHistorySaveError(null);
+
+    // 1. BUAT FILE PPTX TERLEBIH DAHULU (Pastikan file sukses dibuat sebelum simpan riwayat)
+    try {
+      await generateFinalPPTX(slides, recommendations, formData.customTitle, {
+        logoConfig: formData.logoConfig,
+        typographyConfig: formData.typographyConfig,
+      });
+    } catch (pptxErr) {
+      console.error('Pembuatan file PPTX gagal:', pptxErr);
+      setIsFinalizing(false);
+      toast.error('Gagal membuat file PPTX: ' + (pptxErr.message || 'Format tidak valid'));
+      return; // Jangan simpan riwayat setengah jalan jika pembuatan file gagal!
+    }
+
+    // 2. SIMPAN KE RIWAYAT MASTER
+    let historySaveFailed = false;
+    let historyErrMsg = '';
 
     try {
-      const fileName = `${(formData.customTitle || 'presentasi').replace(/[^a-zA-Z0-9_-]/g, '_')}-master.pptx`;
-      let savedHistoryId = masterId;
+      const saveRes = await pptxService.saveHistory({
+        title: formData.customTitle || 'Base Master PowerPoint',
+        slideCount: slides.length,
+        outputLanguage: formData.outputLanguage || 'id',
+        layoutMode: formData.layoutMode || 'auto',
+        layoutSelections: formData.layoutSelections || [],
+        finalData: slides,
+        slides,
+        logoConfig: formData.logoConfig,
+        typographyConfig: formData.typographyConfig,
+      });
 
-      // STEP 1: Simpan data ke Riwayat Master (/api/history/save)
-      try {
-        const saveRes = await pptxService.saveHistory({
-          title: formData.customTitle || 'Base Master PowerPoint',
-          slideCount: slides.length,
-          outputLanguage: formData.outputLanguage || 'id',
-          layoutMode: formData.layoutMode || 'auto',
-          layoutSelections: formData.layoutSelections || [],
-          finalData: slides,
-          slides,
-          logoConfig: formData.logoConfig,
-          typographyConfig: formData.typographyConfig,
-        });
-
-        if (saveRes?.success && saveRes?.data?.historyId) {
-          savedHistoryId = saveRes.data.historyId;
-          setMasterId(savedHistoryId);
-        }
-      } catch (saveErr) {
-        console.warn('Gagal menyimpan riwayat ke backend:', saveErr);
-      }
-
-      // STEP 2: Unduh file PPTX
-      if (savedHistoryId) {
-        try {
-          await pptxService.finalize(savedHistoryId, {
-            slides,
-            title: formData.customTitle,
-            logoConfig: formData.logoConfig,
-            typographyConfig: formData.typographyConfig,
-          });
-        } catch (finalizeErr) {
-          console.warn('Finalize call notice:', finalizeErr.message);
-        }
-        await pptxService.download(savedHistoryId, fileName, true);
+      if (saveRes?.success && (saveRes?.data?.historyId || saveRes?.data?.id)) {
+        setMasterId(saveRes.data.historyId || saveRes.data.id);
       } else {
-        await generateFinalPPTX(slides, recommendations, formData.customTitle, {
-          logoConfig: formData.logoConfig,
-          typographyConfig: formData.typographyConfig,
-        });
+        historySaveFailed = true;
+        historyErrMsg = saveRes?.message || 'Server menolak penyimpanan riwayat.';
       }
+    } catch (saveErr) {
+      console.error('Gagal menyimpan riwayat ke backend:', saveErr);
+      historySaveFailed = true;
+      historyErrMsg = saveErr?.response?.data?.message || saveErr.message || 'Koneksi ke database riwayat terputus.';
+    }
 
-      setDownloadSuccess(true);
+    setIsFinalizing(false);
+    setDownloadSuccess(true);
+
+    if (historySaveFailed) {
+      setHistorySaveError(historyErrMsg);
+      toast.error('File berhasil diunduh, namun penyimpanan ke Riwayat Master gagal: ' + historyErrMsg);
+    } else {
+      setHistorySaveError(null);
       toast.success('Master berhasil disimpan ke Riwayat & diunduh!');
       await draft.markCompleted();
-    } catch (err) {
-      console.error('Download error:', err);
-      try {
-        await generateFinalPPTX(slides, recommendations, formData.customTitle, {
-          logoConfig: formData.logoConfig,
-          typographyConfig: formData.typographyConfig,
-        });
-        setDownloadSuccess(true);
-        toast.success('File PPTX Base Master berhasil diekspor!');
-        await draft.markCompleted();
-      } catch (clientErr) {
-        toast.error('Gagal mengunduh: ' + (clientErr.message || err.message));
-      }
-    } finally {
-      setIsFinalizing(false);
     }
   };
 
@@ -487,7 +511,7 @@ export default function Generator() {
   };
 
   return (
-    <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-8">
+    <div className={`min-h-screen py-6 sm:py-8 px-4 sm:px-6 ${step === 3 ? 'max-w-[1700px] w-full' : 'max-w-6xl'} mx-auto space-y-6 sm:space-y-8`}>
       {/* Exit Confirmation Modal */}
       {showExitConfirm && (
         <ExitConfirmation
@@ -980,7 +1004,37 @@ export default function Generator() {
               </button>
             </div>
 
-            {downloadSuccess && (
+            {historySaveError && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-left space-y-2 animate-fade-in">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-900 flex-1">
+                    <p className="font-bold">PPTX Berhasil Diunduh, tetapi Riwayat Gagal Tersimpan</p>
+                    <p className="mt-0.5 text-amber-700">{historySaveError}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isRetryingSave}
+                  onClick={handleRetrySaveHistory}
+                  className="w-full btn-secondary py-2 text-xs font-semibold flex items-center justify-center gap-1.5 border-amber-300 bg-white text-amber-900 hover:bg-amber-100/60 shadow-xs"
+                >
+                  {isRetryingSave ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-800" />
+                      <span>Menyimpan Ulang Riwayat...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 text-amber-800" />
+                      <span>🔄 Coba Simpan ke Riwayat Lagi</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {downloadSuccess && !historySaveError && (
               <div className="space-y-2 pt-2">
                 <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs flex items-center justify-center gap-2">
                   <CheckCircle className="w-4 h-4 flex-shrink-0" />

@@ -645,19 +645,53 @@ async function getHistory(req, res) {
         finalSlides = [];
       }
 
-      const displayTitle = h.title || h.theme_name || h.custom_title || 'Base Master PowerPoint';
-      const slideCount = h.slide_count || finalSlides.length || 5;
+      let parsedLayouts = {};
+      try {
+        if (h.custom_layouts) parsedLayouts = typeof h.custom_layouts === 'string' ? JSON.parse(h.custom_layouts) : h.custom_layouts;
+      } catch {}
+
+      let parsedFonts = {};
+      try {
+        if (h.custom_fonts) parsedFonts = typeof h.custom_fonts === 'string' ? JSON.parse(h.custom_fonts) : h.custom_fonts;
+      } catch {}
+
+      let parsedColors = {};
+      try {
+        if (h.custom_colors) parsedColors = typeof h.custom_colors === 'string' ? JSON.parse(h.custom_colors) : h.custom_colors;
+      } catch {}
+
+      const displayTitle = h.title || h.theme_name || parsedLayouts.title || h.custom_title || 'Base Master PowerPoint';
+      const slideCount = h.slide_count || parsedLayouts.slideCount || finalSlides.length || 5;
+      const language = h.output_language || parsedLayouts.outputLanguage || 'id';
+      const layoutMode = h.layout_mode || parsedLayouts.layoutMode || 'auto';
+      const logoConfig = h.logo_config
+        ? (typeof h.logo_config === 'string' ? JSON.parse(h.logo_config) : h.logo_config)
+        : (parsedColors.logoConfig || null);
+      const typographyConfig = h.typography_config
+        ? (typeof h.typography_config === 'string' ? JSON.parse(h.typography_config) : h.typography_config)
+        : (parsedFonts.typographyConfig || null);
 
       return {
-        ...h,
+        id: h.id,
+        userId: h.user_id,
         title: displayTitle,
+        slideCount,
+        language,
+        layoutMode,
+        typography: typographyConfig,
+        logo: logoConfig,
+        slidesSnapshot: finalSlides,
+        filePath: `/api/history/${h.id}/download`,
+        downloadUrl: `/api/history/${h.id}/download`,
+        createdAt: h.created_at,
+        // Backward compatibility properties
+        theme_name: displayTitle,
         theme_display_name: 'Base Master (Hitam & Putih)',
         color_primary: '#000000',
-        custom_fonts: h.custom_fonts ? (typeof h.custom_fonts === 'string' ? JSON.parse(h.custom_fonts) : h.custom_fonts) : {},
         slide_count: slideCount,
-        downloadUrl: `/api/history/${h.id}/download`,
-        pptx_file_path: undefined,
-        final_pptx_path: undefined,
+        output_language: language,
+        custom_fonts: parsedFonts,
+        slides: finalSlides,
       };
     });
 

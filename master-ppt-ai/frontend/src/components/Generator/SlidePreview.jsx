@@ -17,6 +17,8 @@ import {
   Save,
   Move,
   Maximize2,
+  Minimize2,
+  X,
   Grid,
   Square,
   HelpCircle,
@@ -90,6 +92,8 @@ export default function SlidePreview({
   const [useSnapToGrid, setUseSnapToGrid] = useState(true);
   const [showPlaceholderModal, setShowPlaceholderModal] = useState(false);
   const [isRegeneratingLayout, setIsRegeneratingLayout] = useState(false);
+  const [zoomMode, setZoomMode] = useState('fit'); // 'fit' | '75' | '100'
+  const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
 
   const handleInsertPlaceholder = (placeholderText) => {
     const currentSlide = editedSlides[currentSlideIndex];
@@ -150,20 +154,52 @@ export default function SlidePreview({
     setShowFormattingToolbar(false);
   }, [currentSlideIndex]);
 
-  // Measure canvas DOM size for responsive scaling
+  // Measure canvas DOM size with ResizeObserver for responsive scaling
   useEffect(() => {
     const updateSize = () => {
       if (canvasRef.current) {
-        setCanvasDimensions({
-          width: canvasRef.current.clientWidth || 960,
-          height: canvasRef.current.clientHeight || 540,
-        });
+        const clientW = canvasRef.current.clientWidth;
+        const clientH = canvasRef.current.clientHeight;
+        if (clientW > 0 && clientH > 0) {
+          setCanvasDimensions({
+            width: clientW,
+            height: clientH,
+          });
+        }
       }
     };
     updateSize();
+
+    let observer = null;
+    if (window.ResizeObserver && canvasRef.current) {
+      observer = new ResizeObserver(() => {
+        updateSize();
+      });
+      observer.observe(canvasRef.current);
+    }
     window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, [currentSlideIndex]);
+
+    return () => {
+      if (observer) observer.disconnect();
+      window.removeEventListener('resize', updateSize);
+    };
+  }, [currentSlideIndex, zoomMode]);
+
+  // Keyboard navigation & ESC close for Fullscreen Modal
+  useEffect(() => {
+    if (!isFullscreenOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsFullscreenOpen(false);
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentSlideIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === 'ArrowRight') {
+        setCurrentSlideIndex((prev) => Math.min(editedSlides.length - 1, prev + 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreenOpen, editedSlides.length]);
 
   const currentSlide = editedSlides[currentSlideIndex] || {
     slideNumber: 1,
@@ -561,10 +597,10 @@ export default function SlidePreview({
         </div>
       )}
 
-      {/* Grid 2 Kolom (60% Kiri, 40% Kanan di Desktop) */}
+      {/* Grid 2 Kolom (Dominan Preview ~67% Kiri, Kontrol ~33% Kanan di Desktop) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ==================== KOLOM KIRI (60%): PREVIEW SLIDE ==================== */}
-        <div className="lg:col-span-7 flex flex-col space-y-4">
+        {/* ==================== KOLOM KIRI (67%): PREVIEW SLIDE ==================== */}
+        <div className="lg:col-span-8 flex flex-col space-y-4">
           {/* Formatting Toolbar (Sticky di atas slide saat elemen teks dipilih) */}
           {showFormattingToolbar && selectedPlaceholder && selectedPlaceholder.type === 'text' && (
             <div className="w-full animate-fade-in">
@@ -577,15 +613,71 @@ export default function SlidePreview({
             </div>
           )}
 
+          {/* Top Bar Preview: Judul Slide, Zoom Mode & Fullscreen */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-white border border-gray-200 shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-6 h-6 rounded bg-gray-900 text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">
+                #{currentSlideIndex + 1}
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-xs sm:text-sm font-bold text-gray-900 truncate max-w-[280px] sm:max-w-md">
+                  {currentSlide.placeholders?.find((p) => p.id?.startsWith('title') || p.name?.toLowerCase().includes('judul'))?.content || currentSlide.name || `Slide ${currentSlideIndex + 1}`}
+                </h3>
+                <span className="text-[10px] text-gray-500 font-medium">
+                  Layout: <span className="text-gray-800 font-semibold">{layoutDef.name || currentLayoutId}</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Zoom Mode Selector */}
+              <div className="flex items-center bg-gray-100 p-0.5 rounded-lg border border-gray-200 text-xs">
+                {[
+                  { id: 'fit', label: 'Fit' },
+                  { id: '75', label: '75%' },
+                  { id: '100', label: '100%' },
+                ].map((z) => (
+                  <button
+                    key={z.id}
+                    type="button"
+                    onClick={() => setZoomMode(z.id)}
+                    className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+                      zoomMode === z.id
+                        ? 'bg-white text-gray-900 shadow-xs'
+                        : 'text-gray-500 hover:text-gray-900'
+                    }`}
+                  >
+                    {z.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Fullscreen Expand Button */}
+              <button
+                type="button"
+                onClick={() => setIsFullscreenOpen(true)}
+                className="btn-secondary py-1.5 px-3 flex items-center gap-1.5 text-xs text-gray-800 font-semibold shadow-xs hover:bg-gray-100"
+                title="Perbesar Penuh (Fullscreen Modal)"
+              >
+                <Maximize2 className="w-3.5 h-3.5 text-gray-800" />
+                <span className="hidden sm:inline">Perbesar Penuh</span>
+              </button>
+            </div>
+          </div>
+
           {/* Canvas Container Slide */}
-          <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-xs bg-gray-50 p-2 sm:p-4 flex items-center justify-center">
+          <div className={`relative rounded-xl border border-gray-200 shadow-xs bg-gray-100/70 p-2 sm:p-5 flex items-center justify-center min-h-[380px] sm:min-h-[480px] ${
+            zoomMode === '100' ? 'overflow-x-auto' : 'overflow-hidden'
+          }`}>
             <div
               key={`slide-preview-${currentSlideIndex}-${currentSlide?.slideNumber || currentSlideIndex}`}
               ref={canvasRef}
-              className="w-full aspect-[16/9] rounded-lg overflow-hidden relative shadow-sm border border-gray-200 transition-all select-none slide-preview-container bg-white"
+              className="aspect-[16/9] rounded-lg overflow-hidden relative shadow-md border border-gray-300 transition-all select-none slide-preview-container bg-white flex-shrink-0"
               style={{
                 backgroundColor: currentSlide.background?.color || '#FFFFFF',
-                maxWidth: '960px',
+                width: zoomMode === '75' ? '75%' : zoomMode === '100' ? '1120px' : '100%',
+                maxWidth: zoomMode === '100' ? 'none' : '100%',
+                maxHeight: zoomMode === 'fit' ? 'calc(100vh - 220px)' : undefined,
               }}
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
@@ -888,27 +980,77 @@ export default function SlidePreview({
               type="button"
               onClick={() => handleSlideChange(currentSlideIndex - 1)}
               disabled={currentSlideIndex === 0}
-              className="btn-secondary py-1.5 px-3 flex items-center gap-1.5 text-xs text-gray-700 disabled:opacity-40"
+              className="btn-secondary py-2 px-3.5 flex items-center gap-2 text-xs font-semibold text-gray-800 disabled:opacity-40"
               title="Slide Sebelumnya"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Sebelumnya</span>
             </button>
 
-            <span className="text-xs font-semibold text-gray-900">
-              Slide {currentSlideIndex + 1} dari {editedSlides.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-gray-900">
+                Slide {currentSlideIndex + 1} dari {editedSlides.length}
+              </span>
+              <span className="hidden sm:inline text-gray-300">•</span>
+              <span className="hidden sm:inline text-xs text-gray-500 font-mono">
+                {Math.round(((currentSlideIndex + 1) / editedSlides.length) * 100)}%
+              </span>
+            </div>
 
             <button
               type="button"
               onClick={() => handleSlideChange(currentSlideIndex + 1)}
               disabled={currentSlideIndex === editedSlides.length - 1}
-              className="btn-secondary py-1.5 px-3 flex items-center gap-1.5 text-xs text-gray-700 disabled:opacity-40"
+              className="btn-secondary py-2 px-3.5 flex items-center gap-2 text-xs font-semibold text-gray-800 disabled:opacity-40"
               title="Slide Berikutnya"
             >
               <span>Berikutnya</span>
               <ChevronRight className="w-4 h-4" />
             </button>
+          </div>
+
+          {/* Carousel Horizontal Thumbnail Slide */}
+          <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-xs space-y-2">
+            <div className="flex items-center justify-between text-xs text-gray-500 pb-1 border-b border-gray-100">
+              <span className="font-semibold text-gray-700">Daftar Slide ({editedSlides.length})</span>
+              <span className="text-[11px] text-gray-400">Pilih slide untuk beralih</span>
+            </div>
+            <div className="flex items-center gap-2.5 overflow-x-auto py-1 scrollbar-thin">
+              {editedSlides.map((slide, index) => {
+                const isCurrent = index === currentSlideIndex;
+                const placeholders = slide.placeholders || [];
+                const titleP = placeholders.find(
+                  (p) => p.id?.startsWith('title') || p.name?.toLowerCase().includes('judul')
+                );
+                const titleText = titleP?.content || slide.name || `Slide ${index + 1}`;
+                return (
+                  <button
+                    key={`carousel-thumb-${index}`}
+                    type="button"
+                    onClick={() => handleSlideChange(index)}
+                    className={`flex-shrink-0 w-36 sm:w-44 text-left p-2 rounded-lg border transition-all ${
+                      isCurrent
+                        ? 'border-2 border-gray-900 bg-gray-50 shadow-xs ring-1 ring-gray-900/10'
+                        : 'border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                        isCurrent ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        #{index + 1}
+                      </span>
+                      <span className="text-[9px] text-gray-400 truncate max-w-[80px]">
+                        {renderLayout(slide.layoutId || slide.layout)?.name || 'Layout'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-semibold text-gray-900 line-clamp-1 truncate">
+                      {titleText}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Posisi & Ukuran Elemen (Edit Mode) */}
@@ -980,8 +1122,8 @@ export default function SlidePreview({
           )}
         </div>
 
-        {/* ==================== KOLOM KANAN (40%): PANEL KONTROL & THUMBNAIL ==================== */}
-        <div className="lg:col-span-5 flex flex-col space-y-4">
+        {/* ==================== KOLOM KANAN (33%): PANEL KONTROL & THUMBNAIL (SCROLL MANDIRI) ==================== */}
+        <div className="lg:col-span-4 flex flex-col space-y-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto lg:pr-1 scrollbar-thin">
           {/* Panel Kontrol Slide Aktif */}
           <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
@@ -1332,6 +1474,230 @@ export default function SlidePreview({
         onClose={() => setShowPlaceholderModal(false)}
         onInsert={handleInsertPlaceholder}
       />
+
+      {/* Modal Perbesar Penuh (Fullscreen Slide Viewer) */}
+      {isFullscreenOpen && (
+        <div className="fixed inset-0 z-50 bg-black/92 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 animate-fade-in select-none">
+          {/* Fullscreen Header */}
+          <div className="flex items-center justify-between text-white pb-3 border-b border-white/10 max-w-7xl w-full mx-auto">
+            <div className="flex items-center gap-3">
+              <span className="w-7 h-7 rounded bg-white text-gray-900 font-mono text-xs font-bold flex items-center justify-center">
+                #{currentSlideIndex + 1}
+              </span>
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-white line-clamp-1">
+                  {currentSlide.placeholders?.find((p) => p.id?.startsWith('title') || p.name?.toLowerCase().includes('judul'))?.content || currentSlide.name || `Slide ${currentSlideIndex + 1}`}
+                </h2>
+                <span className="text-[11px] text-gray-400">
+                  Slide {currentSlideIndex + 1} dari {editedSlides.length} • {renderLayout(currentSlide.layoutId || currentSlide.layout)?.name || 'Layout'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="hidden sm:inline text-xs text-gray-400">Tekan panah ← → untuk beralih</span>
+              <button
+                type="button"
+                onClick={() => setIsFullscreenOpen(false)}
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors border border-white/20 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+                <span>Tutup (ESC)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Fullscreen Canvas Center */}
+          <div className="relative flex-1 flex items-center justify-center py-4 max-w-7xl w-full mx-auto">
+            {/* Floating Left Button */}
+            <button
+              type="button"
+              disabled={currentSlideIndex === 0}
+              onClick={() => handleSlideChange(currentSlideIndex - 1)}
+              className="absolute left-2 sm:left-4 z-30 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center disabled:opacity-20 transition-all backdrop-blur-sm cursor-pointer"
+              title="Slide Sebelumnya"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            {/* Large 16:9 Slide Display */}
+            <div
+              className="aspect-[16/9] w-full max-w-[92vw] max-h-[80vh] rounded-xl overflow-hidden relative shadow-2xl border border-white/20 bg-white"
+              style={{
+                backgroundColor: currentSlide.background?.color || '#FFFFFF',
+              }}
+            >
+              {/* Logo in fullscreen */}
+              {logoConfig?.enabled && logoConfig?.dataUri && (() => {
+                const logoPct = computeLogoPercent(logoConfig);
+                if (!logoPct) return null;
+                return (
+                  <div
+                    className="absolute pointer-events-none select-none z-10 flex items-center justify-center"
+                    style={{
+                      left: `${logoPct.x}%`,
+                      top: `${logoPct.y}%`,
+                      width: `${logoPct.w}%`,
+                      height: `${logoPct.h}%`,
+                    }}
+                  >
+                    <img src={logoConfig.dataUri} alt="Logo" className="w-full h-full object-contain" />
+                  </div>
+                );
+              })()}
+
+              {/* Placeholders in fullscreen */}
+              {(() => {
+                const spacing = resolveSpacingConfig(typographyConfig);
+                const displayPlaceholders = equalizePointCardHeights(
+                  currentSlide.placeholders || [],
+                  typographyConfig,
+                  currentSlide.layoutId,
+                  1280,
+                  720
+                );
+                return displayPlaceholders.map((placeholder, idx) => {
+                  const isText = placeholder.type === 'text';
+                  const typo = resolvePlaceholderTypography(placeholder, typographyConfig, isDarkBg);
+                  const isPointCard =
+                    placeholder.id?.startsWith('point-') &&
+                    !isDarkBg &&
+                    currentSlide.layoutId !== 'table-of-contents';
+
+                  const rawX = parseFloat(placeholder.position?.x) || 0;
+                  const rawY = parseFloat(placeholder.position?.y) || 0;
+                  const rawW = parseFloat(placeholder.position?.w) || 10;
+                  const rawH = parseFloat(placeholder.position?.h) || 10;
+                  const isPercent = rawW > 10 || rawH > 10 || rawX > 10 || rawY > 10 || currentSlide.layoutId;
+                  const pctX = isPercent ? rawX : rawX * 10;
+                  const pctY = isPercent ? rawY : rawY * 10;
+                  const pctW = isPercent ? rawW : rawW * 10;
+                  const pctH = isPercent ? rawH : rawH * 10;
+
+                  return (
+                    <div
+                      key={`fullscreen-elem-${placeholder.id}-${idx}`}
+                      className="absolute"
+                      style={{
+                        left: `${pctX}%`,
+                        top: `${pctY}%`,
+                        width: `${pctW}%`,
+                        height: `${pctH}%`,
+                        padding: '4px',
+                      }}
+                    >
+                      {isText ? (
+                        <div
+                          className={`w-full h-full flex flex-col justify-start text-left ${
+                            isPointCard
+                              ? 'bg-white rounded-lg border border-gray-200 shadow-sm p-4'
+                              : currentSlide.layoutId === 'table-of-contents'
+                              ? 'border-b border-gray-200 pb-2 justify-end'
+                              : 'p-1'
+                          }`}
+                        >
+                          {placeholder.badge === 'arrow' && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="w-5 h-5 rounded-full bg-gray-900 text-white flex items-center justify-center text-[10px] font-bold">
+                                →
+                              </span>
+                              <span className="text-[11px] font-bold tracking-wider uppercase text-gray-500">
+                                Topik
+                              </span>
+                            </div>
+                          )}
+                          {placeholder.number && currentSlide.layoutId !== 'table-of-contents' && (
+                            <span className="font-mono font-bold text-2xl tracking-tight text-gray-900 mb-2">
+                              {placeholder.number}
+                            </span>
+                          )}
+                          {placeholder.stepLabel && (
+                            <span className="inline-block px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded bg-gray-900 text-white self-start mb-2">
+                              {placeholder.stepLabel}
+                            </span>
+                          )}
+                          {placeholder.badge === 'stat' && (
+                            <div className="w-14 h-14 rounded-full border-2 border-gray-900 bg-gray-50 flex items-center justify-center mx-auto font-mono font-bold text-lg text-gray-900 mb-2">
+                              {placeholder.content?.split('\n')[0] || '67%'}
+                            </div>
+                          )}
+                          {placeholder.badge === 'rating' && (
+                            <div className="flex flex-col items-center mb-2">
+                              <div className="w-9 h-9 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-base mb-1">
+                                👤
+                              </div>
+                              <span className="text-gray-800 text-xs font-semibold tracking-wider">
+                                ★★★★ 4.9/5
+                              </span>
+                            </div>
+                          )}
+                          <div className="w-full flex-1 overflow-hidden flex flex-col">
+                            {(placeholder.content || '').split(/\n\n+/).map((para, pIdx, arr) => (
+                              <p
+                                key={pIdx}
+                                className="whitespace-pre-wrap select-text w-full m-0 p-0"
+                                style={{
+                                  fontFamily: typo.fontFamily,
+                                  fontSize: `${typo.fontSize * 1.15}px`,
+                                  color: typo.color,
+                                  fontWeight: typo.fontWeight,
+                                  fontStyle: placeholder.isItalic ? 'italic' : 'normal',
+                                  textDecoration: placeholder.isUnderline ? 'underline' : 'none',
+                                  textAlign: placeholder.align || typo.align || 'left',
+                                  lineHeight: spacing.lineHeightBody,
+                                  marginBottom: pIdx < arr.length - 1 ? `${spacing.gapBetweenParagraphs}px` : '0px',
+                                  wordWrap: 'break-word',
+                                }}
+                              >
+                                {para}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-lg p-3 text-center bg-gray-50">
+                          <span className="text-2xl mb-1">📊</span>
+                          <span className="text-xs font-semibold text-gray-800">
+                            {placeholder.placeholder || 'Area Visual'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Floating Right Button */}
+            <button
+              type="button"
+              disabled={currentSlideIndex === editedSlides.length - 1}
+              onClick={() => handleSlideChange(currentSlideIndex + 1)}
+              className="absolute right-2 sm:right-4 z-30 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center disabled:opacity-20 transition-all backdrop-blur-sm cursor-pointer"
+              title="Slide Berikutnya"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Fullscreen Footer: Quick Thumbnails */}
+          <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 max-w-7xl w-full mx-auto scrollbar-thin">
+            {editedSlides.map((slide, idx) => (
+              <button
+                key={`fs-thumb-${idx}`}
+                type="button"
+                onClick={() => handleSlideChange(idx)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                  idx === currentSlideIndex
+                    ? 'bg-white text-gray-900 shadow-lg scale-105'
+                    : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                }`}
+              >
+                #{idx + 1}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ const {
 } = require("../utils/layoutSelector");
 const { validateContentRelevance } = require("../utils/contentValidator");
 const { validateSlideContent, isDummyText } = require("../utils/slideContentValidator");
+const { generateTopicDerivedSubtopics } = require("../utils/topicSubtopicsGenerator");
 const {
   FONT_PAIRINGS,
   getRandomPairing,
@@ -292,15 +293,18 @@ function createDynamicSubstantiveSlide(slideNumber, layoutId, userTitle, userDes
     };
   }
 
-  // Slide konten substantif
+  // Slide konten substantif yang diturunkan langsung dari safeTitle
+  const dynamicPillars = generateTopicDerivedSubtopics({
+    slideTitle: `Pilar Utama ${safeTitle}`,
+    presentationTopic: safeTitle,
+    targetCount: 3,
+    isEn,
+  });
+
   const topicsId = [
     {
       title: `Pilar Utama ${safeTitle}`,
-      points: [
-        `Penyelarasan Strategis: Mengarahkan seluruh sumber daya dan kapabilitas tim pada inisiatif prioritas guna mempercepat pencapaian target.`,
-        `Standarisasi Operasional: Membangun alur kerja terstruktur untuk memastikan konsistensi kualitas luaran di setiap lini pelaksanaan.`,
-        `Optimalisasi Berkelanjutan: Memantau metrik performa secara berkala guna melakukan adaptasi taktik berbasis data riil.`,
-      ],
+      points: dynamicPillars,
     },
     {
       title: `Langkah Eksekusi ${safeTitle}`,
@@ -322,11 +326,7 @@ function createDynamicSubstantiveSlide(slideNumber, layoutId, userTitle, userDes
   const topicsEn = [
     {
       title: `Core Strategic Pillars of ${safeTitle}`,
-      points: [
-        `Strategic Alignment: Directing core resources and team capabilities toward priority initiatives to accelerate target milestones.`,
-        `Operational Standardization: Building structured workflows to guarantee consistent elite delivery across all execution channels.`,
-        `Continuous Optimization: Tracking key performance indicators in real-time to implement data-driven tactical adjustments.`,
-      ],
+      points: dynamicPillars,
     },
     {
       title: `Tactical Execution Plan for ${safeTitle}`,
@@ -721,40 +721,29 @@ async function regenerateSlideContent({
   const validExisting = (existingContent || [])
     .filter((p) => p && typeof p === 'string' && !isDummyText(p));
 
-  // Fallback points builder (rule-based substantive expansion)
+  // Fallback points builder using dynamic topic-derived subtopics (no generic dummy text)
   const buildSubstantiveFallbackPoints = () => {
-    const poolEn = [
-      `Strategic alignment: establishing core operational milestones for ${safeTitle}.`,
-      `Performance optimization: streamlining workflow pipelines to maximize efficiency.`,
-      `Data-driven metrics: tracking quantifiable KPIs to ensure continuous improvement.`,
-      `Resource allocation: optimizing capital and talent to accelerate strategic execution.`,
-      `Risk mitigation: implementing proactive compliance and contingency frameworks.`,
-      `Scalability architecture: establishing adaptable foundations for sustained growth.`,
-    ];
-    const poolId = [
-      `Penyelarasan strategis: menetapkan tonggak operasional utama untuk ${safeTitle}.`,
-      `Optimalisasi kinerja: menyederhanakan alur kerja guna memaksimalkan efisiensi tim.`,
-      `Metrik berbasis data: memantau KPI terukur untuk menjamin peningkatan berkelanjutan.`,
-      `Alokasi sumber daya: mengoptimalkan modal dan talenta untuk percepatan eksekusi.`,
-      `Mitigasi risiko: menerapkan kepatuhan proaktif dan rencana kontinjensi yang matang.`,
-      `Arsitektur skalabilitas: membangun fondasi yang adaptif demi pertumbuhan jangka panjang.`,
-    ];
-    const pool = isEn ? poolEn : poolId;
-    const result = [...validExisting];
-    let poolIdx = 0;
-    while (result.length < targetCount && poolIdx < pool.length) {
-      if (!result.includes(pool[poolIdx])) {
-        result.push(pool[poolIdx]);
-      }
-      poolIdx++;
-    }
-    return result.slice(0, targetCount);
+    return generateTopicDerivedSubtopics({
+      slideTitle: safeTitle,
+      presentationTopic: safeTheme,
+      existingPoints: validExisting,
+      targetCount,
+      isEn,
+    });
   };
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (apiKey) {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const candidateModels = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    const candidateModels = [
+      process.env.GEMINI_MODEL,
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro",
+      "gemini-pro",
+    ].filter(Boolean);
+
     const prompt = buildRegenerateSlidePrompt({
       slideTitle: safeTitle,
       slideTheme: safeTheme,
@@ -791,6 +780,24 @@ async function regenerateSlideContent({
               data: {
                 slideTitle: parsed.title || safeTitle,
                 points: cleanedPoints.slice(0, targetCount),
+                isFallback: false,
+              },
+            };
+          } else if (cleanedPoints.length > 0) {
+            // Jika AI mengembalikan sebagian poin, lengkapi dengan topic-derived generator
+            const completed = generateTopicDerivedSubtopics({
+              slideTitle: safeTitle,
+              presentationTopic: safeTheme,
+              existingPoints: cleanedPoints,
+              targetCount,
+              isEn,
+            });
+            return {
+              success: true,
+              data: {
+                slideTitle: parsed.title || safeTitle,
+                points: completed,
+                isFallback: false,
               },
             };
           }
@@ -808,6 +815,7 @@ async function regenerateSlideContent({
     data: {
       slideTitle: safeTitle,
       points: fallbackPoints,
+      isFallback: true,
     },
   };
 }

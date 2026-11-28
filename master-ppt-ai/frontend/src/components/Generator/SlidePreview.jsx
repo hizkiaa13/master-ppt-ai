@@ -42,6 +42,7 @@ import {
   applyLayoutToSlide,
 } from '../../utils/layoutRenderer';
 import { isDummyText } from '../../utils/slideContentValidator';
+import { generateTopicDerivedSubtopics } from '../../utils/topicSubtopicsGenerator';
 import { regenerateSlideContent } from '../../services/ai';
 import { computeLogoPercent, doesOverlapLogo, LOGO_POSITIONS, LOGO_SIZES } from './LogoUploader';
 import {
@@ -75,6 +76,7 @@ export default function SlidePreview({
   slides = [],
   originalSlides = [],
   recommendations = {},
+  presentationTitle = '',
   logoConfig = null,
   onLogoChange,
   typographyConfig = DEFAULT_TYPOGRAPHY_CONFIG,
@@ -511,11 +513,12 @@ export default function SlidePreview({
       });
     }
 
-    // Jika poin bertambah → panggil AI regeneration
+    // Jika poin bertambah → panggil AI regeneration dengan konteks penuh
+    const slideTitle = targetSlide.title || targetSlide.placeholders?.find(p => p.id?.startsWith('title'))?.content || '';
+    const presentationTopic = presentationTitle || recommendations?.title || slideTitle;
+
     if (newPointCount > oldPointCount && newPointCount > existingContent.length) {
       setIsRegeneratingLayout(true);
-      const slideTitle = targetSlide.title || targetSlide.placeholders?.find(p => p.id?.startsWith('title'))?.content || '';
-      const slideTheme = slideTitle;
 
       try {
         const res = await regenerateSlideContent({
@@ -523,26 +526,49 @@ export default function SlidePreview({
           currentLayoutId: targetSlide.layoutId,
           newLayoutId,
           slideTitle,
-          slideTheme,
+          slideTheme: presentationTopic,
           outputLanguage: targetSlide.outputLanguage || 'id',
           existingContent,
           newPointCount,
         });
 
         if (res?.success && res?.data?.points && Array.isArray(res.data.points)) {
-          // Pasang konten baru ke slide sebelum applyLayoutToSlide
           targetSlide.content = res.data.points.slice(0, newPointCount);
-          toast.success(`AI berhasil menyesuaikan ${newPointCount} poin konten!`);
+          if (res.data.isFallback) {
+            toast('Konten disesuaikan secara lokal berdasarkan topik slide.', { icon: '💡' });
+          } else {
+            toast.success(`AI berhasil menyesuaikan ${newPointCount} poin konten!`);
+          }
+        } else {
+          // AI tidak mengembalikan format yang valid → fallback dinamis berbasis kata kunci topik
+          const fallbackPoints = generateTopicDerivedSubtopics({
+            slideTitle,
+            presentationTopic,
+            existingPoints: existingContent,
+            targetCount: newPointCount,
+            isEn: (targetSlide.outputLanguage || 'id').toLowerCase() === 'en',
+          });
+          targetSlide.content = fallbackPoints;
+          toast('Konten disesuaikan secara lokal berdasarkan topik slide.', { icon: '💡' });
         }
       } catch (aiErr) {
         console.warn('AI layout regeneration fallback:', aiErr.message);
-        // Biarkan applyLayoutToSlide menggunakan fallback bawaan
+        // Fallback dinamis langsung di client side agar tidak pernah muncul dummy text
+        const fallbackPoints = generateTopicDerivedSubtopics({
+          slideTitle,
+          presentationTopic,
+          existingPoints: existingContent,
+          targetCount: newPointCount,
+          isEn: (targetSlide.outputLanguage || 'id').toLowerCase() === 'en',
+        });
+        targetSlide.content = fallbackPoints;
+        toast('Konten disesuaikan secara lokal berdasarkan topik slide.', { icon: '💡' });
       } finally {
         setIsRegeneratingLayout(false);
       }
     }
 
-    // Jika poin berkurang → trim konten
+    // Jika poin berkurang → trim dari bawah, pertahankan poin teratas
     if (newPointCount < oldPointCount && newPointCount > 0 && existingContent.length > newPointCount) {
       targetSlide.content = existingContent.slice(0, newPointCount);
     }
@@ -551,6 +577,7 @@ export default function SlidePreview({
       fonts: recommendations?.fonts,
       colors: { primary: '#000000', secondary: '#1F2937', accent: '#000000' },
       outputLanguage: targetSlide.outputLanguage || 'id',
+      presentationTopic,
     });
 
     updated[currentSlideIndex] = remappedSlide;
@@ -734,6 +761,14 @@ export default function SlidePreview({
                 }
               }}
             >
+              {/* Subtle Loading Indicator saat regenerasi sub-bab */}
+              {isRegeneratingLayout && (
+                <div className="absolute top-3 right-3 z-30 bg-white/95 backdrop-blur-xs border border-gray-300 rounded-full px-3 py-1 shadow-sm flex items-center gap-2 pointer-events-none animate-pulse">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-900" />
+                  <span className="text-[11px] font-semibold text-gray-800">Menyesuaikan sub-bab topik...</span>
+                </div>
+              )}
+
               {/* Visual Alignment Guidelines saat dragging/editing */}
               {isEditMode && selectedElementId && (
                 <AlignmentGuidelines
@@ -961,29 +996,39 @@ export default function SlidePreview({
 
                               {/* Isi Teks Utama dengan reset margin & jarak paragraf konsisten */}
                               <div className="w-full flex-1 overflow-hidden flex flex-col">
-                                {(placeholder.content || '').split(/\n\n+/).map((para, pIdx, arr) => (
-                                  <p
-                                    key={pIdx}
-                                    className="whitespace-pre-wrap select-text placeholder-element w-full m-0 p-0"
-                                    style={{
-                                      fontFamily: typo.fontFamily,
-                                      fontSize: `${typo.fontSize}px`,
-                                      color: typo.color,
-                                      fontWeight: typo.fontWeight,
-                                      fontStyle: placeholder.isItalic ? 'italic' : 'normal',
-                                      textDecoration: placeholder.isUnderline ? 'underline' : 'none',
-                                      textAlign: placeholder.align || typo.align || 'left',
-                                      lineHeight: spacing.lineHeightBody,
-                                      letterSpacing: typo.letterSpacing ? `${typo.letterSpacing}px` : undefined,
-                                      marginBottom: pIdx < arr.length - 1 ? `${spacing.gapBetweenParagraphs}px` : '0px',
-                                      wordWrap: 'break-word',
-                                      overflowWrap: 'break-word',
-                                      overflow: 'hidden',
-                                    }}
-                                  >
-                                    {para}
-                                  </p>
-                                ))}
+                                {(placeholder.content || '').split(/\n\n+/).map((para, pIdx, arr) => {
+                                  const colonMatch = isPointCard && typeof para === 'string' && para.match(/^([^:\n]{2,45}):\s*([\s\S]+)$/);
+                                  return (
+                                    <div
+                                      key={pIdx}
+                                      className="whitespace-pre-wrap select-text placeholder-element w-full m-0 p-0"
+                                      style={{
+                                        fontFamily: typo.fontFamily,
+                                        fontSize: `${typo.fontSize}px`,
+                                        color: typo.color,
+                                        fontWeight: typo.fontWeight,
+                                        fontStyle: placeholder.isItalic ? 'italic' : 'normal',
+                                        textDecoration: placeholder.isUnderline ? 'underline' : 'none',
+                                        textAlign: placeholder.align || typo.align || 'left',
+                                        lineHeight: spacing.lineHeightBody,
+                                        letterSpacing: typo.letterSpacing ? `${typo.letterSpacing}px` : undefined,
+                                        marginBottom: pIdx < arr.length - 1 ? `${spacing.gapBetweenParagraphs}px` : '0px',
+                                        wordWrap: 'break-word',
+                                        overflowWrap: 'break-word',
+                                        overflow: 'hidden',
+                                      }}
+                                    >
+                                      {colonMatch ? (
+                                        <>
+                                          <strong className="font-bold text-gray-900 block mb-0.5">{colonMatch[1]}:</strong>
+                                          <span>{colonMatch[2]}</span>
+                                        </>
+                                      ) : (
+                                        para
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )
@@ -1725,26 +1770,36 @@ export default function SlidePreview({
                             </div>
                           )}
                           <div className="w-full flex-1 overflow-hidden flex flex-col">
-                            {(placeholder.content || '').split(/\n\n+/).map((para, pIdx, arr) => (
-                              <p
-                                key={pIdx}
-                                className="whitespace-pre-wrap select-text w-full m-0 p-0"
-                                style={{
-                                  fontFamily: typo.fontFamily,
-                                  fontSize: `${typo.fontSize * 1.15}px`,
-                                  color: typo.color,
-                                  fontWeight: typo.fontWeight,
-                                  fontStyle: placeholder.isItalic ? 'italic' : 'normal',
-                                  textDecoration: placeholder.isUnderline ? 'underline' : 'none',
-                                  textAlign: placeholder.align || typo.align || 'left',
-                                  lineHeight: spacing.lineHeightBody,
-                                  marginBottom: pIdx < arr.length - 1 ? `${spacing.gapBetweenParagraphs}px` : '0px',
-                                  wordWrap: 'break-word',
-                                }}
-                              >
-                                {para}
-                              </p>
-                            ))}
+                            {(placeholder.content || '').split(/\n\n+/).map((para, pIdx, arr) => {
+                              const colonMatch = isPointCard && typeof para === 'string' && para.match(/^([^:\n]{2,45}):\s*([\s\S]+)$/);
+                              return (
+                                <div
+                                  key={pIdx}
+                                  className="whitespace-pre-wrap select-text w-full m-0 p-0"
+                                  style={{
+                                    fontFamily: typo.fontFamily,
+                                    fontSize: `${typo.fontSize * 1.15}px`,
+                                    color: typo.color,
+                                    fontWeight: typo.fontWeight,
+                                    fontStyle: placeholder.isItalic ? 'italic' : 'normal',
+                                    textDecoration: placeholder.isUnderline ? 'underline' : 'none',
+                                    textAlign: placeholder.align || typo.align || 'left',
+                                    lineHeight: spacing.lineHeightBody,
+                                    marginBottom: pIdx < arr.length - 1 ? `${spacing.gapBetweenParagraphs}px` : '0px',
+                                    wordWrap: 'break-word',
+                                  }}
+                                >
+                                  {colonMatch ? (
+                                    <>
+                                      <strong className="font-bold text-gray-900 block mb-0.5">{colonMatch[1]}:</strong>
+                                      <span>{colonMatch[2]}</span>
+                                    </>
+                                  ) : (
+                                    para
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ) : (

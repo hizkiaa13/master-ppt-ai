@@ -161,7 +161,15 @@ export async function generateFinalPPTX(slides, recommendations, title, options 
           margin: isPointCard ? [6, 8, 6, 8] : [0, 0, 0, 0],
         };
 
-        slide.addText(placeholder.content || '', textOptions);
+        const colonMatch = isPointCard && typeof placeholder.content === 'string' && placeholder.content.match(/^([^:\n]{2,45}):\s*([\s\S]+)$/);
+        if (colonMatch) {
+          slide.addText([
+            { text: `${colonMatch[1]}:\n`, options: { bold: true, fontSize: (typo.fontSize || 16) + 0.5 } },
+            { text: colonMatch[2], options: { bold: false } },
+          ], textOptions);
+        } else {
+          slide.addText(placeholder.content || '', textOptions);
+        }
       } else if (placeholder.type === 'image' || placeholder.id?.startsWith('chart-')) {
         // Area placeholder visual / chart
         slide.addShape(pres.ShapeType.roundRect, {

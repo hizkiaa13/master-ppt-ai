@@ -23,6 +23,20 @@ export const dummyPatterns = [
   /implementasi\s+berkelanjutan/i,
   /penjelasan\s+implementasi\s+rencana\s+kerja/i,
   /fokus\s+utama\s+ke-\d+:\s+penjelasan\s+mendalam/i,
+  // Banned canned example texts & dummy subtopics
+  /penyelarasan\s+strategis/i,
+  /standarisasi\s+pelaksanaan/i,
+  /optimalisasi\s+berkelanjutan/i,
+  /optimasi\s+kerja/i,
+  /optimalisasi\s+kinerja/i,
+  /standarisasi\s+operasional/i,
+  /strategic\s+alignment/i,
+  /execution\s+standardization/i,
+  /operational\s+standardization/i,
+  /continuous\s+optimization/i,
+  /performance\s+optimization/i,
+  /pilar\s+strategis\s+\d+/i,
+  /strategic\s+pillar\s+\d+/i,
 ];
 
 /**

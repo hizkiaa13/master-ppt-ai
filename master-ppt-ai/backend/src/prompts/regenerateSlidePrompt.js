@@ -31,11 +31,16 @@ SLIDE CONTEXT:
 ${existingFormatted || '(None yet)'}
 
 TASK:
-1. Retain the core meaning of the ${existingContent.length} existing points.
-2. Generate ${neededCount} NEW substantive, highly relevant bullet points that directly expand on "${slideTitle}" and "${slideTheme}".
-3. STRICT PROHIBITIONS:
-   - NEVER use placeholder or dummy text such as "Lorem ipsum", "Write a short description", "Add a main point", "Your Title Here", "Reallygreatsite", "Title of the Presentation".
-   - Every point MUST provide concrete, concise, executive-level business value (1-2 sentences per point).
+1. Retain the core meaning and existing sub-headings of the ${existingContent.length} existing points.
+2. Generate ${neededCount} NEW substantive, highly relevant points that directly expand on "${slideTitle}" and "${slideTheme}".
+3. SUB-HEADING & FORMAT RULES:
+   - Each point MUST strictly follow the format: "Sub-Heading Title: Explanatory sentence."
+   - The "Sub-Heading Title" before the colon MUST be concise (2 to 5 words) and explicitly reflect the slide's specific subject matter.
+   - The explanatory sentence after the colon MUST provide 1 substantive, high-value sentence elaborating on that specific sub-heading.
+   - Across the slide, sub-headings must be complementary and never duplicate or rephrase the same idea.
+4. STRICT PROHIBITIONS:
+   - NEVER use generic placeholder or dummy text such as "Strategic Alignment", "Execution Standardization", "Continuous Optimization", "Performance Optimization", "Lorem ipsum", "Write a short description", "Add a main point", "Your Title Here", "Title of the Presentation".
+   - Sub-headings MUST NOT be generic business clichés; they must be tailored specifically to "${slideTitle}".
    - ALL output text must be strictly in English.
 
 RETURN FORMAT:
@@ -43,9 +48,8 @@ Return ONLY a valid JSON object without markdown formatting, code fences, or add
 {
   "title": "${slideTitle || 'Key Insights'}",
   "points": [
-    "Point 1 (retained or polished)",
-    "Point 2 (retained or polished)",
-    "New Point 3...",
+    "Retained Sub-Heading: Retained or polished explanation.",
+    "New Sub-Heading: Concrete 1-sentence value statement.",
     "..."
   ]
 }
@@ -63,11 +67,16 @@ KONTEKS SLIDE:
 ${existingFormatted || '(Belum ada poin)'}
 
 TUGAS:
-1. Pertahankan makna inti dari ${existingContent.length} poin yang sudah ada.
+1. Pertahankan makna inti serta judul sub-bab dari ${existingContent.length} poin yang sudah ada.
 2. Buat ${neededCount} poin BARU yang relevan, faktual, mendalam, dan selaras dengan topik "${slideTitle}" dan "${slideTheme}".
-3. LARANGAN KERAS:
-   - DILARANG menggunakan dummy text seperti "Lorem ipsum", "Write a short description", "Add a main point", "Your Title Here", "situssupercanggih", "Title of the Presentation".
-   - Setiap poin HARUS menyajikan nilai bisnis atau gagasan nyata yang ringkas dan profesional (1-2 kalimat per poin).
+3. ATURAN JUDUL SUB-BAB & FORMAT POIN:
+   - Setiap poin HARUS mengikuti format: "Judul Sub-Bab: Penjelasan substantif 1 kalimat."
+   - "Judul Sub-Bab" sebelum tanda titik dua HARUS singkat (2 sampai 5 kata) dan mencerminkan topik spesifik slide ini.
+   - Penjelasan setelah titik dua HARUS terdiri dari 1 kalimat substantif bernilai tinggi yang memperjelas sub-bab tersebut.
+   - Antar sub-bab dalam satu slide tidak boleh duplikat atau terlalu mirip maknanya.
+4. LARANGAN KERAS:
+   - DILARANG menggunakan teks contoh generik seperti "Penyelarasan Strategis", "Standarisasi Pelaksanaan", "Optimalisasi Berkelanjutan", "Optimasi Kerja", "Optimalisasi Kinerja", "Standarisasi Operasional", "Lorem ipsum", "Write a short description", "Add a main point", "Your Title Here", "situssupercanggih", "Title of the Presentation".
+   - Judul sub-bab tidak boleh berupa frasa generik lepas konteks; wajib berhubungan langsung dengan materi "${slideTitle}".
    - Seluruh teks HARUS dalam Bahasa Indonesia yang formal dan lugas.
 
 FORMAT RETURN:
@@ -75,9 +84,8 @@ Kembalikan HANYA format JSON valid tanpa format markdown, code fence, atau penje
 {
   "title": "${slideTitle || 'Poin Kunci'}",
   "points": [
-    "Poin 1 (dipertahankan/disempurnakan)",
-    "Poin 2 (dipertahankan/disempurnakan)",
-    "Poin Baru 3...",
+    "Sub-Bab Lama: Penjelasan poin lama yang dipertahankan.",
+    "Sub-Bab Baru: Penjelasan konkret 1 kalimat relevan.",
     "..."
   ]
 }

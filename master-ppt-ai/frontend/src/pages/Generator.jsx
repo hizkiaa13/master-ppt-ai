@@ -897,6 +897,7 @@ export default function Generator() {
           slides={slides}
           originalSlides={originalSlides}
           recommendations={recommendations}
+          presentationTitle={formData.customTitle || recommendations?.title || ''}
           logoConfig={formData.logoConfig}
           onLogoChange={(newLogo) => {
             setFormData((prev) => ({ ...prev, logoConfig: newLogo }));

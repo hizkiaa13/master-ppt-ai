@@ -18,6 +18,7 @@ import {
   resolveSpacingConfig,
   equalizePointCardHeights,
 } from './typographySystem.js';
+import { generateTopicDerivedSubtopics } from './topicSubtopicsGenerator.js';
 
 /**
  * Helper untuk menghitung slots layout agenda/daftar isi secara dinamis (2 sampai 8 poin).
@@ -941,6 +942,16 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
   });
 
   const slideContext = titleP?.content || slide.title || (isEn ? 'Core Topic' : 'Materi Slide');
+  const presentationContext = themeConfig?.presentationTopic || slide.presentationTopic || slideContext;
+
+  // Siapkan fallback subtopik berbasis kata kunci topik slide secara dinamis (tanpa teks contoh generik)
+  const dynamicFallbackSubtopics = generateTopicDerivedSubtopics({
+    slideTitle: slideContext,
+    presentationTopic: presentationContext,
+    existingPoints: contentItems.filter(Boolean),
+    targetCount: slots.length,
+    isEn,
+  });
 
   slots.forEach((slot, i) => {
     let itemText = contentItems[i];
@@ -954,25 +965,9 @@ export function applyLayoutToSlide(slide, newLayoutId, themeConfig = {}) {
           ? `Phase ${slot.stepLabel}: Actionable execution driving ${slideContext}`
           : `Tahap ${slot.stepLabel}: Pelaksanaan konkret dalam mendukung ${slideContext}`;
       } else {
-        const defaultSubtopicsId = [
-          'Penyelarasan Strategis: Mengarahkan kapabilitas tim pada inisiatif prioritas untuk akselerasi hasil.',
-          'Standarisasi Pelaksanaan: Memastikan konsistensi kualitas eksekusi di setiap alur kerja operasional.',
-          'Optimalisasi Berkelanjutan: Evaluasi berkala berbasis data akurat untuk menyempurnakan efisiensi.',
-          'Manajemen Risiko: Pengendalian mitigasi kendala teknis secara terukur dan adaptif.',
-          'Penguatan Kapasitas: Peningkatan kompetensi tim melalui adopsi praktik terbaik.',
-          'Pengukuran Dampak: Pemantauan metrik keberhasilan kunci secara berkala.',
-        ];
-        const defaultSubtopicsEn = [
-          'Strategic Alignment: Directing core team capabilities toward priority initiatives to accelerate outcomes.',
-          'Execution Standardization: Ensuring consistent high-grade quality across all operational workflows.',
-          'Continuous Optimization: Regular data-driven evaluations to refine long-term execution efficiency.',
-          'Risk Mitigation: Controlled management of operational bottlenecks with proactive safeguards.',
-          'Capacity Building: Elevating team competencies through modern workflow practices.',
-          'Impact Telemetry: Transparent tracking of primary performance indicators against benchmarks.',
-        ];
-        itemText = isEn
-          ? (defaultSubtopicsEn[i] || `Strategic Pillar ${i + 1}: In-depth focus advancing ${slideContext}`)
-          : (defaultSubtopicsId[i] || `Pilar Strategis ${i + 1}: Penjelasan mendalam mendukung ${slideContext}`);
+        itemText = dynamicFallbackSubtopics[i] || (isEn
+          ? `Strategic Pillar ${i + 1}: In-depth focus advancing ${slideContext}`
+          : `Pilar Strategis ${i + 1}: Penjelasan mendalam mendukung ${slideContext}`);
       }
     }
 

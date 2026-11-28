@@ -511,7 +511,7 @@ export default function Generator() {
   };
 
   return (
-    <div className={`min-h-screen py-6 sm:py-8 px-4 sm:px-6 ${step === 3 ? 'max-w-[1700px] w-full' : 'max-w-6xl'} mx-auto space-y-6 sm:space-y-8`}>
+    <div className={`min-h-screen px-4 sm:px-6 ${step === 3 ? 'max-w-[1920px] w-full py-4 sm:py-5 lg:px-5' : 'max-w-6xl py-6 sm:py-8'} mx-auto space-y-5 sm:space-y-6`}>
       {/* Exit Confirmation Modal */}
       {showExitConfirm && (
         <ExitConfirmation

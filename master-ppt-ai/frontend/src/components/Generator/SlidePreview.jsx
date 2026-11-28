@@ -121,6 +121,7 @@ export default function SlidePreview({
     toast.success(`Placeholder disisipkan: "${placeholderText.length > 25 ? placeholderText.slice(0, 25) + '...' : placeholderText}"`);
   };
 
+  const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const [canvasDimensions, setCanvasDimensions] = useState({ width: 960, height: 540 });
 
@@ -154,28 +155,59 @@ export default function SlidePreview({
     setShowFormattingToolbar(false);
   }, [currentSlideIndex]);
 
-  // Measure canvas DOM size with ResizeObserver for responsive scaling
+  // Measure container DOM size and compute optimal 16:9 slide size with balanced padding
   useEffect(() => {
     const updateSize = () => {
-      if (canvasRef.current) {
-        const clientW = canvasRef.current.clientWidth;
-        const clientH = canvasRef.current.clientHeight;
-        if (clientW > 0 && clientH > 0) {
-          setCanvasDimensions({
-            width: clientW,
-            height: clientH,
-          });
-        }
+      const container = containerRef.current;
+      if (!container) return;
+
+      const cW = container.clientWidth;
+      const cH = container.clientHeight;
+      if (cW <= 0 || cH <= 0) return;
+
+      if (zoomMode === '100') {
+        setCanvasDimensions({ width: 1200, height: 675 });
+        return;
       }
+
+      // Balanced padding around slide: generous on desktop, compact on mobile
+      const paddingX = cW > 768 ? 48 : 20;
+      const paddingY = cH > 600 ? 40 : 20;
+
+      let availW = Math.max(280, cW - paddingX * 2);
+      let availH = Math.max(160, cH - paddingY * 2);
+
+      if (zoomMode === '75') {
+        availW = availW * 0.75;
+        availH = availH * 0.75;
+      }
+
+      let targetW, targetH;
+      // 16:9 aspect ratio = 1.7777777778
+      if (availW / availH > 16 / 9) {
+        // Container is wider than 16:9 -> height is limiting factor
+        targetH = Math.round(availH);
+        targetW = Math.round(targetH * (16 / 9));
+      } else {
+        // Container is taller than 16:9 -> width is limiting factor
+        targetW = Math.round(availW);
+        targetH = Math.round(targetW * (9 / 16));
+      }
+
+      setCanvasDimensions({
+        width: Math.max(300, targetW),
+        height: Math.max(169, targetH),
+      });
     };
+
     updateSize();
 
     let observer = null;
-    if (window.ResizeObserver && canvasRef.current) {
+    if (window.ResizeObserver && containerRef.current) {
       observer = new ResizeObserver(() => {
         updateSize();
       });
-      observer.observe(canvasRef.current);
+      observer.observe(containerRef.current);
     }
     window.addEventListener('resize', updateSize);
 
@@ -597,10 +629,10 @@ export default function SlidePreview({
         </div>
       )}
 
-      {/* Grid 2 Kolom (Dominan Preview ~67% Kiri, Kontrol ~33% Kanan di Desktop) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ==================== KOLOM KIRI (67%): PREVIEW SLIDE ==================== */}
-        <div className="lg:col-span-8 flex flex-col space-y-4">
+      {/* Grid 2 Kolom (Preview ~75% Kiri, Kontrol ~25% Kanan di Desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* ==================== KOLOM KIRI (75%): PREVIEW SLIDE ==================== */}
+        <div className="lg:col-span-9 flex flex-col space-y-3">
           {/* Formatting Toolbar (Sticky di atas slide saat elemen teks dipilih) */}
           {showFormattingToolbar && selectedPlaceholder && selectedPlaceholder.type === 'text' && (
             <div className="w-full animate-fade-in">
@@ -614,13 +646,13 @@ export default function SlidePreview({
           )}
 
           {/* Top Bar Preview: Judul Slide, Zoom Mode & Fullscreen */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-white border border-gray-200 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 sm:p-3 rounded-xl bg-white border border-gray-200 shadow-xs">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-6 h-6 rounded bg-gray-900 text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">
+              <span className="w-7 h-7 rounded-lg bg-gray-900 text-white font-mono text-xs font-bold flex items-center justify-center shrink-0">
                 #{currentSlideIndex + 1}
               </span>
               <div className="min-w-0">
-                <h3 className="text-xs sm:text-sm font-bold text-gray-900 truncate max-w-[280px] sm:max-w-md">
+                <h3 className="text-xs sm:text-sm font-bold text-gray-900 truncate max-w-[200px] sm:max-w-sm lg:max-w-md">
                   {currentSlide.placeholders?.find((p) => p.id?.startsWith('title') || p.name?.toLowerCase().includes('judul'))?.content || currentSlide.name || `Slide ${currentSlideIndex + 1}`}
                 </h3>
                 <span className="text-[10px] text-gray-500 font-medium">
@@ -665,19 +697,33 @@ export default function SlidePreview({
             </div>
           </div>
 
-          {/* Canvas Container Slide */}
-          <div className={`relative rounded-xl border border-gray-200 shadow-xs bg-gray-100/70 p-2 sm:p-5 flex items-center justify-center min-h-[380px] sm:min-h-[480px] ${
-            zoomMode === '100' ? 'overflow-x-auto' : 'overflow-hidden'
-          }`}>
+          {/* Canvas Container Slide — area abu terang, slide terpusat */}
+          <div
+            ref={containerRef}
+            className={`relative rounded-2xl border border-gray-200 shadow-sm flex items-center justify-center ${
+              zoomMode === '100' ? 'overflow-auto' : 'overflow-hidden'
+            }`}
+            style={{
+              backgroundColor: '#F9FAFB',
+              height: 'calc(100vh - 240px)',
+              minHeight: '360px',
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                handleCloseToolbar();
+              }
+            }}
+          >
             <div
               key={`slide-preview-${currentSlideIndex}-${currentSlide?.slideNumber || currentSlideIndex}`}
               ref={canvasRef}
-              className="aspect-[16/9] rounded-lg overflow-hidden relative shadow-md border border-gray-300 transition-all select-none slide-preview-container bg-white flex-shrink-0"
+              className="rounded-lg overflow-hidden relative select-none slide-preview-container bg-white flex-shrink-0"
               style={{
                 backgroundColor: currentSlide.background?.color || '#FFFFFF',
-                width: zoomMode === '75' ? '75%' : zoomMode === '100' ? '1120px' : '100%',
-                maxWidth: zoomMode === '100' ? 'none' : '100%',
-                maxHeight: zoomMode === 'fit' ? 'calc(100vh - 220px)' : undefined,
+                width: `${canvasDimensions.width}px`,
+                height: `${canvasDimensions.height}px`,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
+                border: '1px solid #E5E7EB',
               }}
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
@@ -779,7 +825,7 @@ export default function SlidePreview({
                           : false
                       }
                       disableDragging={!isEditMode}
-                      snap={useSnapToGrid && isEditMode ? { x: 10, y: 10 } : undefined}
+                      snap={useSnapToGrid && isEditMode ? { x: Math.max(8, Math.round(cW / 48)), y: Math.max(8, Math.round(cH / 27)) } : undefined}
                       onDragStop={(e, d) => handleDragStop(placeholder.id, d)}
                       onResizeStop={(e, direction, ref, delta, position) => {
                         handleResizeStop(
@@ -795,9 +841,9 @@ export default function SlidePreview({
                         isEditMode ? 'cursor-move' : 'cursor-default'
                       } ${
                         isSelected
-                          ? 'ring-2 ring-gray-900 shadow-lg z-20'
+                          ? 'ring-1 ring-gray-500 shadow-md z-20'
                           : isEditMode
-                          ? 'hover:ring-1 hover:ring-gray-400 z-10'
+                          ? 'hover:ring-1 hover:ring-gray-300 z-10'
                           : 'z-10'
                       }`}
                       onClick={(e) => {
@@ -808,7 +854,9 @@ export default function SlidePreview({
                       <div
                         className={`w-full h-full p-2 rounded relative flex flex-col justify-start transition-all ${
                           isEditMode
-                            ? 'border border-dashed border-gray-400 bg-gray-50/50'
+                            ? isSelected
+                              ? 'border border-solid border-gray-400 bg-white/80'
+                              : 'border border-dashed border-gray-300/60 bg-transparent'
                             : 'border border-transparent'
                         }`}
                         style={{ overflow: 'hidden' }}
@@ -953,10 +1001,10 @@ export default function SlidePreview({
                         {/* Corner Resize Handles */}
                         {isEditMode && isSelected && (
                           <>
-                            <div className="absolute -top-1.5 -left-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
-                            <div className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
-                            <div className="absolute -bottom-1.5 -left-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
-                            <div className="absolute -bottom-1.5 -right-1.5 w-2.5 h-2.5 bg-gray-900 border border-white rounded-full pointer-events-none" />
+                            <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-white border-2 border-gray-600 rounded-sm pointer-events-none shadow-sm" />
+                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white border-2 border-gray-600 rounded-sm pointer-events-none shadow-sm" />
+                            <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 bg-white border-2 border-gray-600 rounded-sm pointer-events-none shadow-sm" />
+                            <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-white border-2 border-gray-600 rounded-sm pointer-events-none shadow-sm" />
                           </>
                         )}
                       </div>
@@ -1122,8 +1170,8 @@ export default function SlidePreview({
           )}
         </div>
 
-        {/* ==================== KOLOM KANAN (33%): PANEL KONTROL & THUMBNAIL (SCROLL MANDIRI) ==================== */}
-        <div className="lg:col-span-4 flex flex-col space-y-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto lg:pr-1 scrollbar-thin">
+        {/* ==================== KOLOM KANAN (25%): PANEL KONTROL & THUMBNAIL (SCROLL MANDIRI) ==================== */}
+        <div className="lg:col-span-3 flex flex-col space-y-3 lg:sticky lg:top-20 lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto lg:pr-1 scrollbar-thin">
           {/* Panel Kontrol Slide Aktif */}
           <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
